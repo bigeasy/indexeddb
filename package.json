@@ -1,0 +1,35 @@
+{
+    "name":             "indexeddb",
+    "version":          "9.9.9",
+    "author":           "Alan Gutierrez <alan@prettyrobots.com>",
+    "description":      "A pure-JavaScript implementation of IndexedDB that is durable and scalable.",
+    "keywords":
+    [
+                        "btree", "leveldb", "levelup", "binary", "mvcc",
+                        "database", "json", "b-tree", "concurrent", "persistence", "durable"
+    ],
+    "contributors":     [],
+    "homepage":         "https://github.com/bigeasy/indexeddb",
+    "bugs":             "https://github.com/bigeasy/indexeddb/issues",
+    "licenses":
+    [{
+                        "type": "MIT",
+                        "url": "http://github.com/bigeasy/indexeddb/raw/master/LICENSE"
+    }],
+    "repository":
+    {
+                        "type": "git",
+                        "url": "http://github.com/bigeasy/indexeddb.git"
+    },
+    "dependencies":
+    {
+    },
+    "devDependencies":
+    {
+                        "proof":              "0.0.42"
+    },
+    "scripts":
+    {
+                        "test": "proof platform win32 && proof test */*/*.t.js || t/test"
+    }
+}
