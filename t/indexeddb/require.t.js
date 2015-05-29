@@ -1,3 +1,5 @@
-require('proof')(1, function (ok) {
+require('proof')(1, prove)
+
+function prove (ok) {
     ok(require('../..'), 'require')
-})
+}
