@@ -30,6 +30,6 @@
     },
     "scripts":
     {
-                        "test": "proof t/*/*.t.js"
+                        "test": "proof test/*.t.js"
     }
 }
