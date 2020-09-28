@@ -23,6 +23,7 @@
     },
     "dependencies":
     {
+                        "event-target-shim":    "5.0.1"
     },
     "devDependencies":
     {
