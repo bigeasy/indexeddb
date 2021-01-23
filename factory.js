@@ -23,7 +23,7 @@ class DBFactory {
     static CREATE = Symbol('create')
 
     constructor (directory) {
-        this._destructible = new Destructible([ 'indexeddb', directory ])
+        this._destructible = new Destructible(`indexeddb: ${directory}`)
         const requests = new Turnstile(this._destructible.durable('requests'), { turnstiles: 4 })
         this._requests = new Turnstile.Set(requests, this._request, this)
         this._queue = new Map
@@ -47,6 +47,11 @@ class DBFactory {
             queue.push(f)
         }
     }
+
+    // IDBFactory.
+
+    // **TODO** When the version is missing we open with the current version or
+    // 1 if it does not exist.
 
     open (name, version = 0) {
         const request = new DBOpenDBRequest()
@@ -74,6 +79,12 @@ class DBFactory {
         })
         return request
     }
+
+    deleteDatabase (name) {
+        throw Error
+    }
+
+    static cmp = null
 }
 
 async function foo (shifter) {
@@ -102,8 +113,8 @@ async function foo (shifter) {
                     const memento = await Memento.open({
                     }, schema => {
                         const { queue, shifter } = new Queue().shifter().pair
-                        for await (const event of shifter.iterator()) {
-                        }
+                        //for await (const event of shifter.iterator()) {
+                        //}
                     })
                 } catch (error) {
                     rescue('rescue version problems')

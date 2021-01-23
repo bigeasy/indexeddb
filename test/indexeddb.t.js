@@ -1,5 +1,6 @@
 require('proof')(1, async okay => {
-    const latch = { promise: null, resolve: null }
+    const future = require('perhaps')
+
     const fs = require('fs').promises
     const path = require('path')
 
@@ -8,10 +9,10 @@ require('proof')(1, async okay => {
     await fs.rmdir(directory, { recursive: true })
     await fs.mkdir(directory, { recursive: true })
 
-    latch.promise = new Promise(resolve => latch.resolve = resolve)
-
     const indexedDB = require('..').create({ directory })
+
     okay(indexedDB, 'required')
+
     const request = indexedDB.open('test', 3)
 
     request.onupgradeneeded = function () {
@@ -28,7 +29,7 @@ require('proof')(1, async okay => {
     }
     request.onsuccess = function () {
         console.log('succeeded')
-        latch.resolve()
+        future.resolve()
     }
-    await latch.promise
+    await future.promise
 })
