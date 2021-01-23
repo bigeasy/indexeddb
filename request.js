@@ -1,4 +1,4 @@
-const { EventTarget, defineEventAttribute } = require('event-target-shim')
+const { EventTarget, getEventAttributeValue, setEventAttributeValue } = require('event-target-shim')
 
 class DBRequest extends EventTarget {
     constructor () {
@@ -9,19 +9,45 @@ class DBRequest extends EventTarget {
         this.onsuccess = null
         this.onerror = null
     }
-}
 
-defineEventAttribute(DBRequest.prototype, 'error')
-defineEventAttribute(DBRequest.prototype, 'success')
+    get onsuccess () {
+        return getEventAttributeValue(this, 'success')
+    }
+
+    set onsuccess (value) {
+        setEventAttributeValue(this, 'success', value)
+    }
+
+    get onerror () {
+        return getEventAttributeValue(this, 'error')
+    }
+
+    set onerror (value) {
+        setEventAttributeValue(this, 'error', value)
+    }
+}
 
 class DBOpenDBRequest extends DBRequest {
     constructor () {
         super()
     }
-}
 
-defineEventAttribute(DBOpenDBRequest.prototype, 'blocked')
-defineEventAttribute(DBOpenDBRequest.prototype, 'upgradeneeded')
+    get onblocked () {
+        return getEventAttributeValue(this, 'blocked')
+    }
+
+    set onblocked (value) {
+        setEventAttributeValue(this, 'blocked', value)
+    }
+
+    get onupgradeneeded () {
+        return getEventAttributeValue(this, 'upgradeneeded')
+    }
+
+    set onupgradeneeded (value) {
+        setEventAttributeValue(this, 'upgradeneeded', value)
+    }
+}
 
 exports.DBRequest = DBRequest
 exports.DBOpenDBRequest = DBOpenDBRequest

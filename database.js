@@ -1,10 +1,13 @@
 const { DBObjectStore } = require('./store')
+const { DBRequest } = require('./request')
+
 const Queue = require('avenue')
 
 class DBDatabase {
-    constructor (factory) {
+    constructor (factory, queues) {
         this._factory = factory
-        this._queue = new Queue
+        this._queues = queues
+        this._progress = [ false ]
     }
 
     get name () {
@@ -23,18 +26,18 @@ class DBDatabase {
         if (typeof names == 'string') {
             names = [ names ]
         }
+        const request = new DBRequest
+        this._queues.transaction.push({ method: 'transaction', names, mode, request })
         throw new Error
     }
 
     createObjectStore (name, { autoIncrement = false, keyPath = null } = {}) {
+        // **TODO** Assert we do not have a transaction error.
         if (name === undefined) {
             throw new TypeError
         }
-        const objectStore = new DBObjectStore(this, this._queue)
-        this._factory._enqueue(name, async () => {
-            console.log('called')
-        })
-        return objectStore
+        this._queues.schema.push({ method: 'store', name, autoIncrement, keyPath })
+        return new DBObjectStore(name, this, this._queues.schema, this._progress)
     }
 
     deleteObjectStore (name) {

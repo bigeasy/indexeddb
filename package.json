@@ -28,6 +28,7 @@
                         "memento":              "^0.1.1",
                         "turnstile":            "^6.0.0-alpha.56"
     },
+    "main": "indexeddb",
     "devDependencies":
     {
                         "proof":              "^9.0.3"

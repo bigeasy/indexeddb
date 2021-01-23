@@ -1,10 +1,18 @@
+const { DBRequest } = require('./request')
+
 class DBObjectStore {
-    constructor (database) {
+    constructor (name, database, queue, progress) {
+        this.name = name
         this._database = database
+        this._queue = queue
+        this._progress = progress
     }
 
     put (value, key = null) {
-        throw new Error
+        const request = new DBRequest
+        this._progress[0] = true
+        this._queue.push({ method: 'put', name: this.name, request, value })
+        return request
     }
 
     add (value, key = null) {
