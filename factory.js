@@ -80,10 +80,12 @@ class DBFactory {
         return request
     }
 
+    // **TODO** Implement `IDBFactory.deleteDatabase()`.
     deleteDatabase (name) {
         throw Error
     }
 
+    // **TODO** Put the compare function here.
     static cmp = null
 }
 
