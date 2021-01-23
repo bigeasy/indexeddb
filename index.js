@@ -2,4 +2,6 @@ const path = require('path')
 
 const { DBFactory } = require('./factory')
 
-exports.indexedDB = new DBFactory(path.resolve(__dirname, './test/tmp/indexeddb'))
+exports.create = function (directroy) {
+    return new DBFactory(directroy)
+}

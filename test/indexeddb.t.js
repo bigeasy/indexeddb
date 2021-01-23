@@ -1,13 +1,26 @@
-require('proof')(1, (okay, callback) => {
-    const { indexedDB } = require('..')
+require('proof')(1, async okay => {
+    const latch = { promise: null, resolve: null }
+    const fs = require('fs').promises
+    const path = require('path')
+
+    const directory = path.join(__dirname, 'tmp', 'indexeddb')
+
+    await fs.rmdir(directory, { recursive: true })
+    await fs.mkdir(directory, { recursive: true })
+
+    latch.promise = new Promise(resolve => latch.resolve = resolve)
+
+    const indexedDB = require('..').create({ directory })
     okay(indexedDB, 'required')
     const request = indexedDB.open('test', 3)
+
     request.onupgradeneeded = function () {
+        okay(request.readyState, 'done', 'on upgrade done')
         console.log('upgrading')
-        return
         const db = request.result
         const store = db.createObjectStore('books', { keyPath: 'isbn' })
-        store.createIndex('by_title', 'title', { unique: true })
+        return
+        // store.createIndex('by_title', 'title', { unique: true })
 
         store.put({ title: 'Quarry Memories', author: 'Fred', isbn: 123456 })
         store.put({ title: 'Water Buffaloes', author: 'Fred', isbn: 234567 })
@@ -15,6 +28,7 @@ require('proof')(1, (okay, callback) => {
     }
     request.onsuccess = function () {
         console.log('succeeded')
+        latch.resolve()
     }
-    callback()
+    await latch.promise
 })
