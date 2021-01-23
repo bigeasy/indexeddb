@@ -18,6 +18,7 @@ A pure-JavaScript, persistent implementation of IndexedDB.
 IndexedDB installs from NPM.
 
 ```text
+//{ "mode": "text" }
 npm install indexeddb
 ```
 
@@ -27,7 +28,10 @@ Proof `okay` function to assert out statements in the readme. A Proof unit test
 generally looks like this.
 
 ```javascript
-require('proof')(4, async okay => {
+//{ "code": { "tests": 4 }, "text": { "tests": 4  } }
+require('proof')(%(tests)d, async okay => {
+    //{ "include": "testRequire" }
+    //{ "include": "test" }
     okay('always okay')
     okay(true, 'okay if true')
     okay(1, 1, 'okay if equal')
