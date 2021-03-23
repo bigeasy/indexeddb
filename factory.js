@@ -10,7 +10,7 @@ const { DBDatabase } = require('./database')
 
 const comparator = require('./compare')
 
-const Queue = require('avenue')
+const { Queue } = require('avenue')
 const Future = require('perhaps')
 const Destructible = require('destructible')
 const Turnstile = require('turnstile')

@@ -1,4 +1,4 @@
-const Queue = require('avenue')
+const { Queue } = require('avenue')
 
 class Transactor {
     constructor () {
