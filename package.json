@@ -1,40 +1,39 @@
 {
-    "name":             "indexeddb",
-    "version":          "0.0.0",
-    "author":           "Alan Gutierrez <alan@prettyrobots.com>",
-    "description":      "A pure-JavaScript implementation of IndexedDB that is durable and scalable.",
+    "name":                 "indexeddb",
+    "version":              "0.0.1",
+    "description":
+
+      "A pure-JavaScript implementation of IndexedDB that is durable and scalable.",
+
     "keywords":
     [
-                        "btree", "leveldb", "levelup", "binary", "mvcc",
-                        "database", "json", "b-tree", "concurrent", "persistence", "durable"
+                            "btree", "leveldb", "levelup", "binary", "mvcc",
+                            "database", "json", "b-tree", "concurrent", "persistence",
+                            "durable"
     ],
-    "contributors":     [],
-    "homepage":         "https://github.com/bigeasy/indexeddb",
-    "bugs":             "https://github.com/bigeasy/indexeddb/issues",
-    "licenses":
-    [{
-                        "type": "MIT",
-                        "url": "http://github.com/bigeasy/indexeddb/raw/master/LICENSE"
-    }],
+    "author":               "Alan Gutierrez <alan@prettyrobots.com>",
+    "contributors":         [],
+    "homepage":             "https://github.com/bigeasy/indexeddb",
+    "bugs":                 "https://github.com/bigeasy/indexeddb/issues",
     "repository":
     {
-                        "type": "git",
-                        "url": "bigeasy/indexeddb"
+                            "type": "git",
+                            "url": "bigeasy/indexeddb"
     },
     "dependencies":
     {
-                        "event-target-shim":    "6.0.2",
-                        "avenue":               "0.6.13",
-                        "memento":              "^0.1.14",
-                        "turnstile":            "^6.0.0-alpha.74"
+                            "avenue":                       "0.6.13",
+                            "event-target-shim":            "6.0.2",
+                            "memento":                      "^0.1.14",
+                            "turnstile":                    "^6.0.0-alpha.74"
     },
-    "main": "indexeddb",
     "devDependencies":
     {
-                        "proof":              "^9.0.3"
+                            "proof":                        "^9.0.3"
     },
+    "main":                 "indexeddb",
     "scripts":
     {
-                        "test": "proof test/*.t.js"
+                            "test": "proof test/*.t.js"
     }
 }
