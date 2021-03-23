@@ -24,7 +24,7 @@
     "dependencies":
     {
                         "event-target-shim":    "6.0.2",
-                        "avenue":               "0.6.8",
+                        "avenue":               "0.6.13",
                         "memento":              "^0.1.14",
                         "turnstile":            "^6.0.0-alpha.74"
     },
