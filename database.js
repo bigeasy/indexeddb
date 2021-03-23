@@ -1,13 +1,15 @@
 const { DBObjectStore } = require('./store')
 const { DBRequest } = require('./request')
+const { DBTransaction } = require('./transaction')
 
 const Queue = require('avenue')
 
+const Loop = require('./loop')
+
 class DBDatabase {
-    constructor (factory, queues) {
-        this._factory = factory
+    constructor (database, queues) {
+        this._database = database
         this._queues = queues
-        this._progress = [ false ]
     }
 
     get name () {
@@ -27,8 +29,9 @@ class DBDatabase {
             names = [ names ]
         }
         const request = new DBRequest
-        this._queues.transaction.push({ method: 'transaction', names, mode, request })
-        throw new Error
+        const loop = new Loop
+        this._database.transactor.transaction(loop, names, mode == 'readonly')
+        return new DBTransaction(this._database, loop)
     }
 
     createObjectStore (name, { autoIncrement = false, keyPath = null } = {}) {
@@ -37,7 +40,7 @@ class DBDatabase {
             throw new TypeError
         }
         this._queues.schema.push({ method: 'store', name, autoIncrement, keyPath })
-        return new DBObjectStore(name, this, this._queues.schema, this._progress)
+        return new DBObjectStore(name, this, this._queues.schema)
     }
 
     deleteObjectStore (name) {

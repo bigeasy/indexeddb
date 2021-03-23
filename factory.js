@@ -3,6 +3,8 @@ const assert = require('assert')
 const fs = require('fs').promises
 const path = require('path')
 
+const Transactor = require('./transactor')
+
 const { DBOpenDBRequest } = require('./request')
 const { DBDatabase } = require('./database')
 
@@ -16,6 +18,8 @@ const Memento = require('memento')
 
 const { Event } = require('event-target-shim')
 
+const Loop = require('./loop')
+
 function createEvent(type, bubbles, cancelable, detail) {
     return {
         type,
@@ -23,25 +27,6 @@ function createEvent(type, bubbles, cancelable, detail) {
         bubbles: bubbles,
         cancelable: cancelable,
         detail: detail || null,
-    }
-}
-
-class Queue2 {
-    constructor () {
-        this._queue = []
-        this._future = new Future
-    }
-
-    push (event) {
-        this._queue.push(event)
-        this._future.resolve()
-    }
-
-    async consume (consumer) {
-        await this._future.promise
-        while (this._queue.length != 0) {
-            await consumer.dispatch(this._queue.shift())
-        }
     }
 }
 
@@ -101,56 +86,9 @@ class SchemaUpdate extends ReadWrite {
 }
 
 class Database {
-    constructor () {
-        this.memento = null
-    }
-
-    async open (event) {
-        this.memento = await Memento.open({
-            destructible: this._destructible.ephemeral('memento'),
-            turnstile: turnstile,
-            directory: directory,
-            comparators: { indexeddb: comparator }
-        }, new SchemaUpdate().consume(event.shifter))
-    }
-
-    _startTransactions () {
-        WAITS: for (const name in this._waits) {
-            const node = this._waits[name]
-            if (node != null && node.wait.state == 'waiting') {
-                let iterator = node.wait.head
-                while (iterator != null) {
-                    if (this._waits[iterator.name][0] !== iterator) {
-                        continue WAITS
-                    }
-                    iterator = iterator.next
-                }
-                node.wait.state = 'running'
-                // **TODO** Get this thing to run!!
-            }
-        }
-    }
-
-    _shiftTransaction (wait) {
-        let iterator = node.wait.head
-        while (iterator != null) {
-            assert(iterator === this._waits[iterator.name])
-            this._waits.shift()
-            iterator = iterator.next
-        }
-    }
-
-    async transaction (event) {
-        const wait = { head: null, state: 'waiting' }
-        for (const name of events.names) {
-            const node = { wait, name, next: wait.head }
-            wait.head = node
-            this._waits[name].push(node)
-        }
-        this._startTransactions()
-    }
-
-    async dispatch (event) {
+    constructor (factory) {
+        this._factory = factory
+        this.transactor = new Transactor
     }
 }
 
@@ -165,6 +103,7 @@ class DBFactory {
         this._destructible.durable($ => $(), 'factory', this._factory(this._queue.shifter()))
         this._memento = null
         this._databases = {}
+        this._mementos = {}
     }
 
     async _request ({ body }) {
@@ -199,34 +138,39 @@ class DBFactory {
     async _dispatch (event) {
         switch (event.method) {
         case 'open': {
+                // **TODO** Assert that it does not already exist.
                 const destructible = this._destructible.ephemeral($ => $(), `database.${event.name}`)
                 const queues = { transactions: new Queue, schema: null }
                 destructible.ephemeral($ => $(), 'open', async () => {
                     try {
-                        // **TODO** Assert that it does not already exist.
                         const directory = path.join(this._directory, event.name)
                         const update = new SchemaUpdate()
                         await fs.mkdir(directory, { recurse: true })
+                        const transactor = new Transactor
+                        const database = new Database(this)
+                        destructible.durable($ => $(), 'transactions', async () => {
+                            for await (const entry of database.transactor.queue.shifter()) {
+                                console.log(entry)
+                            }
+                        })
                         const memento = await Memento.open({
                             destructible: destructible.durable('memento'),
                             turnstile: this._turnstile,
                             directory: directory,
                             comparators: { indexeddb: comparator }
                         }, async update => {
-                            queues.schema = new Queue2
+                            queues.schema = new Loop
                             event.request.readyState = 'done'
-                            event.request.result = new DBDatabase(this, queues)
+                            event.request.result = new DBDatabase(database, queues)
                             console.log(event.request)
                             event.request.dispatchEvent(new Event('upgradeneeded'))
                             event.upgraded = true
-                            console.log('here')
                             await queues.schema.consume(new SchemaUpdate(update))
-                            console.log('there')
                         })
-                        this._databases[event.name] = new Database(destructible, memento)
+                        this._mementos[event.name] = { destructible, memento }
                         if (! event.upgraded) {
                             event.request.readyState = 'done'
-                            event.request.result = new DBDatabase(this)
+                            event.request.result = new DBDatabase(database, queues)
                         }
                         event.request.dispatchEvent(new Event('success'))
                     } catch (error) {

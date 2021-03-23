@@ -1,17 +1,15 @@
 const { DBRequest } = require('./request')
 
 class DBObjectStore {
-    constructor (name, database, queue, progress) {
+    constructor (name, database, loop) {
         this.name = name
         this._database = database
-        this._queue = queue
-        this._progress = progress
+        this._loop = loop
     }
 
     put (value, key = null) {
         const request = new DBRequest
-        this._progress[0] = true
-        this._queue.push({ method: 'put', name: this.name, request, value })
+        this._loop.push({ method: 'put', name: this.name, request, value })
         return request
     }
 
@@ -28,7 +26,13 @@ class DBObjectStore {
     }
 
     getKey (query) {
-        throw new Error
+        try {
+        const request = new DBRequest
+        this._loop.push({ method: 'put', name: this.name, request, value })
+        return request
+        } catch (error) {
+            console.log(error.stack)
+        }
     }
 
     getAll (query, count = null) {
