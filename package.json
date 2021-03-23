@@ -26,7 +26,7 @@
                         "event-target-shim":    "6.0.2",
                         "avenue":               "0.6.8",
                         "memento":              "^0.1.2",
-                        "turnstile":            "^6.0.0-alpha.56"
+                        "turnstile":            "^6.0.0-alpha.74"
     },
     "main": "indexeddb",
     "devDependencies":
