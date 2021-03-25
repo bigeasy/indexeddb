@@ -75,28 +75,30 @@ require('proof')(2, async okay => {
 
     okay(indexedDB, 'required')
 
-    const request = indexedDB.open('test', 3)
-    const future = new Future
+    {
+        const request = indexedDB.open('test', 3)
+        const future = new Future
 
-    request.onupgradeneeded = function (event) {
-        okay(request.readyState, 'done', 'on upgrade done')
-        const db = request.result
-        const store = db.createObjectStore('chair', { keyPath: 'order' })
-        // store.createIndex('by_title', 'title', { unique: true })
-        store.put(chairs[0])
-        store.put(chairs[1])
-        store.put(chairs[2])
+        request.onupgradeneeded = function (event) {
+            okay(request.readyState, 'done', 'on upgrade done')
+            const db = request.result
+            const store = db.createObjectStore('chair', { keyPath: 'order' })
+            // store.createIndex('by_title', 'title', { unique: true })
+            store.put(chairs[0])
+            store.put(chairs[1])
+            store.put(chairs[2])
+        }
+
+        request.onsuccess = function () {
+            const db = request.result
+            console.log('here')
+            console.log('here')
+            const transaction = db.transaction('chair')
+            const store = transaction.objectStore('chair')
+            const request = store.getKey(1)
+            future.resolve()
+        }
+
+        await future.promise
     }
-
-    request.onsuccess = function () {
-        const db = request.result
-        console.log('here')
-        console.log('here')
-        const transaction = db.transaction('chair')
-        const store = transaction.objectStore('chair')
-        const request = store.getKey(1)
-        future.resolve()
-    }
-
-    await future.promise
 })

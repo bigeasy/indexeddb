@@ -93,8 +93,6 @@ class Database {
 }
 
 class DBFactory {
-    static CREATE = Symbol('CREATE')
-
     constructor ({ directory }) {
         this._destructible = new Destructible(`indexeddb: ${directory}`)
         this._requests = new Turnstile(this._destructible.durable($ => $(), { isolated: true }, 'requests'))
@@ -162,7 +160,6 @@ class DBFactory {
                             queues.schema = new Loop
                             event.request.readyState = 'done'
                             event.request.result = new DBDatabase(database, queues)
-                            console.log(event.request)
                             event.request.dispatchEvent(new Event('upgradeneeded'))
                             event.upgraded = true
                             await queues.schema.consume(new SchemaUpdate(update))

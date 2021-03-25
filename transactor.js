@@ -1,5 +1,7 @@
 const { Queue } = require('avenue')
 
+// Appears to be the logic for blocking requests so that overlapping writers
+// wait on each other.
 class Transactor {
     constructor () {
         this.queue = new Queue

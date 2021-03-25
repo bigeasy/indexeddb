@@ -1,5 +1,6 @@
 const Future = require('perhaps')
 
+// TODO Why am I not using Avenue?
 class Loop {
     constructor () {
         this._queue = []
