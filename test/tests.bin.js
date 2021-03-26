@@ -52,7 +52,7 @@ require('arguable')(module, async arguable => {
         sources.push(block)
     }
     const name = path.basename(test, '.htm')
-    console.log($_(`
+    await fs.writeFile(path.resolve(__dirname, `${name}.t.js`), $_(`
         require('proof')(0, async okay => {
             const path = require('path')
             const fs = require('fs').promises
@@ -78,5 +78,5 @@ require('arguable')(module, async arguable => {
             const self = {};
             `, sources.join('\n'), `
         })
-    `))
+    `) + '\n')
 })
