@@ -203,7 +203,7 @@ class DBFactory {
     }
 
     // **TODO** Put the compare function here.
-    static cmp = null
+    cmp = comparator
 }
 
 async function foo (shifter) {
