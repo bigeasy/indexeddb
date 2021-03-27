@@ -1,4 +1,5 @@
 const { DataError } = require('./error')
+const { valuify } = require('./value')
 
 function is (object) {
     switch (typeof object) {
@@ -23,6 +24,8 @@ function compare (left, right) {
     if (arguments.length != 2) {
         throw new TypeError
     }
+    left = valuify(left)
+    right = valuify(right)
     const type = { left: is(left), right: is(right) }
     if (type.left != type.right) {
         switch (type.left) {
