@@ -1,4 +1,5 @@
 require('proof')(0, async okay => {
+    const assert = require('assert')
     const path = require('path')
     const fs = require('fs').promises
     const directory = path.join(__dirname, 'tmp', 'idbfactory_cmp')
@@ -9,15 +10,40 @@ require('proof')(0, async okay => {
     }
     await fs.mkdir(directory, { recursive: true })
 
-    const window = {
-        indexedDB: require('..').create({ directory })
-    }
+    const indexedDB = require('..').create({ directory })
+    const window = { indexedDB }
     function assert_equals (actual, expected, message) {
         okay.inc(1)
         okay(actual, expected, message)
     }
+    const scope = { name: null, count: 0 }
+    function assert_throws_dom(constructor, func, description) {
+        try {
+        } catch (error) {
+            if (error instanceof assert.AssertionError) {
+                throw error
+            }
+        }
+        okay.inc(1)
+    }
+    function assert_throws_js(constructor, func, description) {
+        try {
+            func.call(null)
+            assert(false, 'did not throw')
+        } catch (error) {
+            if (error instanceof assert.AssertionError) {
+                throw error
+            }
+            if (error.constructor !== constructor) {
+                console.log(error.stack)
+            }
+            okay(error.constructor === constructor, `${scope.name} - assertion ${scope.count++}`)
+            okay.inc(1)
+        }
+    }
     function test (f, name) {
-        okay.say(name)
+        scope.name = name
+        scope.count = 0
         f()
     }
     const self = {};

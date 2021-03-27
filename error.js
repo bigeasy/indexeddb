@@ -1,7 +1,8 @@
-class DataError extends Error {
+const DOMException = require('domexception')
+
+class DataError extends DOMException {
     constructor (message = 'Invalid data provided.') {
-        super(message)
-        this.name = 'DataError'
+        super('Something went wrong.', 'DataError')
     }
 }
 
