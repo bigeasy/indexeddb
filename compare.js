@@ -62,17 +62,17 @@ function compare (left, right) {
                 return diff
             }
         }
-        return left.length - right.length
+        return  (left.length > right.length) - (left.length < right.length)
     case 'binary':
         left = new Uint8Array(left)
         right = new Uint8Array(right)
         for (let i = 0, I = Math.min(left.length, right.length); i < I; i++) {
-            const diff = left[i] - right[i]
+            const diff = (left[i] > right[i]) - (left[i] < right[i])
             if (diff != 0) {
                 return diff
             }
         }
-        return left.length - right.length
+        return  (left.length > right.length) - (left.length < right.length)
     case 'date':
         if (left.getTime() == right.getTime()) {
             return 0
