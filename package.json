@@ -26,7 +26,7 @@
                             "domexception":                 "2.0.1",
                             "event-target-shim":            "6.0.2",
                             "memento":                      "^0.1.14",
-                            "turnstile":                    "^6.0.0-alpha.74"
+                            "turnstile":                    "^6.0.0-alpha.75"
     },
     "devDependencies":
     {
