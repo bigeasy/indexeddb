@@ -25,7 +25,7 @@
                             "avenue":                       "0.6.13",
                             "domexception":                 "2.0.1",
                             "event-target-shim":            "6.0.2",
-                            "memento":                      "^0.1.14",
+                            "memento":                      "^0.1.16",
                             "turnstile":                    "^6.0.0-alpha.75"
     },
     "devDependencies":
