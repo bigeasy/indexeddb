@@ -1,4 +1,4 @@
-const Future = require('perhaps')
+const { Future } = require('perhaps')
 
 // TODO Why am I not using Avenue?
 class Loop {

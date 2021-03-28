@@ -1,5 +1,5 @@
 require('proof')(2, async okay => {
-    const Future = require('perhaps')
+    const { Future } = require('perhaps')
 
     const fs = require('fs').promises
     const path = require('path')
