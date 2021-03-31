@@ -7,9 +7,10 @@ const Queue = require('avenue')
 const Loop = require('./loop')
 
 class DBDatabase {
-    constructor (database, queues) {
+    constructor (database, queues, redux) {
         this._database = database
         this._queues = queues
+        this._queue = redux
     }
 
     get name () {
@@ -39,7 +40,7 @@ class DBDatabase {
         if (name === undefined) {
             throw new TypeError
         }
-        this._queues.schema.push({ method: 'store', name, autoIncrement, keyPath })
+        this._queue.push({ method: 'store', name, autoIncrement, keyPath })
         return new DBObjectStore(name, this, this._queues.schema)
     }
 

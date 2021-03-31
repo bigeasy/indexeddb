@@ -90,6 +90,9 @@ require('proof')(2, async okay => {
         }
 
         request.onsuccess = function () {
+            console.log('called!!!')
+            future.resolve()
+            return
             const db = request.result
             console.log('here')
             console.log('here')

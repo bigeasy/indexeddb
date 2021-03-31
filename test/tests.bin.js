@@ -55,6 +55,7 @@ require('arguable')(module, async arguable => {
     await fs.writeFile(path.resolve(__dirname, `${name}.t.js`), $_(`
         require('proof')(0, async okay => {
             const assert = require('assert')
+            const Future = require('perhaps')
             const path = require('path')
             const fs = require('fs').promises
             const directory = path.join(__dirname, 'tmp', ${util.inspect(name)})
@@ -71,7 +72,97 @@ require('arguable')(module, async arguable => {
                 okay.inc(1)
                 okay(actual, expected, message)
             }
+            function assert_true (condition, message) {
+                okay.inc(1)
+                okay(condition, message)
+            }
             const scope = { name: null, count: 0 }
+            class Test {
+                constructor (future, name, properties) {
+                    this.name = name
+                    this.phase = this.phases.INITIAL
+                    this.status = this.statuses.NORUN
+                    this.timeout_id = null
+                    this.index = null
+                    this.properites = properties || {}
+                    this.steps = []
+                    this._future = future
+                }
+                statuses = {
+                    PASS:0,
+                    FAIL:1,
+                    TIMEOUT:2,
+                    NOTRUN:3,
+                    PRECONDITION_FAILED:4
+                }
+                phases = {
+                    INITIAL:0,
+                    STARTED:1,
+                    HAS_RESULT:2,
+                    CLEANING:3,
+                    COMPLETE:4
+                }
+                step (func, ...vargs) {
+                    const self = vargs.length == 0 ? this : vargs.shift()
+                    if (this.phase > this.phases.STARTED) {
+                        return
+                    }
+                    this.phase = this.phases.STARTED
+                    try {
+                        return func.apply(self, vargs)
+                    } catch (error) {
+                        throw error
+                    }
+                }
+                step_func (f, self, ...vargs) {
+                    if (arguments.length == 1) {
+                        self = this
+                    }
+                    return () => {
+                        return this.step.apply(this, [ f, self ].concat(vargs))
+                    }
+                }
+                done () {
+                    this._future.resolve()
+                }
+            }
+            function createdb (test, ...vargs) {
+                const name = vargs.shift() || 'test-db' + new Date().getTime() + Math.random()
+                const version = vargs.shift() || null
+                const request = version ? indexedDB.open(name, version) : indexedDB.open(name)
+                function autoFail (eventName, currentTest) {
+                    request.manuallyHandled = {}
+                    request.addEventListener(eventName, function (event) {
+                        if (currentTest === test) {
+                            test.step(function () {
+                                if (! request.manuallyHandled[eventName]) {
+                                    assert(false, 'unexpected open.' + eventName + ' event')
+                                }
+                                if (e.target.result + '' == '[object IDBDatabase]' && ! this.db) {
+                                    this.db = e.target.result
+                                    this.db.onerror = fail(test, 'unexpected db.error')
+                                    this.db.onabort = fail(test, 'unexpected db.abort')
+                                    this.db.onversionchange = fail(test, 'unexpected db.abort')
+                                }
+                            })
+                        }
+                    })
+                    request.__defineSetter__('on' + eventName, function(handler) {
+                        request.manuallyHandled[eventName] = true
+                        if (!handler) {
+                            request.addEventListener(eventName, function() {})
+                        } else {
+                            request.addEventListener(eventName, test.step_func(handler))
+                        }
+                    })
+                }
+                autoFail('upgradeneeded', test)
+                autoFail('success', test)
+                autoFail('blocked', test)
+                autoFail('error', test)
+                return request
+            }
+            const futures = []
             function assert_throws_dom(type, func, description) {
                 try {
                     func.call(null)
@@ -183,7 +274,21 @@ require('arguable')(module, async arguable => {
                 scope.count = 0
                 f()
             }
+            const document = { title: 'Web Platform Tests' }
+            function async_test (...vargs) {
+                const properties = vargs.pop()
+                scope.name = vargs.pop()
+                const f = vargs.pop() || null
+                const future = new Future
+                futures.push(future)
+                if (f != null) {
+                }
+                return new Test(future)
+            }
             `, sources.join('\n'), `
+            for (const future of futures) {
+                await future.promise
+            }
         })
     `) + '\n')
 })

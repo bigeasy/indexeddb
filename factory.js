@@ -34,7 +34,6 @@ async function consume (shifter, consumer) {
     for await (const event of shifter) {
         await consumer.dispatch(event)
     }
-    console.log('completed')
 }
 
 class ReadOnly {
@@ -54,7 +53,6 @@ class ReadWrite extends ReadOnly {
     async dispatch (event) {
         switch (event.method) {
         case 'put': {
-                console.log('set', event.name)
                 this._transaction.set(event.name, event.value)
             }
             break
@@ -70,14 +68,12 @@ class SchemaUpdate extends ReadWrite {
     async dispatch (event) {
         switch (event.method) {
         case 'store': {
-                console.log('created', event.name)
                 const key = {}
                 key[event.keyPath] = 'indexeddb'
                 await this._transaction.store(event.name, key)
             }
             break
         default: {
-                console.log(event)
                 await super.dispatch(event)
             }
             break
@@ -157,12 +153,16 @@ class DBFactory {
                             directory: directory,
                             comparators: { indexeddb: comparator }
                         }, async update => {
-                            queues.schema = new Loop
+                            const paired = new Queue().shifter().paired
                             event.request.readyState = 'done'
-                            event.request.result = new DBDatabase(database, queues)
+                            event.request.result = new DBDatabase(database, queues, paired.queue)
                             event.request.dispatchEvent(new Event('upgradeneeded'))
                             event.upgraded = true
-                            await queues.schema.consume(new SchemaUpdate(update))
+                            const schema = new SchemaUpdate(update)
+                            paired.queue.push(null)
+                            for await (const event of paired.shifter) {
+                                await schema.dispatch(event)
+                            }
                         })
                         this._mementos[event.name] = { destructible, memento }
                         if (! event.upgraded) {
