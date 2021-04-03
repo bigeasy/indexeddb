@@ -1,4 +1,5 @@
 module.exports = async function (okay, name) {
+    const { Future } = require('perhaps')
     const fs = require('fs').promises
     const assert = require('assert')
     const path = require('path')
@@ -6,13 +7,7 @@ module.exports = async function (okay, name) {
     const directory = path.join(__dirname, 'tmp', name)
     await rmrf(process.version, fs, directory)
     await fs.mkdir(directory, { recursive: true })
-    class Test {
-    }
-    globalize(Test)
-    const indexedDB = require('..').create({ directory })
-    globalize(indexedDB, 'indexedDB')
-    globalize({ indexedDB }, 'window')
-    const scope = {}
+    let count = 0
     function globalize (value, name = null) {
         if (name == null) {
             switch (typeof value) {
@@ -25,6 +20,71 @@ module.exports = async function (okay, name) {
             okay.leak(name)
         }
     }
+    const indexedDB = require('..').create({ directory })
+    globalize(indexedDB, 'indexedDB')
+    globalize({ indexedDB }, 'window')
+    class Test {
+        constructor (future, name, properties) {
+            this.name = name
+            this.phase = this.phases.INITIAL
+            this.status = this.statuses.NORUN
+            this.timeout_id = null
+            this.index = null
+            this.properites = properties || {}
+            this._future = future
+            count++
+        }
+        statuses = {
+            PASS:0,
+            FAIL:1,
+            TIMEOUT:2,
+            NOTRUN:3,
+            PRECONDITION_FAILED:4
+        }
+        phases = {
+            INITIAL:0,
+            STARTED:1,
+            HAS_RESULT:2,
+            CLEANING:3,
+            COMPLETE:4
+        }
+        step (func, ...vargs) {
+            const self = vargs.length == 0 ? this : vargs.shift()
+            if (this.phase > this.phases.STARTED) {
+                return
+            }
+            this.phase = this.phases.STARTED
+            try {
+                return func.apply(self, vargs)
+            } catch (error) {
+                throw error
+            }
+        }
+        step_func (f, self, ...vargs) {
+            if (arguments.length == 1) {
+                self = this
+            }
+            return () => {
+                return this.step.apply(this, [ f, self ].concat(vargs))
+            }
+        }
+        done () {
+            this._future.resolve()
+        }
+    }
+    globalize(Test)
+    const scope = {}, futures = []
+    function async_test (...vargs) {
+        const properties = vargs.pop()
+        scope.name = vargs.pop()
+        const f = vargs.pop() || null
+        const future = new Future
+        futures.push(future)
+        if (f != null) {
+        }
+        return new Test(future)
+    }
+    globalize(async_test)
     function test (f, name) {
         scope.name = name
         scope.count = 0
@@ -143,4 +203,5 @@ module.exports = async function (okay, name) {
         }
     }
     globalize(assert_throws_dom)
+    return futures
 }
