@@ -98,6 +98,7 @@ class DBFactory {
         this._memento = null
         this._databases = {}
         this._mementos = {}
+        this._queues = {}
     }
 
     async _request ({ body }) {
@@ -134,8 +135,12 @@ class DBFactory {
         case 'open': {
                 // **TODO** Assert that it does not already exist.
                 const destructible = this._destructible.ephemeral($ => $(), `database.${event.name}`)
-                const queues = { transactions: new Queue, schema: null }
-                destructible.ephemeral($ => $(), 'open', async () => {
+                const queues = {
+                    transactions: new Queue().shifter().paired,
+                    schema: null
+                }
+                this._queues[event.name] = queues
+                destructible.ephemeral($ => $(), 'connections', async () => {
                     try {
                         const directory = path.join(this._directory, event.name)
                         const update = new SchemaUpdate()
@@ -171,6 +176,9 @@ class DBFactory {
                         }
                         console.log('WILL SUCCESS')
                         event.request.dispatchEvent(new Event('success'))
+                        for await (const event of queues.transactions.shifter) {
+                        }
+                        await memento.close()
                     } catch (error) {
                         console.log(error.stack)
                         rescue(error, [{ symbol: Memento.Error.ROLLBACK }])

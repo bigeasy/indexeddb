@@ -51,6 +51,7 @@ class DBDatabase {
 
     // https://www.w3.org/TR/IndexedDB/#dom-idbdatabase-close
     close () {
+        this._queues.transactions.queue.push(null)
     }
 
     // **TODO** `onabort`, `onclose`, `onerror`, `onversionchange`.
