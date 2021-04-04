@@ -155,7 +155,7 @@ class DBFactory {
                         }, async update => {
                             const paired = new Queue().shifter().paired
                             event.request.readyState = 'done'
-                            event.request.result = new DBDatabase(database, queues, paired.queue)
+                            event.request.result = new DBDatabase(database, queues, paired.queue, event.name)
                             event.request.dispatchEvent(new Event('upgradeneeded'))
                             event.upgraded = true
                             const schema = new SchemaUpdate(update)
@@ -169,6 +169,7 @@ class DBFactory {
                             event.request.readyState = 'done'
                             event.request.result = new DBDatabase(database, queues)
                         }
+                        console.log('WILL SUCCESS')
                         event.request.dispatchEvent(new Event('success'))
                     } catch (error) {
                         console.log(error.stack)
@@ -199,7 +200,6 @@ class DBFactory {
 
     // **TODO** Implement `IDBFactory.deleteDatabase()`.
     deleteDatabase (name) {
-        throw Error
     }
 
     // **TODO** Put the compare function here.

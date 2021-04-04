@@ -1,5 +1,5 @@
 require('proof')(3, async okay => {
-    const futures = await require('./harness')(okay, 'harness.t.js')
+    await require('./harness')(okay, 'harness.t.js')
     const { Future } = require('perhaps')
     // Open and delete an IndexedDB.
     {
@@ -13,16 +13,34 @@ require('proof')(3, async okay => {
     }
     // Create an async test.
     {
-        const test = async_test('project-name')
-        test.step(function () {
-            test.step_func(function () {
-                okay('stepped')
-                test.done()
-            })()
+        await harness(async function () {
+            const test = async_test('project-name')
+            test.step(function () {
+                test.step_func(function () {
+                    okay('stepped')
+                    test.done()
+                })()
+            })
         })
     }
-    okay(futures.length != 0, 'has futures')
-    for (const future of futures) {
-        await future.promise
+    // Test cleanup.
+    {
+        await harness(async function () {
+            add_completion_callback(function () {
+                okay('janitor')
+            })
+        })
+    }
+    // Open and close a database from IndexedDB test harness.
+    {
+        await harness(async function () {
+            const test = async_test('createdb')
+            createdb(test).onupgradeneeded = function (event) {
+                console.log('did call', arguments)
+                event.target.onsuccess = test.step_func(function (event) {
+                    test.done()
+                })
+            }
+        })
     }
 })

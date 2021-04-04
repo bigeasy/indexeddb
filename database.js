@@ -7,14 +7,15 @@ const Queue = require('avenue')
 const Loop = require('./loop')
 
 class DBDatabase {
-    constructor (database, queues, redux) {
+    constructor (database, queues, redux, name) {
         this._database = database
         this._queues = queues
         this._queue = redux
+        this._name = name
     }
 
     get name () {
-        throw new Error
+        return this._name
     }
 
     get version () {
@@ -46,6 +47,10 @@ class DBDatabase {
 
     deleteObjectStore (name) {
         throw new Error
+    }
+
+    // https://www.w3.org/TR/IndexedDB/#dom-idbdatabase-close
+    close () {
     }
 
     // **TODO** `onabort`, `onclose`, `onerror`, `onversionchange`.

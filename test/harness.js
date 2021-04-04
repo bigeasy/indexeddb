@@ -7,7 +7,6 @@ module.exports = async function (okay, name) {
     const directory = path.join(__dirname, 'tmp', name)
     await rmrf(process.version, fs, directory)
     await fs.mkdir(directory, { recursive: true })
-    let count = 0
     function globalize (value, name = null) {
         if (name == null) {
             switch (typeof value) {
@@ -23,6 +22,7 @@ module.exports = async function (okay, name) {
     const indexedDB = require('..').create({ directory })
     globalize(indexedDB, 'indexedDB')
     globalize({ indexedDB }, 'window')
+    const tests = []
     class Test {
         constructor (future, name, properties) {
             this.name = name
@@ -32,7 +32,7 @@ module.exports = async function (okay, name) {
             this.index = null
             this.properites = properties || {}
             this._future = future
-            count++
+            tests.push(this)
         }
         statuses = {
             PASS:0,
@@ -64,8 +64,9 @@ module.exports = async function (okay, name) {
             if (arguments.length == 1) {
                 self = this
             }
-            return () => {
-                return this.step.apply(this, [ f, self ].concat(vargs))
+            const step = this.step
+            return function (...vargs) {
+                return step.apply(self, [ f, self ].concat(vargs))
             }
         }
         done () {
@@ -203,5 +204,78 @@ module.exports = async function (okay, name) {
         }
     }
     globalize(assert_throws_dom)
+    const janitors = []
+    function add_completion_callback (janitor) {
+        janitors.push(janitor)
+    }
+    globalize(add_completion_callback)
+    // `createdb(test[, name][, version])`
+    //
+    // Create a database with an optional name that always includes a random
+    // suffix and an optional version. If there is no version the database is
+    // opened without a version.
+    //
+    // We set handlers for the error states error, abort and version change and
+    // raise an exception if the user has not explicitly set a handler for those
+    // events.
+    function createdb (test, ...vargs) {
+        const name = vargs.shift() || 'test-db' + new Date().getTime() + Math.random()
+        const version = vargs.shift() || null
+        const request = version ? indexedDB.open(name, version) : indexedDB.open(name)
+        const handled = {}
+        function fail (eventName, currentTest) {
+            request.addEventListener(eventName, function (event) {
+                if (currentTest === test) {
+                    // This step thing kills me. It's a synchronous function. What's
+                    // the point?
+                    test.step(function () {
+                        if (! handled[eventName]) {
+                            assert(false, 'unexpected open.' + eventName + ' event')
+                        }
+                        // What are we asserting here?
+                        if (! this.db) {
+                            this.db = event.target.result
+                            //this.db.onerror = fail(test, 'unexpected db.error')
+                            //this.db.onabort = fail(test, 'unexpected db.abort')
+                            //this.db.onversionchange = fail(test, 'unexpected db.abort')
+                        }
+                    })
+                }
+            })
+            request.__defineSetter__('on' + eventName, function(handler) {
+                handled[eventName] = true
+                if (! handler) {
+                    request.addEventListener(eventName, function() {})
+                } else {
+                    request.addEventListener(eventName, test.step_func(handler))
+                }
+            })
+        }
+        fail('upgradeneeded', test)
+        fail('success', test)
+        fail('blocked', test)
+        fail('error', test)
+        return request
+    }
+    globalize(createdb)
+    async function harness (f) {
+        add_completion_callback(function () {
+            for (const test of tests) {
+                if (test.db) {
+                    test.db.close()
+                    console.log(indexedDB.deleteDatabase)
+                    indexedDB.deleteDatabase(test.db.name)
+                }
+            }
+        })
+        await f()
+        while (futures.length != 0) {
+            await futures.shift().promise
+        }
+        while (janitors.length != 0) {
+            janitors.shift()()
+        }
+    }
+    globalize(harness)
     return futures
 }
