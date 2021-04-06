@@ -1,6 +1,8 @@
 const { DBRequest } = require('./request')
 const { dispatchEvent } = require('./dispatch')
 
+const assert = require('assert')
+
 // Not sure if IndexedDB API expects the same object store returned from every
 // transaction, no idea how that would work, so this isn't an object that
 // implements a store, it is an object that is an interface to a store for a
@@ -12,10 +14,12 @@ class DBObjectStore {
     // object store, we push messages with a request object. The work is
     // performed by the loop object. The loop object is run after the locking is
     // performed.
-    constructor (name, database, loop) {
+    constructor (name, database, loop, schema) {
+        assert(schema, 'schema is null')
         this._name = name
         this._database = database
         this._loop = loop
+        this._schema = schema
     }
 
     get name () {
@@ -29,6 +33,9 @@ class DBObjectStore {
     }
 
     add (value, key = null) {
+        if (key == null) {
+            key = (this._schema.extractor)(value)
+        }
         const request = new DBRequest
         this._loop.queue.push({ method: 'add', request, name: this._name, value, key })
         return request

@@ -113,8 +113,7 @@ class DBFactory {
                             const paired = new Queue().shifter().paired
                             event.request.readyState = 'done'
                             const loop = new Loop
-                            const database = event.request.result = new DBDatabase(transactor, loop, 'versionupgrade')
-                            const transaction = new DBTransaction(database, loop, 'versionupgrade')
+                            const database = event.request.result = new DBDatabase(schema, transactor, loop, 'versionupgrade')
                             dispatchEvent(event.request, new Event('upgradeneeded'))
                             event.upgraded = true
                             await loop.run(upgrade, schema)

@@ -26,26 +26,21 @@ class Loop {
             // are not going to use this object if the upgrade fails.
             case 'store': {
                     const { name, keyPath, autoIncrement } = event
-                    schema[name] = {
-                        keyPath, autoIncrement, extractor: extractify(keyPath)
-                    }
                     transaction.set('schema', { name: `store.${name}`, keyPath, autoIncrement })
                     await transaction.store(`store.${name}`, { key: 'indexeddb' })
                 }
                 break
             case 'put':
             case 'add': {
-                    const { name, value } = event, { extractor } = schema[name]
-                    const key = extractor(value)
+                    // TODO Move extraction into store interface.
+                    const { name, key, value } = event
                     transaction.set(`store.${name}`, { key, value })
                 }
                 break
             case 'get': {
                     try {
-    // TODO Move extraction into store interface.
                     const { name, key, request } = event
                     const got = await transaction.get(`store.${name}`, [ key ])
-                    console.log(got)
                     request.result = Verbatim.deserialize(Verbatim.serialize(got.value))
                     dispatchEvent(request, new Event('success'))
                     } catch (error) {

@@ -1,13 +1,15 @@
 const { DBObjectStore } = require('./store')
 const { DBRequest } = require('./request')
 const { DBTransaction } = require('./transaction')
+const { extractify } = require('./extractor')
 
 const Queue = require('avenue')
 
 const Loop = require('./loop')
 
 class DBDatabase {
-    constructor (transactor, loop, mode) {
+    constructor (schema, transactor, loop, mode) {
+        this._schema = schema
         this._transactor = transactor
         this._loop = loop
         this._mode = mode
@@ -32,7 +34,7 @@ class DBDatabase {
         const request = new DBRequest
         const loop = new Loop
         this._transactor.transaction(loop, names, mode == 'readonly')
-        return new DBTransaction(this._database, loop)
+        return new DBTransaction(this._schema, this._database, loop)
     }
 
     createObjectStore (name, { autoIncrement = false, keyPath = null } = {}) {
@@ -40,8 +42,12 @@ class DBDatabase {
         if (name === undefined) {
             throw new TypeError
         }
+        this._schema[name] = {
+            keyPath, autoIncrement, extractor: extractify(keyPath)
+        }
         this._loop.queue.push({ method: 'store', name, autoIncrement, keyPath })
-        return new DBObjectStore(name, this, this._loop)
+        console.log(this._schema, name)
+        return new DBObjectStore(name, this, this._loop, this._schema[name])
     }
 
     deleteObjectStore (name) {

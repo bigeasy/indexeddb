@@ -2,7 +2,8 @@ const { DBObjectStore } = require('./store')
 const { Queue } = require('avenue')
 
 class DBTransaction {
-    constructor (database, loop, mode) {
+    constructor (schema, database, loop, mode) {
+        this._schema = schema
         this._database = database
         this._loop = loop
         this._mode = mode
@@ -24,7 +25,7 @@ class DBTransaction {
     }
 
     objectStore (name) {
-        return new DBObjectStore(name, this._database, this._loop)
+        return new DBObjectStore(name, this._database, this._loop, this._schema[name])
     }
 
     abort () {
