@@ -38,7 +38,6 @@ class Loop {
                     const got = await transaction.get(name, [ key ])
                     request.result = Verbatim.deserialize(Verbatim.serialize(got))
                     dispatchEvent(request, new Event('success'))
-                    console.log(copy)
                 }
                 break
             }
