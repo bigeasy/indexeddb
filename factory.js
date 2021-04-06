@@ -4,6 +4,7 @@ const fs = require('fs').promises
 const path = require('path')
 
 const Transactor = require('./transactor')
+const { DBTransaction } = require('./transaction')
 
 const { DBOpenDBRequest } = require('./request')
 const { DBDatabase } = require('./database')
@@ -13,12 +14,13 @@ const comparator = require('./compare')
 const { Queue } = require('avenue')
 const Future = require('perhaps')
 const Destructible = require('destructible')
-const Turnstile = require('turnstile')
 const Memento = require('memento')
 
 const { Event } = require('event-target-shim')
+const { dispatchEvent } = require('./dispatch')
 
 const Loop = require('./loop')
+
 
 function createEvent(type, bubbles, cancelable, detail) {
     return {
@@ -30,74 +32,23 @@ function createEvent(type, bubbles, cancelable, detail) {
     }
 }
 
-async function consume (shifter, consumer) {
-    for await (const event of shifter) {
-        await consumer.dispatch(event)
-    }
-}
-
-class ReadOnly {
-    constructor (transaction) {
-        this._transaction = transaction
-    }
-
-    async dispatch (event) {
-    }
-}
-
-class ReadWrite extends ReadOnly {
-    constructor (transaction) {
-        super(transaction)
-    }
-
-    async dispatch (event) {
-        switch (event.method) {
-        case 'put': {
-                this._transaction.set(event.name, event.value)
-            }
-            break
-        }
-    }
-}
-
-class SchemaUpdate extends ReadWrite {
-    constructor (transaction, progress) {
-        super(transaction)
-    }
-
-    async dispatch (event) {
-        switch (event.method) {
-        case 'store': {
-                const key = {}
-                key[event.keyPath] = 'indexeddb'
-                await this._transaction.store(event.name, key)
-            }
-            break
-        default: {
-                await super.dispatch(event)
-            }
-            break
-        }
-    }
-}
-
 class Database {
-    constructor (factory) {
-        this._factory = factory
-        this.transactor = new Transactor
+    constructor (destructible, memento, transactor, queue) {
+        this.destructible = destructible
+        this.memento = memento
+        this.transactor = transactor
+        this.queue = queue
     }
 }
 
 class DBFactory {
     constructor ({ directory }) {
         this._destructible = new Destructible(`indexeddb: ${directory}`)
-        this._requests = new Turnstile(this._destructible.durable($ => $(), { isolated: true }, 'requests'))
         this._directory = directory
         this._queue = new Queue
         this._destructible.durable($ => $(), 'factory', this._factory(this._queue.shifter()))
         this._memento = null
         this._databases = {}
-        this._mementos = {}
         this._queues = {}
     }
 
@@ -143,15 +94,10 @@ class DBFactory {
                 destructible.ephemeral($ => $(), 'connections', async () => {
                     try {
                         const directory = path.join(this._directory, event.name)
-                        const update = new SchemaUpdate()
                         await fs.mkdir(directory, { recurse: true })
                         const transactor = new Transactor
-                        const database = new Database(this)
-                        destructible.durable($ => $(), 'transactions', async () => {
-                            for await (const entry of database.transactor.queue.shifter()) {
-                                console.log(entry)
-                            }
-                        })
+                        const transactions = transactor.queue.shifter()
+                        const paired = new Queue().shifter().paired
                         const memento = await Memento.open({
                             destructible: destructible.durable('memento'),
                             turnstile: this._turnstile,
@@ -160,23 +106,30 @@ class DBFactory {
                         }, async update => {
                             const paired = new Queue().shifter().paired
                             event.request.readyState = 'done'
-                            event.request.result = new DBDatabase(database, queues, paired.queue, event.name)
-                            event.request.dispatchEvent(new Event('upgradeneeded'))
+                            const loop = new Loop
+                            const database = event.request.result = new DBDatabase(transactor, loop, 'versionupgrade')
+                            const transaction = new DBTransaction(database, loop, 'versionupgrade')
+                            dispatchEvent(event.request, new Event('upgradeneeded'))
                             event.upgraded = true
-                            const schema = new SchemaUpdate(update)
-                            paired.queue.push(null)
-                            for await (const event of paired.shifter) {
-                                await schema.dispatch(event)
-                            }
+                            await loop.run(update)
                         })
-                        this._mementos[event.name] = { destructible, memento }
+                        this._databases[event.name] = { destructible, memento, transactor, queue: paired.queue }
                         if (! event.upgraded) {
+                            loop.terminated = true
                             event.request.readyState = 'done'
                             event.request.result = new DBDatabase(database, queues)
                         }
                         console.log('WILL SUCCESS')
-                        event.request.dispatchEvent(new Event('success'))
-                        for await (const event of queues.transactions.shifter) {
+                        dispatchEvent(event.request, new Event('success'))
+                        let count = 0
+                        for await (const event of transactions) {
+                            const { names, extra: loop } = event
+                            console.log(names, loop)
+                            destructible.ephemeral(`transaction.${count++}`, async () => {
+                                await memento.snapshot(async snapshot => {
+                                    await loop.run(snapshot)
+                                })
+                            })
                         }
                         await memento.close()
                     } catch (error) {

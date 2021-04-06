@@ -27,7 +27,7 @@
                             "event-target-shim":            "6.0.2",
                             "memento":                      "^0.1.16",
                             "perhaps":                      "0.0.10",
-                            "turnstile":                    "^6.0.0-alpha.75"
+                            "verbatim":                     "0.1.2"
     },
     "devDependencies":
     {

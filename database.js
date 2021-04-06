@@ -7,11 +7,10 @@ const Queue = require('avenue')
 const Loop = require('./loop')
 
 class DBDatabase {
-    constructor (database, queues, redux, name) {
-        this._database = database
-        this._queues = queues
-        this._queue = redux
-        this._name = name
+    constructor (transactor, loop, mode) {
+        this._transactor = transactor
+        this._loop = loop
+        this._mode = mode
     }
 
     get name () {
@@ -32,7 +31,7 @@ class DBDatabase {
         }
         const request = new DBRequest
         const loop = new Loop
-        this._database.transactor.transaction(loop, names, mode == 'readonly')
+        this._transactor.transaction(loop, names, mode == 'readonly')
         return new DBTransaction(this._database, loop)
     }
 
@@ -41,8 +40,8 @@ class DBDatabase {
         if (name === undefined) {
             throw new TypeError
         }
-        this._queue.push({ method: 'store', name, autoIncrement, keyPath })
-        return new DBObjectStore(name, this, this._queues.schema)
+        this._loop.queue.push({ method: 'store', name, autoIncrement, keyPath })
+        return new DBObjectStore(name, this, this._loop)
     }
 
     deleteObjectStore (name) {
@@ -51,7 +50,7 @@ class DBDatabase {
 
     // https://www.w3.org/TR/IndexedDB/#dom-idbdatabase-close
     close () {
-        this._queues.transactions.queue.push(null)
+        this._transactor.queue.push(null)
     }
 
     // **TODO** `onabort`, `onclose`, `onerror`, `onversionchange`.
