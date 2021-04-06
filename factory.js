@@ -93,6 +93,7 @@ class DBFactory {
                 this._queues[event.name] = queues
                 destructible.ephemeral($ => $(), 'connections', async () => {
                     try {
+                        const schema = {}
                         const directory = path.join(this._directory, event.name)
                         await fs.mkdir(directory, { recurse: true })
                         const transactor = new Transactor
@@ -103,7 +104,12 @@ class DBFactory {
                             turnstile: this._turnstile,
                             directory: directory,
                             comparators: { indexeddb: comparator }
-                        }, async update => {
+                        }, async upgrade => {
+                            if (upgrade.version.current == 0) {
+                                await upgrade.store('schema', { 'name': String })
+                            }
+                            for await (const properties of upgrade.forward('schema')) {
+                            }
                             const paired = new Queue().shifter().paired
                             event.request.readyState = 'done'
                             const loop = new Loop
@@ -111,7 +117,7 @@ class DBFactory {
                             const transaction = new DBTransaction(database, loop, 'versionupgrade')
                             dispatchEvent(event.request, new Event('upgradeneeded'))
                             event.upgraded = true
-                            await loop.run(update)
+                            await loop.run(upgrade, schema)
                         })
                         this._databases[event.name] = { destructible, memento, transactor, queue: paired.queue }
                         if (! event.upgraded) {
@@ -119,16 +125,14 @@ class DBFactory {
                             event.request.readyState = 'done'
                             event.request.result = new DBDatabase(database, queues)
                         }
-                        console.log('WILL SUCCESS')
                         dispatchEvent(event.request, new Event('success'))
                         let count = 0
                         for await (const event of transactions) {
                             const { names, extra: loop } = event
-                            console.log(names, loop)
                             destructible.ephemeral(`transaction.${count++}`, async () => {
-                                await memento.snapshot(async snapshot => {
-                                    await loop.run(snapshot)
-                                })
+                                console.log('transaction')
+                                await memento.snapshot(snapshot => loop.run(snapshot, schema))
+                                console.log('transaction done')
                             })
                         }
                         await memento.close()

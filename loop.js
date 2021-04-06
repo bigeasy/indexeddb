@@ -2,6 +2,7 @@ const { Future } = require('perhaps')
 const { Queue } = require('avenue')
 const { Event } = require('event-target-shim')
 const { dispatchEvent } = require('./dispatch')
+const { extractify } = require('./extractor')
 const Verbatim = require('verbatim')
 
 // You're using this because you need to know when the queue of work done.
@@ -15,29 +16,41 @@ class Loop {
         this.terminated = false
     }
 
-    async run (transaction) {
+    async run (transaction, schema) {
         await new Promise(resolve => setImmediate(resolve))
         console.log('pause done', this.queue.length)
         while (this.queue.length != 0) {
             const event = this.queue.shift()
             switch (event.method) {
+            // Don't worry about rollback of the update to the schema object. We
+            // are not going to use this object if the upgrade fails.
             case 'store': {
-                    const key = {}
-                    key[event.keyPath] = 'indexeddb'
-                    await transaction.store(event.name, key)
+                    const { name, keyPath, autoIncrement } = event
+                    schema[name] = {
+                        keyPath, autoIncrement, extractor: extractify(keyPath)
+                    }
+                    transaction.set('schema', { name: `store.${name}`, keyPath, autoIncrement })
+                    await transaction.store(`store.${name}`, { key: 'indexeddb' })
                 }
                 break
             case 'put':
             case 'add': {
-                    transaction.set(event.name, event.value)
+                    const { name, value } = event, { extractor } = schema[name]
+                    const key = extractor(value)
+                    transaction.set(`store.${name}`, { key, value })
                 }
                 break
             case 'get': {
+                    try {
+    // TODO Move extraction into store interface.
                     const { name, key, request } = event
-                    console.log(name, key, request)
-                    const got = await transaction.get(name, [ key ])
-                    request.result = Verbatim.deserialize(Verbatim.serialize(got))
+                    const got = await transaction.get(`store.${name}`, [ key ])
+                    console.log(got)
+                    request.result = Verbatim.deserialize(Verbatim.serialize(got.value))
                     dispatchEvent(request, new Event('success'))
+                    } catch (error) {
+                        console.log(error.stack)
+                    }
                 }
                 break
             }
