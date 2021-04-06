@@ -48,7 +48,7 @@ require('arguable')(module, async arguable => {
         sources.push(block)
     }
     const name = path.basename(test, '.htm')
-    await fs.writeFile(path.resolve(__dirname, `${name}.t.js`), $_(`
+    await fs.writeFile(path.resolve(__dirname, `${name}.wpt.t.js`), $_(`
         require('proof')(0, async okay => {
             await require('./harness')(okay, ${util.inspect(name)})
             await harness(async function () {
