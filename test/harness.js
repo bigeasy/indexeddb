@@ -77,7 +77,8 @@ module.exports = async function (okay, name) {
     const scope = {}, futures = []
     function async_test (...vargs) {
         const properties = vargs.pop()
-        scope.name = vargs.pop()
+        scope.name = vargs.pop() || name
+        scope.count = 0
         const f = vargs.pop() || null
         const future = new Future
         futures.push(future)
