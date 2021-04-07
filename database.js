@@ -43,7 +43,7 @@ class DBDatabase {
             throw new TypeError
         }
         this._schema[name] = {
-            keyPath, autoIncrement, extractor: extractify(keyPath)
+            keyPath, autoIncrement, extractor: keyPath == null ? null : extractify(keyPath)
         }
         this._loop.queue.push({ method: 'store', name, autoIncrement, keyPath })
         console.log(this._schema, name)
