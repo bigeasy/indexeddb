@@ -27,8 +27,11 @@ class DBObjectStore {
     }
 
     put (value, key = null) {
+        if (key == null) {
+            key = (this._schema.extractor)(value)
+        }
         const request = new DBRequest
-        this._loop.queue.push({ method: 'put', request, name: this._name, value })
+        this._loop.queue.push({ method: 'put', request, name: this._name, key, value })
         return request
     }
 

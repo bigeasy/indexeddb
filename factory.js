@@ -140,6 +140,8 @@ class DBFactory {
                         rescue(error, [{ symbol: Memento.Error.ROLLBACK }])
                     }
                 })
+                destructible.promise.then(() => {
+                }, error => console.log(error.stack))
             }
             break
         }
