@@ -37,4 +37,4 @@ require('proof')(4, async okay => {
 
 Project status.
 
-4 of 354 Web Platform Tests passing: 1.12%.
+6 of 383 Web Platform Tests passing: 1.56%.
