@@ -3,6 +3,8 @@ const assert = require('assert')
 const fs = require('fs').promises
 const path = require('path')
 
+const rescue = require('rescue')
+
 const Transactor = require('./transactor')
 const { DBTransaction } = require('./transaction')
 

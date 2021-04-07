@@ -33,8 +33,9 @@ class Loop {
             case 'put':
             case 'add': {
                     // TODO Move extraction into store interface.
-                    const { name, key, value } = event
+                    const { name, key, value, request } = event
                     transaction.set(`store.${name}`, { key, value })
+                    dispatchEvent(request, new Event('success'))
                 }
                 break
             case 'get': {

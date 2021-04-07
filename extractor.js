@@ -8,8 +8,9 @@ function extractify (path) {
         const parts = path.split('.')
         // TODO Assert valid JavaScript identifier.
         return function (object) {
-            while (object != null && parts.length != 0) {
-                object = object[parts.shift()]
+            let i = 0
+            while (object != null && parts.length != i) {
+                object = object[parts[i++]]
             }
             return object
         }

@@ -93,11 +93,35 @@ module.exports = async function (okay, name) {
         f()
     }
     globalize(test)
+    function fail (test, message) {
+        return function(e) {
+            if (e && e.message && e.target.error) {
+                assert.fail(desc + " (" + e.target.error.name + ": " + e.message + ")")
+            } else if (e && e.message) {
+                assert.fail(desc + " (" + e.message + ")")
+            } else if (e && e.target.readyState === 'done' && e.target.error) {
+                assert.fail(desc + " (" + e.target.error.name + ")")
+            } else {
+                assert.fail(desc)
+            }
+        }
+    }
+    globalize(fail)
+    function assert_true (condition, message) {
+        okay.inc(1)
+        okay(condition, `${scope.name} - assertion ${scope.count++}`)
+    }
+    globalize(assert_true)
     function assert_equals (actual, expected, message) {
         okay.inc(1)
         okay(actual, expected, `${scope.name} - assertion ${scope.count++}`)
     }
     globalize(assert_equals)
+    function assert_array_equals (actual, expected, message) {
+        okay.inc(1)
+        okay(actual, expected, `${scope.name} - assertion ${scope.count++}`)
+    }
+    globalize(assert_array_equals)
     function assert_throws_js(constructor, func, description) {
         try {
             func.call(null)
