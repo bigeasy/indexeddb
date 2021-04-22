@@ -96,13 +96,13 @@ module.exports = async function (okay, name) {
     function fail (test, message) {
         return function(e) {
             if (e && e.message && e.target.error) {
-                assert.fail(desc + " (" + e.target.error.name + ": " + e.message + ")")
+                assert.fail(message + " (" + e.target.error.name + ": " + e.message + ")")
             } else if (e && e.message) {
-                assert.fail(desc + " (" + e.message + ")")
+                assert.fail(message + " (" + e.message + ")")
             } else if (e && e.target.readyState === 'done' && e.target.error) {
-                assert.fail(desc + " (" + e.target.error.name + ")")
+                assert.fail(message + " (" + e.target.error.name + ")")
             } else {
-                assert.fail(desc)
+                assert.fail(message)
             }
         }
     }

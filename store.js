@@ -36,7 +36,7 @@ class DBObjectStore {
     }
 
     add (value, key = null) {
-        if (key == null) {
+        if (key == null && this._schema.autoIncrement == null) {
             key = (this._schema.extractor)(value)
         }
         const request = new DBRequest
@@ -59,8 +59,7 @@ class DBObjectStore {
     }
 
     getKey (query) {
-        const request = new DBRequest
-        this._loop.push({ method: 'put', name: this.name, request, value })
+        throw new Error
     }
 
     getAll (query, count = null) {
@@ -88,7 +87,7 @@ class DBObjectStore {
     }
 
     createIndex (name, keyPath, { unique = false, multiEntry = false }) {
-        throw new Error
+        this._loop.queue.push({ method: 'index', name: { store: this.name, index: name }, keyPath, unique, multiEntry })
     }
 
     deleteIndex (name) {

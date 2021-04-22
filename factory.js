@@ -114,11 +114,11 @@ class DBFactory {
                             }
                             const paired = new Queue().shifter().paired
                             event.request.readyState = 'done'
-                            const loop = new Loop
+                            const loop = new Loop(schema)
                             const database = event.request.result = new DBDatabase(schema, transactor, loop, 'versionupgrade')
                             dispatchEvent(event.request, new Event('upgradeneeded'))
                             event.upgraded = true
-                            await loop.run(upgrade, schema)
+                            await loop.run(upgrade, schema, [])
                         })
                         this._databases[event.name] = { destructible, memento, transactor, queue: paired.queue }
                         if (! event.upgraded) {
@@ -131,9 +131,7 @@ class DBFactory {
                         for await (const event of transactions) {
                             const { names, extra: loop } = event
                             destructible.ephemeral(`transaction.${count++}`, async () => {
-                                console.log('transaction')
-                                await memento.snapshot(snapshot => loop.run(snapshot, schema))
-                                console.log('transaction done')
+                                await memento.snapshot(snapshot => loop.run(snapshot, schema, names))
                             })
                         }
                         await memento.close()
