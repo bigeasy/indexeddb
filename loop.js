@@ -48,8 +48,25 @@ class Loop {
                     transaction.set('schema', `store.${name.store}`, store)
                 }
                 break
-            case 'put':
             case 'add': {
+                    let { name, key, value, request } = event
+                    if (key == null) {
+                        event.key = key = ++schema[name].autoIncrement
+                    }
+                    console.log('key', key, value)
+                    const got = await transaction.get(`store.${name}`, [ key ])
+                    if (got != null) {
+                        console.log('I REALLY SHOULD EMIT AN ERROR')
+                        const event = new Event('error', { bubbles: true, cancelable: true })
+                        const error = new DOMException('Unique key constraint violation.', 'ConstraintError')
+                        request.error = error
+                        const caught = dispatchEvent(request, event)
+                        console.log('???', caught)
+                        break SWITCH
+                    }
+                }
+                /* fall through */
+            case 'put': {
                     // TODO Move extraction into store interface.
                     let { name, key, value, request } = event
                     if (key == null) {
