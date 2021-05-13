@@ -110,7 +110,7 @@ class DBFactory {
                             if (upgrade.version.current == 0) {
                                 await upgrade.store('schema', { 'name': String })
                             }
-                            for await (const properties of upgrade.forward('schema')) {
+                            for await (const properties of upgrade.cursor('schema').iterator()) {
                             }
                             const paired = new Queue().shifter().paired
                             event.request.readyState = 'done'
