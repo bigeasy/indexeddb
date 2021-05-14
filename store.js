@@ -1,4 +1,6 @@
 const { DBRequest } = require('./request')
+const { DBKeyRange } = require('./keyrange')
+const { DBCursor, DBCursorWithValue } = require('./cursor')
 const { dispatchEvent } = require('./dispatch')
 
 const assert = require('assert')
@@ -75,7 +77,14 @@ class DBObjectStore {
     }
 
     openCursor (query, direction = 'next') {
-        throw new Error
+        if (query == null) {
+            query = new DBKeyRange(null, null)
+        }
+        const request = new DBRequest
+        const cursor = new DBCursorWithValue(request, this._loop, query)
+        request.result = cursor
+        this._loop.queue.push({ method: 'openCursor', request, name: this._name, cursor: cursor })
+        return request
     }
 
     openKeyCursor (query, direction = 'next') {

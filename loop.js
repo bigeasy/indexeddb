@@ -99,6 +99,41 @@ class Loop {
                     dispatchEvent(request, new Event('success'))
                 }
                 break
+            case 'openCursor': {
+                    const { name, request, cursor } = event
+                    console.log('openCursor', !! request)
+                    console.log(`store.${name}`)
+                    cursor._outer = { iterator: transaction.cursor(`store.${name}`).iterator()[Symbol.asyncIterator](), next: null }
+                    cursor._outer.next = await cursor._outer.iterator.next()
+                    if (cursor._outer.next.done) {
+                        throw new Error
+                    } else {
+                        cursor._inner = cursor._outer.next.value[Symbol.iterator]()
+                        this.queue.push({ method: 'item', request, name, cursor })
+                    }
+                }
+                break
+            case 'item': {
+                    const { request, cursor } = event
+                    for (;;) {
+                        const next = cursor._inner.next()
+                        if (next.done) {
+                            cursor._outer.next = await cursor._outer.iterator.next()
+                            if (cursor._outer.next.done) {
+                                request.result = null
+                                dispatchEvent(request, new Event('success'))
+                                break
+                            } else {
+                                cursor._inner = cursor._outer.next.value[Symbol.iterator]()
+                            }
+                        } else {
+                            cursor._value = next.value
+                            dispatchEvent(request, new Event('success'))
+                            break
+                        }
+                    }
+                }
+                break
             }
             await new Promise(resolve => setImmediate(resolve))
         }

@@ -1,10 +1,15 @@
 class DBKeyRange {
+    constructor (lower, upper) {
+        this._lower = lower
+        this._upper = upper
+    }
+
     get lower () {
-        throw new Error
+        return this._lower
     }
 
     get upper () {
-        throw new Error
+        return this._upper
     }
 
     get lowerOpen () {
@@ -36,4 +41,4 @@ class DBKeyRange {
     }
 }
 
-module.exports = DBKeyRange
+exports.DBKeyRange = DBKeyRange
