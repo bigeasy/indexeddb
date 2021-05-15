@@ -14,7 +14,7 @@ class DBCursor {
     }
 
     get key () {
-        throw new Error
+        return this._value.key
     }
 
     get primaryKey () {

@@ -117,6 +117,7 @@ class Loop {
                     const { request, cursor } = event
                     for (;;) {
                         const next = cursor._inner.next()
+                        console.log('????', next.value)
                         if (next.done) {
                             cursor._outer.next = await cursor._outer.iterator.next()
                             if (cursor._outer.next.done) {
