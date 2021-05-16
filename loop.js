@@ -8,6 +8,7 @@ const Verbatim = require('verbatim')
 const DOMException = require('domexception')
 
 const { extractify } = require('./extractor')
+const { vivify } = require('./setter')
 
 // You're using this because you need to know when the queue of work done.
 // You're not able to explicitly push a `null` onto an `Avenue` queue. We have
@@ -21,6 +22,7 @@ class Loop {
     }
 
     async run (transaction, schema, names) {
+        const extractors = []
         await new Promise(resolve => setImmediate(resolve))
         for (const name of names) {
             console.log(name)
@@ -33,7 +35,7 @@ class Loop {
             // are not going to use this object if the upgrade fails.
             case 'store': {
                     const { name, keyPath, autoIncrement } = event
-                    transaction.set('schema', { name: `store.${name}`, keyPath, autoIncrement: autoIncrement ? null : 0, indices: {} })
+                    transaction.set('schema', schema[name] = { name: `store.${name}`, keyPath, autoIncrement: autoIncrement ? null : 0, indices: {} })
                     await transaction.store(`store.${name}`, { key: 'indexeddb' })
                 }
                 break
@@ -44,16 +46,23 @@ class Loop {
                     key[qualified] = 'indexeddb'
                     await transaction.index([ `store.${name.store}`, name.index ], key)
                     const store = await transaction.get('schema', [ `store.${name.store}` ])
-                    schema[name.store].indices[name.index] = { keyPath, unique, multiEntry, extractor: extractify(qualified)  }
+                    schema[name.store].indices[name.index] = { keyPath, unique, multiEntry, qualified }
+                    if (extractors[name.store] == null) {
+                        extractors[name.store] = {}
+                    }
+                    extractors[name.store][name.index] = extractify(qualified)
                     transaction.set('schema', `store.${name.store}`, store)
                 }
                 break
             case 'add': {
                     let { name, key, value, request } = event
+                    event.value = value = Verbatim.deserialize(Verbatim.serialize(value))
                     if (key == null) {
                         event.key = key = ++schema[name].autoIncrement
+                        if (schema[name].keyPath != null) {
+                            vivify(value, schema[name].keyPath, key)
+                        }
                     }
-                    console.log('key', key, value)
                     const got = await transaction.get(`store.${name}`, [ key ])
                     if (got != null) {
                         console.log('I REALLY SHOULD EMIT AN ERROR')
@@ -69,6 +78,7 @@ class Loop {
             case 'put': {
                     // TODO Move extraction into store interface.
                     let { name, key, value, request } = event
+                    value = Verbatim.deserialize(Verbatim.serialize(value))
                     if (key == null) {
                         key = ++schema[name].autoIncrement
                     }
@@ -76,7 +86,7 @@ class Loop {
                     for (const indexName in schema[name].indices) {
                         const index = schema[name].indices[indexName]
                         if (index.unique) {
-                            const got = await transaction.get([ `store.${name}`, indexName ], [ (index.extractor)(record) ])
+                            const got = await transaction.get([ `store.${name}`, indexName ], [ extractors[name][indexName](record) ])
                             if (got != null) {
                                 console.log('I REALLY SHOULD EMIT AN ERROR')
                                 const event = new Event('error', { bubbles: true, cancelable: true })
@@ -88,6 +98,8 @@ class Loop {
                             }
                         }
                     }
+                    console.log('????', record)
+                    console.log('will set', record)
                     transaction.set(`store.${name}`, record)
                     dispatchEvent(request, new Event('success'))
                 }

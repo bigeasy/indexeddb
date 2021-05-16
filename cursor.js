@@ -56,7 +56,7 @@ class DBCursorWithValue extends DBCursor {
     }
 
     get value () {
-        return this._value
+        return this._value.value
     }
 }
 

@@ -19,6 +19,7 @@ require('proof')(0, async okay => {
                 assert_equals(rq.error.name, "ConstraintError");
                 assert_equals(e.target.error.name, "ConstraintError");
                 assert_equals(e.type, "error");
+//                process.exit()
 
                 e.preventDefault();
                 e.stopPropagation();
