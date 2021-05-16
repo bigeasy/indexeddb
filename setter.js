@@ -6,6 +6,7 @@ exports.vivify = function (object, path, value) {
         if (! iterator[part]) {
             iterator[part] = {}
         }
+        iterator = iterator[part]
     }
     iterator[parts.shift()] = value
 }
