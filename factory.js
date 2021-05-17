@@ -23,26 +23,6 @@ const { dispatchEvent } = require('./dispatch')
 
 const Loop = require('./loop')
 
-
-function createEvent(type, bubbles, cancelable, detail) {
-    return {
-        type,
-        timeStamp: Date.now(),
-        bubbles: bubbles,
-        cancelable: cancelable,
-        detail: detail || null,
-    }
-}
-
-class Database {
-    constructor (destructible, memento, transactor, queue) {
-        this.destructible = destructible
-        this.memento = memento
-        this.transactor = transactor
-        this.queue = queue
-    }
-}
-
 class DBFactory {
     constructor ({ directory }) {
         this._destructible = new Destructible(`indexeddb: ${directory}`)
@@ -172,48 +152,4 @@ class DBFactory {
     cmp = comparator
 }
 
-async function foo (shifter) {
-    for await (const event of shifter.iterator()) {
-        switch (event.method) {
-        case 'clear': {
-                const { name, version, request } = event
-                // If any databases are open...
-                if (someDatabasesAreOpen()) {
-                    request.dispatchEvent(createEvent('blocked', false, false))
-                    setImmediate(() => {
-                        queue.push({
-                            method: open
-                        })
-                    })
-                } else {
-                    queue.push({
-                        ...event, method: 'open'
-                    })
-                }
-            }
-            break
-        case 'open': {
-                const { name, version, request } = event
-                try {
-                    const memento = await Memento.open({
-                    }, schema => {
-                        const { queue, shifter } = new Queue().shifter().pair
-                        //for await (const event of shifter.iterator()) {
-                        //}
-                    })
-                } catch (error) {
-                    rescue('rescue version problems')
-                }
-            }
-            break
-        case 'transaction': {
-                const shifter = method.shifter()
-                for await (const event of shifter.iterator()) {
-                }
-                break
-            }
-            break
-        }
-    }
-}
 exports.DBFactory = DBFactory
