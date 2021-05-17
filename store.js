@@ -3,6 +3,7 @@ const { DBKeyRange } = require('./keyrange')
 const { DBCursor, DBCursorWithValue } = require('./cursor')
 const { dispatchEvent } = require('./dispatch')
 const { DataError } = require('./error')
+const { valuify } = require('./value')
 
 const assert = require('assert')
 
@@ -47,7 +48,7 @@ class DBObjectStore {
             throw new DataError
         }
         if (key == null && this._schema.properties.autoIncrement == null) {
-            key = (this._schema.extractor)(value)
+            key = valuify((this._schema.extractor)(value))
         }
         const request = new DBRequest
         this._loop.queue.push({ method: 'add', request, name: this._name, value, key })
