@@ -42,6 +42,9 @@ class DBObjectStore {
         if (key != null && this._schema.keyPath != null) {
             throw new DataError
         }
+        if (key == null && this._schema.autoIncrement == null && this._schema.keyPath == null) {
+            throw new DataError
+        }
         if (key == null && this._schema.autoIncrement == null) {
             key = (this._schema.extractor)(value)
         }
