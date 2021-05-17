@@ -47,7 +47,9 @@ class DBObjectStore {
         if (key == null && this._schema.properties.autoIncrement == null && this._schema.properties.keyPath == null) {
             throw new DataError
         }
-        if (key == null && this._schema.properties.autoIncrement == null) {
+        if (key != null) {
+            key = valuify(key)
+        } else if (this._schema.properties.autoIncrement == null) {
             key = valuify((this._schema.extractor)(value))
         }
         const request = new DBRequest
