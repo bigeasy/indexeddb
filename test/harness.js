@@ -70,6 +70,7 @@ module.exports = async function (okay, name) {
             }
         }
         done () {
+            this.phase = this.phases.COMPLETE
             this._future.resolve()
         }
     }

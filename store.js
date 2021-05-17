@@ -2,6 +2,7 @@ const { DBRequest } = require('./request')
 const { DBKeyRange } = require('./keyrange')
 const { DBCursor, DBCursorWithValue } = require('./cursor')
 const { dispatchEvent } = require('./dispatch')
+const { DataError } = require('./error')
 
 const assert = require('assert')
 
@@ -38,6 +39,9 @@ class DBObjectStore {
     }
 
     add (value, key = null) {
+        if (key != null && this._schema.keyPath != null) {
+            throw new DataError
+        }
         if (key == null && this._schema.autoIncrement == null) {
             key = (this._schema.extractor)(value)
         }
