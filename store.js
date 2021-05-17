@@ -39,13 +39,14 @@ class DBObjectStore {
     }
 
     add (value, key = null) {
-        if (key != null && this._schema.keyPath != null) {
+        if (key != null && this._schema.properties.keyPath != null) {
             throw new DataError
         }
-        if (key == null && this._schema.autoIncrement == null && this._schema.keyPath == null) {
+        console.log(key, this._schema.properties)
+        if (key == null && this._schema.properties.autoIncrement == null && this._schema.properties.keyPath == null) {
             throw new DataError
         }
-        if (key == null && this._schema.autoIncrement == null) {
+        if (key == null && this._schema.properties.autoIncrement == null) {
             key = (this._schema.extractor)(value)
         }
         const request = new DBRequest

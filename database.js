@@ -43,10 +43,14 @@ class DBDatabase {
             throw new TypeError
         }
         this._schema[name] = {
-            keyPath, autoIncrement: autoIncrement ? 0 : null, extractor: keyPath == null ? null : extractify(keyPath), indices: {}
+            properties: {
+                name: `store.${name}`, keyPath, autoIncrement: autoIncrement ? 0 : null,
+                indices: {}
+            },
+            extractor: keyPath == null ? null : extractify(keyPath),
+            extractors: {}
         }
         this._loop.queue.push({ method: 'store', name, autoIncrement, keyPath })
-        console.log(this._schema, name)
         return new DBObjectStore(name, this, this._loop, this._schema[name])
     }
 

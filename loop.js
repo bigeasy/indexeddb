@@ -15,14 +15,20 @@ const { vivify } = require('./setter')
 // this object that contains a queue we push onto and shift from, when the queue
 // inside the empty we can terminate an Avenue queue used as a worker queue.
 // Guess I'm not using Turnstile for now, but it will nag me until I migrate.
+
+//
 class Loop {
     constructor () {
         this.queue = []
         this.terminated = false
     }
 
+    // Most of the logic of this implementation is in this one function.
+    // The interface implementations do a lot of argument validation, but
+    // most of the real work is here.
+
+    //
     async run (transaction, schema, names) {
-        const extractors = []
         await new Promise(resolve => setImmediate(resolve))
         for (const name of names) {
             console.log(name)
@@ -35,7 +41,7 @@ class Loop {
             // are not going to use this object if the upgrade fails.
             case 'store': {
                     const { name, keyPath, autoIncrement } = event
-                    transaction.set('schema', schema[name] = { name: `store.${name}`, keyPath, autoIncrement: autoIncrement ? null : 0, indices: {} })
+                    transaction.set('schema', schema[name].properties)
                     await transaction.store(`store.${name}`, { key: 'indexeddb' })
                 }
                 break
@@ -46,21 +52,18 @@ class Loop {
                     key[qualified] = 'indexeddb'
                     await transaction.index([ `store.${name.store}`, name.index ], key)
                     const store = await transaction.get('schema', [ `store.${name.store}` ])
-                    schema[name.store].indices[name.index] = { keyPath, unique, multiEntry, qualified }
-                    if (extractors[name.store] == null) {
-                        extractors[name.store] = {}
-                    }
-                    extractors[name.store][name.index] = extractify(qualified)
-                    transaction.set('schema', `store.${name.store}`, store)
+                    schema[name.store].properties.indices[name.index] = { keyPath, unique, multiEntry, qualified }
+                    schema[name.store].extractors[name.index] = extractify(qualified)
+                    transaction.set('schema', `store.${name.store}`, store.properties)
                 }
                 break
             case 'add': {
                     let { name, key, value, request } = event
                     event.value = value = Verbatim.deserialize(Verbatim.serialize(value))
                     if (key == null) {
-                        event.key = key = ++schema[name].autoIncrement
-                        if (schema[name].keyPath != null) {
-                            vivify(value, schema[name].keyPath, key)
+                        event.key = key = ++schema[name].properties.autoIncrement
+                        if (schema[name].properties.keyPath != null) {
+                            vivify(value, schema[name].properties.keyPath, key)
                         }
                     }
                     const got = await transaction.get(`store.${name}`, [ key ])
@@ -80,13 +83,15 @@ class Loop {
                     let { name, key, value, request } = event
                     value = Verbatim.deserialize(Verbatim.serialize(value))
                     if (key == null) {
-                        key = ++schema[name].autoIncrement
+                        key = ++schema[name].properties.autoIncrement
                     }
                     const record = { key, value }
-                    for (const indexName in schema[name].indices) {
-                        const index = schema[name].indices[indexName]
+                    for (const indexName in schema[name].properties.indices) {
+                        const index = schema[name].properties.indices[indexName]
+                        console.log('index', index)
                         if (index.unique) {
-                            const got = await transaction.get([ `store.${name}`, indexName ], [ extractors[name][indexName](record) ])
+                            console.log('>>>', schema[name].extractors[indexName](record))
+                            const got = await transaction.get([ `store.${name}`, indexName ], [ schema[name].extractors[indexName](record) ])
                             if (got != null) {
                                 console.log('I REALLY SHOULD EMIT AN ERROR')
                                 const event = new Event('error', { bubbles: true, cancelable: true })
