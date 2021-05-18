@@ -2,7 +2,7 @@ const { DBRequest } = require('./request')
 const { DBKeyRange } = require('./keyrange')
 const { DBCursor, DBCursorWithValue } = require('./cursor')
 const { dispatchEvent } = require('./dispatch')
-const { DataError } = require('./error')
+const { DataError, ReadOnlyError } = require('./error')
 const { valuify } = require('./value')
 
 const assert = require('assert')
@@ -18,8 +18,9 @@ class DBObjectStore {
     // object store, we push messages with a request object. The work is
     // performed by the loop object. The loop object is run after the locking is
     // performed.
-    constructor (name, database, loop, schema) {
+    constructor (transaction, name, database, loop, schema) {
         assert(schema, 'schema is null')
+        this._transaction = transaction
         this._name = name
         this._database = database
         this._loop = loop
@@ -40,6 +41,10 @@ class DBObjectStore {
     }
 
     add (value, key = null) {
+        console.log('called called called', this._transaction.mode)
+        if (this._transaction.mode == "readonly") {
+            throw new ReadOnlyError
+        }
         if (key != null && this._schema.properties.keyPath != null) {
             throw new DataError
         }

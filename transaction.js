@@ -3,6 +3,9 @@ const { Queue } = require('avenue')
 
 class DBTransaction {
     constructor (schema, database, loop, mode) {
+        if (mode == null) {
+            throw new Error
+        }
         this._schema = schema
         this._database = database
         this._loop = loop
@@ -25,7 +28,7 @@ class DBTransaction {
     }
 
     objectStore (name) {
-        return new DBObjectStore(name, this._database, this._loop, this._schema[name])
+        return new DBObjectStore(this, name, this._database, this._loop, this._schema[name])
     }
 
     abort () {

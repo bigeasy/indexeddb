@@ -34,7 +34,7 @@ class DBDatabase {
         const request = new DBRequest
         const loop = new Loop
         this._transactor.transaction(loop, names, mode == 'readonly')
-        return new DBTransaction(this._schema, this._database, loop)
+        return new DBTransaction(this._schema, this._database, loop, mode)
     }
 
     createObjectStore (name, { autoIncrement = false, keyPath = null } = {}) {
@@ -51,7 +51,7 @@ class DBDatabase {
             extractors: {}
         }
         this._loop.queue.push({ method: 'store', name, autoIncrement, keyPath })
-        return new DBObjectStore(name, this, this._loop, this._schema[name])
+        return new DBObjectStore(this, name, this, this._loop, this._schema[name])
     }
 
     deleteObjectStore (name) {

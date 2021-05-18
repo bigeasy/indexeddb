@@ -6,7 +6,6 @@ const path = require('path')
 const rescue = require('rescue')
 
 const Transactor = require('./transactor')
-const { DBTransaction } = require('./transaction')
 
 const { DBOpenDBRequest } = require('./request')
 const { DBDatabase } = require('./database')

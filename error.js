@@ -7,3 +7,14 @@ class DataError extends DOMException {
 }
 
 exports.DataError = DataError
+
+class ReadOnlyError extends Error {
+    constructor (message = 'The mutating operation was attempted on a "readonly" transaction.') {
+        super()
+        this.name = 'ReadOnlyError'
+        this.message = message
+        this.code = 0
+    }
+}
+
+exports.ReadOnlyError = ReadOnlyError
