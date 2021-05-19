@@ -42,7 +42,7 @@ class DBDatabase {
         if (name === undefined) {
             throw new TypeError
         }
-        this._schema[name] = {
+        this._schema.store[name] = {
             properties: {
                 name: `store.${name}`, keyPath, autoIncrement: autoIncrement ? 0 : null,
                 indices: {}
@@ -51,7 +51,7 @@ class DBDatabase {
             extractors: {}
         }
         this._loop.queue.push({ method: 'store', name, autoIncrement, keyPath })
-        return new DBObjectStore(this, name, this, this._loop, this._schema[name])
+        return new DBObjectStore(this, name, this, this._loop, this._schema.store[name])
     }
 
     deleteObjectStore (name) {

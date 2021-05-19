@@ -74,7 +74,7 @@ class DBFactory {
                 this._queues[event.name] = queues
                 destructible.ephemeral($ => $(), 'connections', async () => {
                     try {
-                        const schema = {}
+                        const schema = { store: {} }
                         const directory = path.join(this._directory, event.name)
                         await fs.mkdir(directory, { recurse: true })
                         const transactor = new Transactor

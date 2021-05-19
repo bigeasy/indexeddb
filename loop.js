@@ -41,7 +41,7 @@ class Loop {
             // are not going to use this object if the upgrade fails.
             case 'store': {
                     const { name, keyPath, autoIncrement } = event
-                    transaction.set('schema', schema[name].properties)
+                    transaction.set('schema', schema.store[name].properties)
                     await transaction.store(`store.${name}`, { key: 'indexeddb' })
                 }
                 break
@@ -52,8 +52,8 @@ class Loop {
                     key[qualified] = 'indexeddb'
                     await transaction.index([ `store.${name.store}`, name.index ], key)
                     const store = await transaction.get('schema', [ `store.${name.store}` ])
-                    schema[name.store].properties.indices[name.index] = { keyPath, unique, multiEntry, qualified }
-                    schema[name.store].extractors[name.index] = extractify(qualified)
+                    schema.store[name.store].properties.indices[name.index] = { keyPath, unique, multiEntry, qualified }
+                    schema.store[name.store].extractors[name.index] = extractify(qualified)
                     transaction.set('schema', `store.${name.store}`, store.properties)
                 }
                 break
@@ -61,9 +61,9 @@ class Loop {
                     let { name, key, value, request } = event
                     event.value = value = Verbatim.deserialize(Verbatim.serialize(value))
                     if (key == null) {
-                        event.key = key = ++schema[name].properties.autoIncrement
-                        if (schema[name].properties.keyPath != null) {
-                            vivify(value, schema[name].properties.keyPath, key)
+                        event.key = key = ++schema.store[name].properties.autoIncrement
+                        if (schema.store[name].properties.keyPath != null) {
+                            vivify(value, schema.store[name].properties.keyPath, key)
                         }
                     }
                     const got = await transaction.get(`store.${name}`, [ key ])
@@ -83,15 +83,15 @@ class Loop {
                     let { name, key, value, request } = event
                     value = Verbatim.deserialize(Verbatim.serialize(value))
                     if (key == null) {
-                        key = ++schema[name].properties.autoIncrement
+                        key = ++schema.store[name].properties.autoIncrement
                     }
                     const record = { key, value }
-                    for (const indexName in schema[name].properties.indices) {
-                        const index = schema[name].properties.indices[indexName]
+                    for (const indexName in schema.store[name].properties.indices) {
+                        const index = schema.store[name].properties.indices[indexName]
                         console.log('index', index)
                         if (index.unique) {
-                            console.log('>>>', schema[name].extractors[indexName](record))
-                            const got = await transaction.get([ `store.${name}`, indexName ], [ schema[name].extractors[indexName](record) ])
+                            console.log('>>>', schema.store[name].extractors[indexName](record))
+                            const got = await transaction.get([ `store.${name}`, indexName ], [ schema.store[name].extractors[indexName](record) ])
                             if (got != null) {
                                 console.log('I REALLY SHOULD EMIT AN ERROR')
                                 const event = new Event('error', { bubbles: true, cancelable: true })
@@ -103,8 +103,6 @@ class Loop {
                             }
                         }
                     }
-                    console.log('????', record)
-                    console.log('will set', record)
                     transaction.set(`store.${name}`, record)
                     dispatchEvent(request, new Event('success'))
                 }
