@@ -1,6 +1,7 @@
 const { DBRequest } = require('./request')
 const { DBKeyRange } = require('./keyrange')
 const { DBCursor, DBCursorWithValue } = require('./cursor')
+const { DBIndex } = require('./index')
 const { dispatchEvent } = require('./dispatch')
 const { InvalidStateError, DataError, ReadOnlyError } = require('./error')
 const { valuify } = require('./value')
@@ -18,11 +19,12 @@ class DBObjectStore {
     // object store, we push messages with a request object. The work is
     // performed by the loop object. The loop object is run after the locking is
     // performed.
-    constructor (transaction, name, database, loop, schema, extractor) {
+    constructor (transaction, name, database, loop, schema, extractor, schema2) {
         assert(schema, 'schema is null')
-        assert(schema.id != null, 'schema id is null')
+        assert(schema2 != null, 'schema2 is null')
         this._transaction = transaction
         this._name = name
+        this._schema2 = schema2
         this._database = database
         this._loop = loop
         this._schema = schema
@@ -128,7 +130,9 @@ class DBObjectStore {
     }
 
     index (name) {
-        throw new Error
+        const properties = this._schema2.store[this._schema.id]
+        const indexId = properties.indices[name]
+        return new DBIndex(this._schema2, this._loop, indexId)
     }
 
     createIndex (name, keyPath, { unique = false, multiEntry = false } = {}) {

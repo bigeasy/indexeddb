@@ -63,7 +63,16 @@ class Loop {
                     const indexId = schema.max.store++
                     const properties = schema.store[id]
                     properties.indices[name] = indexId
-                    schema.index[indexId] = { type: 'index', id, name, qualified: `index.${id}`, keyPath, multiEntry, unique }
+                    schema.index[indexId] = {
+                        type: 'index',
+                        id: indexId,
+                        storeId: id,
+                        name: name,
+                        qualified: `index.${id}`,
+                        keyPath: keyPath,
+                        multiEntry: multiEntry,
+                        unique: unique
+                    }
                     await transaction.store(schema.index[indexId].qualified, { key: 'indexeddb' })
                     schema.extractor[schema.index[indexId].qualified] = extractify(keyPath)
                     transaction.set('store', properties)
@@ -140,6 +149,21 @@ class Loop {
                     const got = await transaction.get(properties.qualified, [ key ])
                     request.result = Verbatim.deserialize(Verbatim.serialize(got.value))
                     dispatchEvent(request, new Event('success'))
+                }
+                break
+            case 'indexGet': {
+                    const { id, query, request } = event
+                    const index = schema.index[id]
+                    const store = schema.store[index.storeId]
+                    const indexGot = await transaction.cursor(index.qualified, [[ query ]])
+                                                      .terminate(item => compare(item.key[0], query) != 0)
+                                                      .array()
+                    if (indexGot.length != 0) {
+                        const got = await transaction.get(store.qualified, [ indexGot[0].key[1] ])
+                        request.result = Verbatim.deserialize(Verbatim.serialize(got.value))
+                        dispatchEvent(request, new Event('success'))
+
+                    }
                 }
                 break
             case 'openCursor': {

@@ -57,7 +57,7 @@ class DBDatabase {
             ? extractify(keyPath)
             : null
         this._loop.queue.push({ method: 'store', id, name, autoIncrement, keyPath })
-        return new DBObjectStore(this, name, this, this._loop, schema, extractor)
+        return new DBObjectStore(this, name, this, this._loop, schema, extractor, this._schema)
     }
 
     deleteObjectStore (name) {

@@ -29,7 +29,7 @@ class DBTransaction {
 
     objectStore (name) {
         const id = this._schema.name[name]
-        return new DBObjectStore(this, name, this._database, this._loop, this._schema.store[id], this._schema.extractor[id])
+        return new DBObjectStore(this, name, this._database, this._loop, this._schema.store[id], this._schema.extractor[id], this._schema)
     }
 
     abort () {

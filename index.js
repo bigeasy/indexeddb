@@ -1,8 +1,12 @@
-const path = require('path')
-
-const { DBFactory } = require('./factory')
+const { DBRequest } = require('./request')
 
 class DBIndex {
+    constructor (schema, loop, id) {
+        this._schema = schema
+        this._loop = loop
+        this._id = id
+    }
+
     get name () {
         throw new Error
     }
@@ -20,7 +24,9 @@ class DBIndex {
     }
 
     get (query) {
-        throw new Error
+        const request = new DBRequest
+        this._loop.queue.push({ method: 'indexGet', id: this._id, query, request })
+        return request
     }
 
     getKey (query) {
@@ -48,4 +54,4 @@ class DBIndex {
     }
 }
 
-module.exports = DBIndex
+exports.DBIndex = DBIndex
