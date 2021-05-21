@@ -5,17 +5,16 @@ const path = require('path')
 
 const rescue = require('rescue')
 
+const { Queue } = require('avenue')
+const Destructible = require('destructible')
+const Memento = require('memento')
+
+const comparator = require('./compare')
+
 const Transactor = require('./transactor')
 
 const { DBOpenDBRequest } = require('./request')
 const { DBDatabase } = require('./database')
-
-const comparator = require('./compare')
-
-const { Queue } = require('avenue')
-const Future = require('perhaps')
-const Destructible = require('destructible')
-const Memento = require('memento')
 
 const { Event } = require('event-target-shim')
 const { dispatchEvent } = require('./dispatch')
@@ -31,35 +30,6 @@ class DBFactory {
         this._memento = null
         this._databases = {}
         this._queues = {}
-    }
-
-    async _request ({ body }) {
-        const operations = this._queue.get(body)
-        while (operations.length != 0) {
-            await operations.shift()()
-        }
-        this._queue.delete(body)
-    }
-
-    _transaction (mode) {
-        return transaction => {
-        }
-    }
-
-    async _database (destructible, shifter) {
-        const handle = {
-            opened: false
-        }
-        for await (const entry of shifter) {
-            switch (entry.method) {
-            case 'open': {
-                }
-                break
-            case 'transaction': {
-                }
-                break
-            }
-        }
     }
 
     async _dispatch (event) {
