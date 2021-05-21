@@ -99,6 +99,9 @@ class Loop {
                     value = Verbatim.deserialize(Verbatim.serialize(value))
                     if (key == null) {
                         key = ++properties.autoIncrement
+                        if (properties.keyPath != null) {
+                            vivify(value, properties.keyPath, key)
+                        }
                     }
                     const record = { key, value }
                     for (const indexName in properties.indices) {
