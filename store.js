@@ -18,13 +18,14 @@ class DBObjectStore {
     // object store, we push messages with a request object. The work is
     // performed by the loop object. The loop object is run after the locking is
     // performed.
-    constructor (transaction, name, database, loop, schema) {
+    constructor (transaction, name, database, loop, schema, extractor) {
         assert(schema, 'schema is null')
         this._transaction = transaction
         this._name = name
         this._database = database
         this._loop = loop
         this._schema = schema
+        this._extractor = extractor
     }
 
     get name () {
@@ -33,7 +34,7 @@ class DBObjectStore {
 
     put (value, key = null) {
         if (key == null) {
-            key = (this._schema.extractor)(value)
+            key = valuify((this._extractor)(value))
         }
         const request = new DBRequest
         this._loop.queue.push({ method: 'put', request, name: this._name, key, value })
@@ -45,17 +46,16 @@ class DBObjectStore {
         if (this._transaction.mode == "readonly") {
             throw new ReadOnlyError
         }
-        if (key != null && this._schema.properties.keyPath != null) {
+        if (key != null && this._schema.keyPath != null) {
             throw new DataError
         }
-        console.log(key, this._schema.properties)
-        if (key == null && this._schema.properties.autoIncrement == null && this._schema.properties.keyPath == null) {
+        if (key == null && this._schema.autoIncrement == null && this._schema.keyPath == null) {
             throw new DataError
         }
         if (key != null) {
             key = valuify(key)
-        } else if (this._schema.properties.autoIncrement == null) {
-            key = valuify((this._schema.extractor)(value))
+        } else if (this._schema.autoIncrement == null) {
+            key = valuify((this._extractor)(value))
         }
         const request = new DBRequest
         this._loop.queue.push({ method: 'add', request, name: this._name, value, key })

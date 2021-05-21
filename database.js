@@ -42,16 +42,20 @@ class DBDatabase {
         if (name === undefined) {
             throw new TypeError
         }
-        this._schema.store[name] = {
-            properties: {
-                name: `store.${name}`, keyPath, autoIncrement: autoIncrement ? 0 : null,
-                indices: {}
-            },
-            extractor: keyPath == null ? null : extractify(keyPath),
-            extractors: {}
+        const id = this._schema.max.store++
+        const schema = this._schema.store[id] = {
+            type: 'store',
+            id: id,
+            name: name,
+            qualified: `store.${id}`,
+            keyPath: keyPath,
+            autoIncrement: autoIncrement ? 0 : null,
+            indices: {}
         }
+        this._schema.name[name] = id
+        const extractor = this._schema.extractor[schema.qualified] = keyPath == null ? null : extractify(keyPath)
         this._loop.queue.push({ method: 'store', name, autoIncrement, keyPath })
-        return new DBObjectStore(this, name, this, this._loop, this._schema.store[name])
+        return new DBObjectStore(this, name, this, this._loop, schema, extractor)
     }
 
     deleteObjectStore (name) {

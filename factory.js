@@ -74,7 +74,7 @@ class DBFactory {
                 this._queues[event.name] = queues
                 destructible.ephemeral($ => $(), 'connections', async () => {
                     try {
-                        const schema = { store: {} }
+                        const schema = { name: {}, store: {}, max: {}, index: {}, extractor: {} }
                         const directory = path.join(this._directory, event.name)
                         await fs.mkdir(directory, { recurse: true })
                         const transactor = new Transactor
@@ -87,10 +87,15 @@ class DBFactory {
                             comparators: { indexeddb: comparator }
                         }, async upgrade => {
                             if (upgrade.version.current == 0) {
-                                await upgrade.store('schema', { 'name': String })
+                                await upgrade.store('store', { 'id': Number })
+                                await upgrade.store('index', { 'id': Number })
                             }
-                            for await (const properties of upgrade.cursor('schema').iterator()) {
+                            schema.max = {
+                                store: (await upgrade.cursor('store').array()).pop(),
+                                index: (await upgrade.cursor('index').array()).pop()
                             }
+                            schema.max.store = schema.max.store ? schema.max.store.id : 0
+                            schema.max.index = schema.max.index ? schema.max.index.id : 0
                             const paired = new Queue().shifter().paired
                             event.request.readyState = 'done'
                             const loop = new Loop(schema)
