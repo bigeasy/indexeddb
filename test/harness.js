@@ -19,6 +19,8 @@ module.exports = async function (okay, name) {
             okay.leak(name)
         }
     }
+    const { DBRequest } = require('../request')
+    globalize(DBRequest, 'IDBRequest')
     const indexedDB = require('..').create({ directory })
     globalize(indexedDB, 'indexedDB')
     globalize({ indexedDB }, 'window')

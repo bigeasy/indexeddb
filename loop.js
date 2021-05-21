@@ -2,6 +2,8 @@ const assert = require('assert')
 
 const compare = require('./compare')
 
+const rescue = require('rescue')
+const { DataError } = require('./error')
 const { Future } = require('perhaps')
 const { Queue } = require('avenue')
 const { Event } = require('event-target-shim')
@@ -11,6 +13,7 @@ const DOMException = require('domexception')
 
 const { extractify } = require('./extractor')
 const { vivify } = require('./setter')
+const { valuify } = require('./value')
 
 // You're using this because you need to know when the queue of work done.
 // You're not able to explicitly push a `null` onto an `Avenue` queue. We have
@@ -56,13 +59,13 @@ class Loop {
                 }
                 break
             case 'index': {
-                    const { name, keyPath, unique, multiEntry } = event
-                    const id = schema.max.store++
-                    const properties = schema.store[schema.name[name.store]]
-                    properties.indices[name.index] = id
-                    schema.index[id] = { type: 'index', id, name, qualified: `index.${id}`, keyPath, multiEntry, unique }
-                    await transaction.store(schema.index[id].qualified, { key: 'indexeddb' })
-                    schema.extractor[schema.index[id].qualified] = extractify(keyPath)
+                    const { id, name, keyPath, unique, multiEntry } = event
+                    const indexId = schema.max.store++
+                    const properties = schema.store[id]
+                    properties.indices[name] = indexId
+                    schema.index[indexId] = { type: 'index', id, name, qualified: `index.${id}`, keyPath, multiEntry, unique }
+                    await transaction.store(schema.index[indexId].qualified, { key: 'indexeddb' })
+                    schema.extractor[schema.index[indexId].qualified] = extractify(keyPath)
                     transaction.set('store', properties)
                     transaction.set('store', schema.index[id])
                 }
@@ -101,7 +104,13 @@ class Loop {
                     for (const indexName in properties.indices) {
                         const indexId = properties.indices[indexName]
                         const index = schema.index[indexId]
-                        const extracted = schema.extractor[index.qualified](record.value)
+                        let extracted
+                        try {
+                            extracted = valuify(schema.extractor[index.qualified](record.value))
+                        } catch (error) {
+                            rescue(error, [ DataError ])
+                            continue
+                        }
                         if (index.unique) {
                             const got = await transaction.cursor(index.qualified, [[ extracted ]])
                                                          .terminate(item => compare(item.key[0], extracted) != 0)

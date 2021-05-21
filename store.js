@@ -78,7 +78,6 @@ class DBObjectStore {
 
     get (key) {
         const request = new DBRequest
-        console.log(this._schema, this._schema.id)
         this._loop.queue.push({ method: 'get', request, id: this._schema.id, key })
         return request
     }
@@ -118,8 +117,11 @@ class DBObjectStore {
         throw new Error
     }
 
-    createIndex (name, keyPath, { unique = false, multiEntry = false }) {
-        this._loop.queue.push({ method: 'index', name: { store: this.name, index: name }, keyPath, unique, multiEntry })
+    createIndex (name, keyPath, { unique = false, multiEntry = false } = {}) {
+        const id = this._schema.id
+        const request = new DBRequest
+        this._loop.queue.push({ method: 'index', id, name, keyPath, unique, multiEntry })
+        return request
     }
 
     deleteIndex (name) {
