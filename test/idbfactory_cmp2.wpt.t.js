@@ -1,4 +1,4 @@
-require('proof')(0, async okay => {
+require('proof')(7, async okay => {
     await require('./harness')(okay, 'idbfactory_cmp2')
     await harness(async function () {
         test( function() {

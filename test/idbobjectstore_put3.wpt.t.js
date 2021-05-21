@@ -1,4 +1,4 @@
-require('proof')(0, async okay => {
+require('proof')(4, async okay => {
     await require('./harness')(okay, 'idbobjectstore_put3')
     await harness(async function () {
         var db, success_event,
@@ -16,15 +16,12 @@ require('proof')(0, async okay => {
             rq.onerror = fail(t, "error on put");
 
             rq.onsuccess = t.step_func(function(e) {
-                console.log('DID COMPLETE !!!!!')
                 success_event = true;
             });
         };
 
         open_rq.onsuccess = function(e) {
-            console.log('---')
             assert_true(success_event);
-            console.log('---')
 
             var rq = db.transaction("store")
                        .objectStore("store")

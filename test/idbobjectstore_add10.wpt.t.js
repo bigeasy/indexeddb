@@ -1,4 +1,4 @@
-require('proof')(0, async okay => {
+require('proof')(2, async okay => {
     await require('./harness')(okay, 'idbobjectstore_add10')
     await harness(async function () {
         var db,

@@ -4,6 +4,9 @@ const { DataError } = require('./error')
 const valuify = exports.valuify = function (value) {
     switch (typeof value) {
     case 'number':
+        if (isNaN(value)) {
+            throw new DataError
+        }
         return value
     case 'string':
         return value

@@ -109,17 +109,14 @@ module.exports = async function (okay, name) {
     }
     globalize(fail)
     function assert_true (condition, message) {
-        okay.inc(1)
         okay(condition, `${scope.name} - assertion ${scope.count++}`)
     }
     globalize(assert_true)
     function assert_equals (actual, expected, message) {
-        okay.inc(1)
         okay(actual, expected, `${scope.name} - assertion ${scope.count++}`)
     }
     globalize(assert_equals)
     function assert_array_equals (actual, expected, message) {
-        okay.inc(1)
         okay(actual, expected, `${scope.name} - assertion ${scope.count++}`)
     }
     globalize(assert_array_equals)
@@ -135,7 +132,6 @@ module.exports = async function (okay, name) {
                 console.log(error.stack)
             }
             okay(error.constructor === constructor, `${scope.name} - assertion ${scope.count++}`)
-            okay.inc(1)
         }
     }
     globalize(assert_throws_js)
@@ -226,7 +222,6 @@ module.exports = async function (okay, name) {
             } else {
                 const name = type in codes ? codes[type] : type
             }
-            okay.inc(1)
         }
     }
     globalize(assert_throws_dom)
