@@ -140,7 +140,8 @@ class Loop {
                     cursor._outer = { iterator: transaction.cursor(properties.qualified).iterator()[Symbol.asyncIterator](), next: null }
                     cursor._outer.next = await cursor._outer.iterator.next()
                     if (cursor._outer.next.done) {
-                        throw new Error
+                        request.result = null
+                        dispatchEvent(request, new Event('success'))
                     } else {
                         cursor._inner = cursor._outer.next.value[Symbol.iterator]()
                         this.queue.push({ method: 'item', request, name, cursor })
@@ -167,6 +168,19 @@ class Loop {
                             break
                         }
                     }
+                }
+                break
+            case 'clear': {
+                    const { id, request } = event
+                    const properties = schema.store[id]
+                    // TODO Really do not need iterator do I?
+                    for await (const items of transaction.cursor(properties.qualified).iterator()) {
+                        for (const item of items) {
+                            transaction.unset(properties.qualified, [ item.key ])
+                        }
+                    }
+                    // TODO Clear an index.
+                    dispatchEvent(request, new Event('success'))
                 }
                 break
             }

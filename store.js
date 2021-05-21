@@ -70,7 +70,9 @@ class DBObjectStore {
     }
 
     clear () {
-        throw new Error
+        const request = new DBRequest
+        this._loop.queue.push({ method: 'clear', request, id: this._schema.id })
+        return request
     }
 
     get (key) {

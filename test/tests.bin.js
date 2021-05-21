@@ -47,7 +47,7 @@ require('arguable')(module, async arguable => {
     for (const block of blocks) {
         sources.push(block)
     }
-    const count = sources.join('\n').match(/assert_throws_dom/).length
+    const count = sources.join('\n').match(/(?:assert_throws_dom|assert_equals)/g).length
     const name = path.basename(test, '.htm')
     await fs.writeFile(path.resolve(__dirname, `${name}.wpt.t.js`), $_(`
         require('proof')(${count}, async okay => {
