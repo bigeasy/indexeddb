@@ -34,7 +34,21 @@ class DBObjectStore {
     }
 
     put (value, key = null) {
-        if (key == null) {
+        if (this._schema.deleted) {
+            throw new InvalidStateError
+        }
+        if (this._transaction.mode == "readonly") {
+            throw new ReadOnlyError
+        }
+        if (key != null && this._schema.keyPath != null) {
+            throw new DataError
+        }
+        if (key == null && this._schema.autoIncrement == null && this._schema.keyPath == null) {
+            throw new DataError
+        }
+        if (key != null) {
+            key = valuify(key)
+        } else if (this._schema.autoIncrement == null) {
             key = valuify((this._extractor)(value))
         }
         const request = new DBRequest

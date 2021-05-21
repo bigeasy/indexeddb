@@ -98,7 +98,7 @@ class Loop {
                     const properties = schema.store[id]
                     value = Verbatim.deserialize(Verbatim.serialize(value))
                     if (key == null) {
-                        key = ++schema.store[name].properties.autoIncrement
+                        key = ++properties.autoIncrement
                     }
                     const record = { key, value }
                     for (const indexName in properties.indices) {

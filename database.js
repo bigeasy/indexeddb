@@ -53,7 +53,9 @@ class DBDatabase {
             indices: {}
         }
         this._schema.name[name] = id
-        const extractor = this._schema.extractor[schema.qualified] = keyPath == null ? null : extractify(keyPath)
+        const extractor = this._schema.extractor[schema.qualified] = keyPath != null
+            ? extractify(keyPath)
+            : null
         this._loop.queue.push({ method: 'store', id, name, autoIncrement, keyPath })
         return new DBObjectStore(this, name, this, this._loop, schema, extractor)
     }
