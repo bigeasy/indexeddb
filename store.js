@@ -2,7 +2,7 @@ const { DBRequest } = require('./request')
 const { DBKeyRange } = require('./keyrange')
 const { DBCursor, DBCursorWithValue } = require('./cursor')
 const { dispatchEvent } = require('./dispatch')
-const { DataError, ReadOnlyError } = require('./error')
+const { InvalidStateError, DataError, ReadOnlyError } = require('./error')
 const { valuify } = require('./value')
 
 const assert = require('assert')
@@ -43,6 +43,9 @@ class DBObjectStore {
 
     add (value, key = null) {
         console.log('called called called', this._transaction.mode)
+        if (this._schema.deleted) {
+            throw new InvalidStateError
+        }
         if (this._transaction.mode == "readonly") {
             throw new ReadOnlyError
         }

@@ -42,11 +42,17 @@ class Loop {
             // Don't worry about rollback of the update to the schema object. We
             // are not going to use this object if the upgrade fails.
             case 'store': {
-                    const { name, keyPath, autoIncrement } = event
-                    const id = schema.name[name]
+                    const { id, name, keyPath, autoIncrement } = event
                     const properties = schema.store[id]
-                    transaction.set('store', properties)
-                    await transaction.store(properties.qualified, { key: 'indexeddb' })
+                    if (! properties.deleted) {
+                        transaction.set('store', properties)
+                        await transaction.store(properties.qualified, { key: 'indexeddb' })
+                    }
+                }
+                break
+            case 'deleteStore': {
+                    const { id } = event
+                    console.log('--- HERE ---')
                 }
                 break
             case 'index': {

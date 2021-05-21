@@ -54,12 +54,15 @@ class DBDatabase {
         }
         this._schema.name[name] = id
         const extractor = this._schema.extractor[schema.qualified] = keyPath == null ? null : extractify(keyPath)
-        this._loop.queue.push({ method: 'store', name, autoIncrement, keyPath })
+        this._loop.queue.push({ method: 'store', id, name, autoIncrement, keyPath })
         return new DBObjectStore(this, name, this, this._loop, schema, extractor)
     }
 
     deleteObjectStore (name) {
-        throw new Error
+        const id = this._schema.name[name]
+        this._schema.store[id].deleted = true
+        delete this._schema.name[name]
+        this._loop.queue.push({ method: 'deleteStore', id: id })
     }
 
     // https://www.w3.org/TR/IndexedDB/#dom-idbdatabase-close
