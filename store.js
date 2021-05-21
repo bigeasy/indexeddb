@@ -20,6 +20,7 @@ class DBObjectStore {
     // performed.
     constructor (transaction, name, database, loop, schema, extractor) {
         assert(schema, 'schema is null')
+        assert(schema.id != null, 'schema id is null')
         this._transaction = transaction
         this._name = name
         this._database = database
@@ -37,7 +38,7 @@ class DBObjectStore {
             key = valuify((this._extractor)(value))
         }
         const request = new DBRequest
-        this._loop.queue.push({ method: 'put', request, name: this._name, key, value })
+        this._loop.queue.push({ method: 'put', request, id: this._schema.id, key, value })
         return request
     }
 
@@ -61,7 +62,7 @@ class DBObjectStore {
             key = valuify((this._extractor)(value))
         }
         const request = new DBRequest
-        this._loop.queue.push({ method: 'add', request, name: this._name, value, key })
+        this._loop.queue.push({ method: 'add', request, id: this._schema.id, value, key })
         return request
     }
 
@@ -77,7 +78,8 @@ class DBObjectStore {
 
     get (key) {
         const request = new DBRequest
-        this._loop.queue.push({ method: 'get', request, name: this._name, key })
+        console.log(this._schema, this._schema.id)
+        this._loop.queue.push({ method: 'get', request, id: this._schema.id, key })
         return request
     }
 

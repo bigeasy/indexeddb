@@ -68,8 +68,7 @@ class Loop {
                 }
                 break
             case 'add': {
-                    let { name, key, value, request } = event
-                    const id = schema.name[name]
+                    let { id, key, value, request } = event
                     const properties = schema.store[id]
                     event.value = value = Verbatim.deserialize(Verbatim.serialize(value))
                     if (key == null) {
@@ -92,8 +91,7 @@ class Loop {
                 /* fall through */
             case 'put': {
                     // TODO Move extraction into store interface.
-                    let { name, key, value, request } = event
-                    const id = schema.name[name]
+                    let { id, key, value, request } = event
                     const properties = schema.store[id]
                     value = Verbatim.deserialize(Verbatim.serialize(value))
                     if (key == null) {
@@ -125,8 +123,8 @@ class Loop {
                 }
                 break
             case 'get': {
-                    const { name, key, request } = event
-                    const properties = schema.store[schema.name[name]]
+                    const { id, key, request } = event
+                    const properties = schema.store[id]
                     const got = await transaction.get(properties.qualified, [ key ])
                     request.result = Verbatim.deserialize(Verbatim.serialize(got.value))
                     dispatchEvent(request, new Event('success'))
