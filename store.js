@@ -158,7 +158,11 @@ class DBObjectStore {
     }
 
     deleteIndex (name) {
-        throw new Error
+        const indexId = this._schema.store[this._id].indices[name]
+        const index = this._schema.store[indexId]
+        index.deleted = true
+        delete this._schema.store[this._id].indices[name]
+        this._loop.queue.push({ method: 'destroy', id: indexId })
     }
 }
 

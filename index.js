@@ -1,11 +1,13 @@
 const { DBRequest } = require('./request')
 const { DBKeyRange } = require('./keyrange')
+const { InvalidStateError } = require('./error')
 
 class DBIndex {
     constructor (schema, loop, id) {
         this._schema = schema
         this._loop = loop
         this._id = id
+        this._index = schema.store[id]
     }
 
     get name () {
@@ -26,6 +28,9 @@ class DBIndex {
 
     get (query) {
         const request = new DBRequest
+        if (this._index.deleted) {
+            throw new InvalidStateError
+        }
         if (!(query instanceof DBKeyRange)) {
             query = DBKeyRange.only(query)
         }

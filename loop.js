@@ -209,6 +209,13 @@ class Loop {
                     dispatchEvent(request, new Event('success'))
                 }
                 break
+            case 'destroy': {
+                    const { id } = event
+                    const store = schema.store[id]
+                    delete schema.store[id]
+                    await transaction.remove(store.qualified)
+                }
+                break
             }
             await new Promise(resolve => setImmediate(resolve))
         }
