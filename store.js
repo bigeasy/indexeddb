@@ -135,7 +135,7 @@ class DBObjectStore {
     index (name) {
         const properties = this._schema.store[this._id]
         const indexId = properties.indices[name]
-        return new DBIndex(this._schema, this._loop, indexId)
+        return new DBIndex(this._transaction, this._schema, this._loop, indexId)
     }
 
     createIndex (name, keyPath, { unique = false, multiEntry = false } = {}) {
@@ -155,7 +155,7 @@ class DBObjectStore {
         this._schema.extractor[indexId] = extractify(keyPath)
         console.log('pusing!!!')
         this._loop.queue.push({ method: 'index', id: indexId })
-        return new DBIndex(this._schema, this._loop, indexId)
+        return new DBIndex(this._transaction, this._schema, this._loop, indexId)
     }
 
     deleteIndex (name) {

@@ -1,9 +1,11 @@
 const { DBRequest } = require('./request')
 const { DBKeyRange } = require('./keyrange')
-const { InvalidStateError } = require('./error')
+const { TransactionInactiveError, InvalidStateError } = require('./error')
 
 class DBIndex {
-    constructor (schema, loop, id) {
+    // TODO Make loop a property of transaction.
+    constructor (transaction, schema, loop, id) {
+        this._transaction = transaction
         this._schema = schema
         this._loop = loop
         this._id = id
@@ -30,6 +32,9 @@ class DBIndex {
         const request = new DBRequest
         if (this._index.deleted) {
             throw new InvalidStateError
+        }
+        if (this._transaction._aborted) {
+            throw new TransactionInactiveError
         }
         if (!(query instanceof DBKeyRange)) {
             query = DBKeyRange.only(query)

@@ -26,3 +26,11 @@ class InvalidStateError extends DOMException {
 }
 
 exports.InvalidStateError = InvalidStateError
+
+class TransactionInactiveError extends DOMException {
+    constructor (message = 'A request was placed against a transaction which is currently not active, or which is finished.') {
+        super(message, 'TransactionInactiveError')
+    }
+}
+
+exports.TransactionInactiveError = TransactionInactiveError

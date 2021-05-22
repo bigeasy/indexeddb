@@ -32,6 +32,7 @@ class DBTransaction {
     }
 
     abort () {
+        this._aborted = true
     }
 }
 
