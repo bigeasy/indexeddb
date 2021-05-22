@@ -21,6 +21,8 @@ module.exports = async function (okay, name) {
     }
     const { DBRequest } = require('../request')
     globalize(DBRequest, 'IDBRequest')
+    const { DBKeyRange } = require('../keyrange')
+    globalize(DBKeyRange, 'IDBKeyRange')
     const indexedDB = require('..').create({ directory })
     globalize(indexedDB, 'indexedDB')
     globalize({ indexedDB }, 'window')
@@ -96,6 +98,12 @@ module.exports = async function (okay, name) {
         f()
     }
     globalize(test)
+    function step_timeout (f, t, ...vargs) {
+        setTimeout(function () {
+            f.apply(this, vargs)
+        }.bind(this), t)
+    }
+    globalize(step_timeout)
     function fail (test, message) {
         return function(e) {
             if (e && e.message && e.target.error) {

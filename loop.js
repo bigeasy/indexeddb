@@ -41,7 +41,6 @@ class Loop {
         console.log('pause done', this.queue.length)
         while (this.queue.length != 0) {
             const event = this.queue.shift()
-            console.log(event)
             SWITCH: switch (event.method) {
             // Don't worry about rollback of the update to the schema object. We
             // are not going to use this object if the upgrade fails.
