@@ -11,6 +11,7 @@ class DBDatabase {
     constructor (schema, transactor, loop, mode) {
         this._schema = schema
         this._transactor = transactor
+        this._transaction = null
         this._loop = loop
         this._mode = mode
     }
@@ -57,7 +58,7 @@ class DBDatabase {
             ? extractify(keyPath)
             : null
         this._loop.queue.push({ method: 'store', id, name, autoIncrement, keyPath })
-        return new DBObjectStore(this, name, this, this._loop, this._schema, id)
+        return new DBObjectStore(this._transaction, name, this, this._loop, this._schema, id)
     }
 
     deleteObjectStore (name) {

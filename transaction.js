@@ -7,6 +7,9 @@ class DBTransaction {
             throw new Error
         }
         this._schema = schema
+        // List of stores created during this transaction if it is a version
+        // update transaction.
+        this._created = []
         this._database = database
         this._loop = loop
         this._mode = mode
@@ -33,6 +36,12 @@ class DBTransaction {
 
     abort () {
         this._aborted = true
+        // Mark any stores created by this transaction as deleted, then queue
+        // them for actual destruction.
+        for (const id of this._created) {
+            this._schema.store[id].deleted = true
+            this._loop.queue.push({ method: 'destroy', id: id })
+        }
     }
 }
 

@@ -13,6 +13,7 @@ const comparator = require('./compare')
 
 const Transactor = require('./transactor')
 
+const { DBTransaction } = require('./transaction')
 const { DBOpenDBRequest } = require('./request')
 const { DBDatabase } = require('./database')
 
@@ -64,7 +65,10 @@ class DBFactory {
                             const paired = new Queue().shifter().paired
                             event.request.readyState = 'done'
                             const loop = new Loop(schema)
+                            event.request.transaction = new DBTransaction(schema, null, loop, 'versionupgrade')
                             const database = event.request.result = new DBDatabase(schema, transactor, loop, 'versionupgrade')
+                            event.request.transaction._database = database
+                            database._transaction = event.request.transaction
                             dispatchEvent(event.request, new Event('upgradeneeded'))
                             event.upgraded = true
                             await loop.run(upgrade, schema, [])
