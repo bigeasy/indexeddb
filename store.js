@@ -25,6 +25,7 @@ class DBObjectStore {
         assert(typeof id == 'number')
         this._transaction = transaction
         this._name = name
+        this._store = schema.store[id]
         this._database = database
         this._loop = loop
         this._schema = schema

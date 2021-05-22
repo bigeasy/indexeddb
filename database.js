@@ -64,7 +64,7 @@ class DBDatabase {
         const id = this._schema.name[name]
         this._schema.store[id].deleted = true
         delete this._schema.name[name]
-        this._loop.queue.push({ method: 'deleteStore', id: id })
+        this._loop.queue.push({ method: 'destroy', id: id })
     }
 
     // https://www.w3.org/TR/IndexedDB/#dom-idbdatabase-close
