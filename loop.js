@@ -146,8 +146,8 @@ class Loop {
                             const { id, query, request } = event
                             const index = schema.store[id]
                             const store = schema.store[index.storeId]
-                            const indexGot = await transaction.cursor(index.qualified, [[ query ]])
-                                                              .terminate(item => compare(item.key[0], query) != 0)
+                            const indexGot = await transaction.cursor(index.qualified, [[ query.lower ]])
+                                                              .terminate(item => ! query.includes(item.key[0]))
                                                               .array()
                             if (indexGot.length != 0) {
                                 const got = await transaction.get(store.qualified, [ indexGot[0].key[1] ])

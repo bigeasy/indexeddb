@@ -1,4 +1,5 @@
 const { DBRequest } = require('./request')
+const { DBKeyRange } = require('./keyrange')
 
 class DBIndex {
     constructor (schema, loop, id) {
@@ -25,6 +26,9 @@ class DBIndex {
 
     get (query) {
         const request = new DBRequest
+        if (!(query instanceof DBKeyRange)) {
+            query = DBKeyRange.only(query)
+        }
         this._loop.queue.push({ method: 'get', id: this._id, query, request })
         return request
     }
