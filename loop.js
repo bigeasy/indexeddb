@@ -48,7 +48,7 @@ class Loop {
                     const { id, name, keyPath, autoIncrement } = event
                     const properties = schema.store[id]
                     if (! properties.deleted) {
-                        transaction.set('store', properties)
+                        transaction.set('schema', properties)
                         await transaction.store(properties.qualified, { key: 'indexeddb' })
                     }
                 }
@@ -60,7 +60,7 @@ class Loop {
                 break
             case 'index': {
                     const { id, name, keyPath, unique, multiEntry } = event
-                    const indexId = schema.max.store++
+                    const indexId = schema.max++
                     const store = schema.store[id]
                     store.indices[name] = indexId
                     const index = schema.index[indexId] = {
@@ -75,8 +75,8 @@ class Loop {
                     }
                     await transaction.store(schema.index[indexId].qualified, { key: 'indexeddb' })
                     schema.extractor[schema.index[indexId].qualified] = extractify(keyPath)
-                    transaction.set('store', store)
-                    transaction.set('store', index)
+                    transaction.set('schema', store)
+                    transaction.set('schema', index)
                 }
                 break
             case 'add': {

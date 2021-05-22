@@ -57,15 +57,10 @@ class DBFactory {
                             comparators: { indexeddb: comparator }
                         }, async upgrade => {
                             if (upgrade.version.current == 0) {
-                                await upgrade.store('store', { 'id': Number })
-                                await upgrade.store('index', { 'id': Number })
+                                await upgrade.store('schema', { 'id': Number })
                             }
-                            schema.max = {
-                                store: (await upgrade.cursor('store').array()).pop(),
-                                index: (await upgrade.cursor('index').array()).pop()
-                            }
-                            schema.max.store = schema.max.store ? schema.max.store.id : 0
-                            schema.max.index = schema.max.index ? schema.max.index.id : 0
+                            const max = (await upgrade.cursor('schema').array()).pop()
+                            schema.max = max ? max.id : 0
                             const paired = new Queue().shifter().paired
                             event.request.readyState = 'done'
                             const loop = new Loop(schema)

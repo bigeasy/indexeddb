@@ -42,7 +42,7 @@ class DBDatabase {
         if (name === undefined) {
             throw new TypeError
         }
-        const id = this._schema.max.store++
+        const id = this._schema.max++
         const schema = this._schema.store[id] = {
             type: 'store',
             id: id,
