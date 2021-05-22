@@ -152,9 +152,8 @@ class Loop {
                             if (indexGot.length != 0) {
                                 const got = await transaction.get(store.qualified, [ indexGot[0].key[1] ])
                                 request.result = Verbatim.deserialize(Verbatim.serialize(got.value))
-                                dispatchEvent(request, new Event('success'))
-
                             }
+                            dispatchEvent(request, new Event('success'))
                         }
                         break
                     }
