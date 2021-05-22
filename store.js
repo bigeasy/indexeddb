@@ -4,6 +4,7 @@ const { DBCursor, DBCursorWithValue } = require('./cursor')
 const { DBIndex } = require('./index')
 const { dispatchEvent } = require('./dispatch')
 const { InvalidStateError, DataError, ReadOnlyError } = require('./error')
+const { extractify } = require('./extractor')
 const { valuify } = require('./value')
 
 const assert = require('assert')
@@ -137,9 +138,23 @@ class DBObjectStore {
     }
 
     createIndex (name, keyPath, { unique = false, multiEntry = false } = {}) {
-        const request = new DBRequest
-        this._loop.queue.push({ method: 'index', id: this._id, name, keyPath, unique, multiEntry })
-        return request
+        const indexId = this._schema.max++
+        const index = {
+            type: 'index',
+            id: indexId,
+            storeId: this._id,
+            name: name,
+            qualified: `index.${indexId}`,
+            keyPath: keyPath,
+            multiEntry: multiEntry,
+            unique: unique
+        }
+        this._schema.store[indexId] = index
+        this._schema.store[this._id].indices[name] = indexId
+        this._schema.extractor[indexId] = extractify(keyPath)
+        console.log('pusing!!!')
+        this._loop.queue.push({ method: 'index', id: indexId })
+        return new DBIndex(this._schema, this._loop, indexId)
     }
 
     deleteIndex (name) {

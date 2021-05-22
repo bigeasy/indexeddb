@@ -41,6 +41,7 @@ class Loop {
         console.log('pause done', this.queue.length)
         while (this.queue.length != 0) {
             const event = this.queue.shift()
+            console.log(event)
             SWITCH: switch (event.method) {
             // Don't worry about rollback of the update to the schema object. We
             // are not going to use this object if the upgrade fails.
@@ -59,22 +60,11 @@ class Loop {
                 }
                 break
             case 'index': {
-                    const { id, name, keyPath, unique, multiEntry } = event
-                    const indexId = schema.max++
-                    const store = schema.store[id]
-                    store.indices[name] = indexId
-                    const index = schema.store[indexId] = {
-                        type: 'index',
-                        id: indexId,
-                        storeId: id,
-                        name: name,
-                        qualified: `index.${id}`,
-                        keyPath: keyPath,
-                        multiEntry: multiEntry,
-                        unique: unique
-                    }
-                    await transaction.store(schema.store[indexId].qualified, { key: 'indexeddb' })
-                    schema.extractor[indexId] = extractify(keyPath)
+                    console.log('--- here ---')
+                    const { id } = event
+                    const index = schema.store[id]
+                    const store = schema.store[index.storeId]
+                    await transaction.store(index.qualified, { key: 'indexeddb' })
                     transaction.set('schema', store)
                     transaction.set('schema', index)
                 }
