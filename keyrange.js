@@ -1,7 +1,12 @@
+const compare = require('./compare')
+const { valuify } = require('./value')
+
 class DBKeyRange {
-    constructor (lower, upper) {
+    constructor (lower, upper, lowerOpen, upperOpen) {
         this._lower = lower
         this._upper = upper
+        this._lowerOpen = lowerOpen
+        this._upperOpen = upperOpen
     }
 
     get lower () {
@@ -13,31 +18,33 @@ class DBKeyRange {
     }
 
     get lowerOpen () {
-        throw new Error
+        return this._lowerOpen
     }
 
     get upperOpen () {
-        throw new Error
+        return this._upperOpen
     }
 
     static only (value) {
-        throw new Error
+        return DBKeyRange.bound(value, value)
     }
 
     static lowerBound (lower, open = false) {
-        throw new Error
+        return new DBKeyRange(lower, undefined, open, undefined)
     }
 
     static upperBound (upper, open = false) {
-        throw new Error
+        return new DBKeyRange(undefined, upper, undefined, open)
     }
 
     static bound (lower, upper, lowerOpen = false, upperOpen = false) {
-        throw new Error
+        return new DBKeyRange(lower, upper, lowerOpen, upperOpen)
     }
 
     includes (key) {
-        throw new Error
+        const value = valuify(key)
+        return (this._lower === undefined || compare(value, this._lower) >= (this._lowerOpen ? 1 : 0)) &&
+            (this._upper === undefined || compare(value, this._upper) <= (this._upperOpen ? -1 : 0))
     }
 }
 
