@@ -142,7 +142,7 @@ class Loop {
                         }
                         break
                     case 'index': {
-                            const { id, query, request } = event
+                            const { id, query, request, key } = event
                             const index = schema.store[id]
                             const store = schema.store[index.storeId]
                             const indexGot = await transaction.cursor(index.qualified, [[ query.lower ]])
@@ -150,7 +150,7 @@ class Loop {
                                                               .array()
                             if (indexGot.length != 0) {
                                 const got = await transaction.get(store.qualified, [ indexGot[0].key[1] ])
-                                request.result = Verbatim.deserialize(Verbatim.serialize(got.value))
+                                request.result = Verbatim.deserialize(Verbatim.serialize(key ? got.key : got.value))
                             }
                             dispatchEvent(request, new Event('success'))
                         }

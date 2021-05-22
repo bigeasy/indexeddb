@@ -39,12 +39,23 @@ class DBIndex {
         if (!(query instanceof DBKeyRange)) {
             query = DBKeyRange.only(query)
         }
-        this._loop.queue.push({ method: 'get', id: this._id, query, request })
+        this._loop.queue.push({ method: 'get', key: false, id: this._id, query, request })
         return request
     }
 
     getKey (query) {
-        throw new Error
+        const request = new DBRequest
+        if (this._index.deleted) {
+            throw new InvalidStateError
+        }
+        if (this._transaction._aborted) {
+            throw new TransactionInactiveError
+        }
+        if (!(query instanceof DBKeyRange)) {
+            query = DBKeyRange.only(query)
+        }
+        this._loop.queue.push({ method: 'get', key: true, id: this._id, query, request })
+        return request
     }
 
     getAll (query, count = null) {
