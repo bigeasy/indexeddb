@@ -145,23 +145,28 @@ class Loop {
             case 'get': {
                     const { id, key, request } = event
                     const store = schema.store[id]
-                    const got = await transaction.get(store.qualified, [ key ])
-                    request.result = Verbatim.deserialize(Verbatim.serialize(got.value))
-                    dispatchEvent(request, new Event('success'))
-                }
-                break
-            case 'indexGet': {
-                    const { id, query, request } = event
-                    const index = schema.store[id]
-                    const store = schema.store[index.storeId]
-                    const indexGot = await transaction.cursor(index.qualified, [[ query ]])
-                                                      .terminate(item => compare(item.key[0], query) != 0)
-                                                      .array()
-                    if (indexGot.length != 0) {
-                        const got = await transaction.get(store.qualified, [ indexGot[0].key[1] ])
-                        request.result = Verbatim.deserialize(Verbatim.serialize(got.value))
-                        dispatchEvent(request, new Event('success'))
+                    switch (store.type) {
+                    case 'store': {
+                            const got = await transaction.get(store.qualified, [ key ])
+                            request.result = Verbatim.deserialize(Verbatim.serialize(got.value))
+                            dispatchEvent(request, new Event('success'))
+                        }
+                        break
+                    case 'index': {
+                            const { id, query, request } = event
+                            const index = schema.store[id]
+                            const store = schema.store[index.storeId]
+                            const indexGot = await transaction.cursor(index.qualified, [[ query ]])
+                                                              .terminate(item => compare(item.key[0], query) != 0)
+                                                              .array()
+                            if (indexGot.length != 0) {
+                                const got = await transaction.get(store.qualified, [ indexGot[0].key[1] ])
+                                request.result = Verbatim.deserialize(Verbatim.serialize(got.value))
+                                dispatchEvent(request, new Event('success'))
 
+                            }
+                        }
+                        break
                     }
                 }
                 break

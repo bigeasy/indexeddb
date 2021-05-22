@@ -25,7 +25,7 @@ class DBIndex {
 
     get (query) {
         const request = new DBRequest
-        this._loop.queue.push({ method: 'indexGet', id: this._id, query, request })
+        this._loop.queue.push({ method: 'get', id: this._id, query, request })
         return request
     }
 
