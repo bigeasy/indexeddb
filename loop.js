@@ -74,7 +74,7 @@ class Loop {
                         unique: unique
                     }
                     await transaction.store(schema.store[indexId].qualified, { key: 'indexeddb' })
-                    schema.extractor[schema.store[indexId].qualified] = extractify(keyPath)
+                    schema.extractor[indexId] = extractify(keyPath)
                     transaction.set('schema', store)
                     transaction.set('schema', index)
                 }
@@ -114,11 +114,10 @@ class Loop {
                     }
                     const record = { key, value }
                     for (const indexName in properties.indices) {
-                        const indexId = properties.indices[indexName]
-                        const index = schema.store[indexId]
+                        const index = schema.store[properties.indices[indexName]]
                         let extracted
                         try {
-                            extracted = valuify(schema.extractor[index.qualified](record.value))
+                            extracted = valuify(schema.extractor[index.id](record.value))
                         } catch (error) {
                             rescue(error, [ DataError ])
                             continue

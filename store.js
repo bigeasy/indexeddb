@@ -51,7 +51,7 @@ class DBObjectStore {
         if (key != null) {
             key = valuify(key)
         } else if (store.autoIncrement == null) {
-            key = valuify((this._schema.extractor[store.qualified])(value))
+            key = valuify((this._schema.extractor[store.id])(value))
         }
         const request = new DBRequest
         this._loop.queue.push({ method: 'put', request, id: this._id, key, value })
@@ -76,7 +76,7 @@ class DBObjectStore {
         if (key != null) {
             key = valuify(key)
         } else if (store.autoIncrement == null) {
-            key = valuify((this._schema.extractor[store.qualified])(value))
+            key = valuify((this._schema.extractor[store.id])(value))
         }
         const request = new DBRequest
         this._loop.queue.push({ method: 'add', request, id: this._id, value, key })
