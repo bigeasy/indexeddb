@@ -2,6 +2,7 @@ module.exports = async function (okay, name) {
     const { Future } = require('perhaps')
     const fs = require('fs').promises
     const assert = require('assert')
+    const compare = require('../compare')
     const path = require('path')
     const rmrf = require('../rmrf')
     const directory = path.join(__dirname, 'tmp', name)
@@ -19,6 +20,7 @@ module.exports = async function (okay, name) {
             okay.leak(name)
         }
     }
+    globalize({ title: 'wpt' }, 'document')
     const { DBRequest } = require('../request')
     globalize(DBRequest, 'IDBRequest')
     const { DBKeyRange } = require('../keyrange')
@@ -123,13 +125,28 @@ module.exports = async function (okay, name) {
     }
     globalize(assert_true)
     function assert_equals (actual, expected, message) {
-        okay(actual, expected, `${scope.name} - assertion ${scope.count++}`)
+        message || (message = `assertion ${scope.count++}`)
+        okay(actual, expected, `${scope.name} - ${message}`)
     }
     globalize(assert_equals)
+    function assert_key_equals (actual, expected, message)  {
+        assert_equals(compare(actual, expected), 0, message)
+    }
+    globalize(assert_key_equals)
     function assert_array_equals (actual, expected, message) {
-        okay(actual, expected, `${scope.name} - assertion ${scope.count++}`)
+        assert_equals(actual, expected, message)
     }
     globalize(assert_array_equals)
+    function assert_readonly (object, property, message) {
+        const save = object[property]
+        try {
+            object[property] = save + 'a'
+            okay(object[property], save, message)
+        } finally {
+            object[property] = save
+        }
+    }
+    globalize(assert_readonly)
     function assert_throws_js(constructor, func, description) {
         try {
             func.call(null)
