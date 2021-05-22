@@ -134,7 +134,7 @@ class DBObjectStore {
     index (name) {
         const properties = this._schema.store[this._id]
         const indexId = properties.indices[name]
-        return new DBIndex(this._schema2, this._loop, indexId)
+        return new DBIndex(this._schema, this._loop, indexId)
     }
 
     createIndex (name, keyPath, { unique = false, multiEntry = false } = {}) {
