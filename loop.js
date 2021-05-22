@@ -63,7 +63,7 @@ class Loop {
                     const indexId = schema.max++
                     const store = schema.store[id]
                     store.indices[name] = indexId
-                    const index = schema.index[indexId] = {
+                    const index = schema.store[indexId] = {
                         type: 'index',
                         id: indexId,
                         storeId: id,
@@ -73,8 +73,8 @@ class Loop {
                         multiEntry: multiEntry,
                         unique: unique
                     }
-                    await transaction.store(schema.index[indexId].qualified, { key: 'indexeddb' })
-                    schema.extractor[schema.index[indexId].qualified] = extractify(keyPath)
+                    await transaction.store(schema.store[indexId].qualified, { key: 'indexeddb' })
+                    schema.extractor[schema.store[indexId].qualified] = extractify(keyPath)
                     transaction.set('schema', store)
                     transaction.set('schema', index)
                 }
@@ -115,7 +115,7 @@ class Loop {
                     const record = { key, value }
                     for (const indexName in properties.indices) {
                         const indexId = properties.indices[indexName]
-                        const index = schema.index[indexId]
+                        const index = schema.store[indexId]
                         let extracted
                         try {
                             extracted = valuify(schema.extractor[index.qualified](record.value))
@@ -153,7 +153,7 @@ class Loop {
                 break
             case 'indexGet': {
                     const { id, query, request } = event
-                    const index = schema.index[id]
+                    const index = schema.store[id]
                     const store = schema.store[index.storeId]
                     const indexGot = await transaction.cursor(index.qualified, [[ query ]])
                                                       .terminate(item => compare(item.key[0], query) != 0)
