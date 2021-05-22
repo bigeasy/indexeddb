@@ -20,6 +20,7 @@ module.exports = async function (okay, name) {
             okay.leak(name)
         }
     }
+    globalize('wpt', 'location')
     globalize({ title: 'wpt' }, 'document')
     const { DBRequest } = require('../request')
     globalize(DBRequest, 'IDBRequest')
@@ -54,6 +55,11 @@ module.exports = async function (okay, name) {
             CLEANING:3,
             COMPLETE:4
         }
+        unreached_func (description) {
+            return this.step_func(function () {
+                throw new Error(`should not reach: ${description}`)
+            })
+        }
         step (func, ...vargs) {
             const self = vargs.length == 0 ? this : vargs.shift()
             if (this.phase > this.phases.STARTED) {
@@ -83,13 +89,15 @@ module.exports = async function (okay, name) {
     globalize(Test)
     const scope = {}, futures = []
     function async_test (...vargs) {
-        const properties = vargs.pop()
-        scope.name = vargs.pop() || name
+        const f = typeof vargs[0] == 'function' ? vargs.shift() : null
+        scope.name = typeof vargs[0] == 'string' ? vargs.shift() : name
+        const properties = vargs.pop() || null
         scope.count = 0
-        const f = vargs.pop() || null
         const future = new Future
         futures.push(future)
         if (f != null) {
+            f(new Test(future))
+            console.log('got f')
         }
         return new Test(future)
     }
@@ -325,5 +333,38 @@ module.exports = async function (okay, name) {
         }
     }
     globalize(harness)
+    function indexeddb_test(upgrade_func, open_func, description, options) {
+      async_test(function(t) {
+        options = Object.assign({upgrade_will_abort: false}, options);
+        var dbname = location + '-' + t.name;
+        var del = indexedDB.deleteDatabase(dbname);
+        del.onerror = t.unreached_func('deleteDatabase should succeed');
+        var open = indexedDB.open(dbname, 1);
+        open.onupgradeneeded = t.step_func(function() {
+          var db = open.result;
+          t.add_cleanup(function() {
+            // If open didn't succeed already, ignore the error.
+            open.onerror = function(e) {
+              e.preventDefault();
+            };
+            db.close();
+            indexedDB.deleteDatabase(db.name);
+          });
+          var tx = open.transaction;
+          upgrade_func(t, db, tx, open);
+        });
+        if (options.upgrade_will_abort) {
+          open.onsuccess = t.unreached_func('open should not succeed');
+        } else {
+          open.onerror = t.unreached_func('open should succeed');
+          open.onsuccess = t.step_func(function() {
+            var db = open.result;
+            if (open_func)
+              open_func(t, db, open);
+          });
+        }
+      }, description);
+    }
+    globalize(indexeddb_test)
     return futures
 }
