@@ -3,8 +3,8 @@ const { valuify } = require('./value')
 
 class DBKeyRange {
     constructor (lower, upper, lowerOpen, upperOpen) {
-        this._lower = valuify(lower)
-        this._upper = valuify(upper)
+        this._lower = lower
+        this._upper = upper
         this._lowerOpen = lowerOpen
         this._upperOpen = upperOpen
     }
@@ -26,19 +26,20 @@ class DBKeyRange {
     }
 
     static only (value) {
+        value = valuify(value)
         return DBKeyRange.bound(value, value)
     }
 
     static lowerBound (lower, open = false) {
-        return new DBKeyRange(lower, undefined, open, undefined)
+        return new DBKeyRange(valuify(lower), undefined, open, undefined)
     }
 
     static upperBound (upper, open = false) {
-        return new DBKeyRange(undefined, upper, undefined, open)
+        return new DBKeyRange(undefined, valuify(upper), undefined, open)
     }
 
     static bound (lower, upper, lowerOpen = false, upperOpen = false) {
-        return new DBKeyRange(lower, upper, lowerOpen, upperOpen)
+        return new DBKeyRange(valuify(lower), valuify(upper), lowerOpen, upperOpen)
     }
 
     includes (key) {
