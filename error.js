@@ -34,3 +34,11 @@ class TransactionInactiveError extends DOMException {
 }
 
 exports.TransactionInactiveError = TransactionInactiveError
+
+class NotFoundError extends DOMException {
+    constructor (message = 'The operation failed because the requested database object could not be found. For example, an object store did not exist but was being opened.') {
+        super(message, 'NotFoundError')
+    }
+}
+
+exports.NotFoundError = NotFoundError

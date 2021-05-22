@@ -2,6 +2,7 @@ const { DBObjectStore } = require('./store')
 const { DBRequest } = require('./request')
 const { DBTransaction } = require('./transaction')
 const { extractify } = require('./extractor')
+const { NotFoundError } = require('./error')
 
 const Queue = require('avenue')
 
@@ -31,6 +32,11 @@ class DBDatabase {
     transaction (names, mode = 'readonly') {
         if (typeof names == 'string') {
             names = [ names ]
+        }
+        for (const name of names) {
+            if (! (name in this._schema.name)) {
+                throw new NotFoundError
+            }
         }
         const request = new DBRequest
         const loop = new Loop
