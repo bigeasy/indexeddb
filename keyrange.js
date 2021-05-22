@@ -3,8 +3,8 @@ const { valuify } = require('./value')
 
 class DBKeyRange {
     constructor (lower, upper, lowerOpen, upperOpen) {
-        this._lower = lower
-        this._upper = upper
+        this._lower = valuify(lower)
+        this._upper = valuify(upper)
         this._lowerOpen = lowerOpen
         this._upperOpen = upperOpen
     }
