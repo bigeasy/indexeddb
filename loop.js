@@ -61,9 +61,9 @@ class Loop {
             case 'index': {
                     const { id, name, keyPath, unique, multiEntry } = event
                     const indexId = schema.max.store++
-                    const properties = schema.store[id]
-                    properties.indices[name] = indexId
-                    schema.index[indexId] = {
+                    const store = schema.store[id]
+                    store.indices[name] = indexId
+                    const index = schema.index[indexId] = {
                         type: 'index',
                         id: indexId,
                         storeId: id,
@@ -75,8 +75,8 @@ class Loop {
                     }
                     await transaction.store(schema.index[indexId].qualified, { key: 'indexeddb' })
                     schema.extractor[schema.index[indexId].qualified] = extractify(keyPath)
-                    transaction.set('store', properties)
-                    transaction.set('store', schema.index[id])
+                    transaction.set('store', store)
+                    transaction.set('store', index)
                 }
                 break
             case 'add': {
@@ -145,8 +145,8 @@ class Loop {
                 break
             case 'get': {
                     const { id, key, request } = event
-                    const properties = schema.store[id]
-                    const got = await transaction.get(properties.qualified, [ key ])
+                    const store = schema.store[id]
+                    const got = await transaction.get(store.qualified, [ key ])
                     request.result = Verbatim.deserialize(Verbatim.serialize(got.value))
                     dispatchEvent(request, new Event('success'))
                 }
