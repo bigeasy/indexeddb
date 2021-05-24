@@ -9,11 +9,12 @@ const Queue = require('avenue')
 const Loop = require('./loop')
 
 class DBDatabase {
-    constructor (schema, transactor, loop, mode) {
+    constructor (name, schema, transactor, loop, mode) {
         this._schema = schema
         this._transactor = transactor
         this._transaction = null
         this._loop = loop
+        this._name = name
         this._mode = mode
     }
 
