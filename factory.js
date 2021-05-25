@@ -55,6 +55,7 @@ class DBFactory {
                 dispatchEvent(connection.request, new Event('versionchange'))
             }
         }
+        // **TODO** No, it's a closing flag you're looking for.
         if (database.opening.connections.size() != 0) {
             dispatchEvent(event.request, new Event('blocked'))
         }
@@ -139,12 +140,13 @@ class DBFactory {
                                         const index = dbs.indexOf(db)
                                         assert(index != -1)
                                         dbs.splice(index, 1)
-                                        console.log('why yes, I am closing, why do you ask?')
                                         db._closed.resolve()
+                                        if (dbs.length == 0) {
+                                            database.opening.closing = true
+                                        }
                                     }
                                 })
                             }
-                            await database.opening.memento.close()
                             database.destructible.destroy()
                             database.queue.push(null)
                         })
@@ -165,6 +167,9 @@ class DBFactory {
             queue: queue,
             destructible: this._destructible.ephemeral($ => $(), `database.${name}`)
         }
+        // ** TODO ** Why isn't the trace working? It is not working because the
+        // scam is not a property of the promise we're passing, no place to
+        // inject it without further work.
         database.destructible.durable($ => $(), 'connections', this._inner(database, queue.shifter()))
     }
 
@@ -204,6 +209,10 @@ class DBFactory {
     }
 
     // IDBFactory.
+
+    // Since this is the only entry, we are going to have it perform a double
+    // duty of starting our background processes by launching a nested factory
+    // implementation.
 
     // **TODO** When the version is missing we open with the current version or
     // 1 if it does not exist.
