@@ -71,6 +71,7 @@ class DBFactory {
 
     //
     async _inner (database, shifter) {
+        const dbs = []
         for await (const event of shifter) {
             switch (event.method) {
             case 'open': {
@@ -105,6 +106,7 @@ class DBFactory {
                                     const loop = new Loop(schema)
                                     event.request.transaction = new DBTransaction(schema, null, loop, 'versionupgrade')
                                     const db = event.request.result = new DBDatabase(event.name, schema, transactor, loop, 'versionupgrade')
+                                    dbs.push(db)
                                     connections.set(db, new Set)
                                     event.request.transaction._database = db
                                     connections.get(db).add(db._transaction = event.request.transaction)
@@ -128,10 +130,18 @@ class DBFactory {
                         database.destructible.durable($ => $(), 'transactions', async () => {
                             let count = 0
                             for await (const event of transactions) {
-                                const { names, extra: loop } = event
+                                const { names, extra: { loop, db, transaction } } = event
                                 database.destructible.ephemeral(`transaction.${count++}`, async () => {
                                     // **TODO** How is this mutating????
                                     await database.opening.memento.snapshot(snapshot => loop.run(snapshot, schema, names))
+                                    db._transactions.delete(transaction)
+                                    if (db._closing && db._transactions.size == 0) {
+                                        const index = dbs.indexOf(db)
+                                        assert(index != -1)
+                                        dbs.splice(index, 1)
+                                        console.log('why yes, I am closing, why do you ask?')
+                                        db._closed.resolve()
+                                    }
                                 })
                             }
                             await database.opening.memento.close()

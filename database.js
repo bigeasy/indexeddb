@@ -4,6 +4,8 @@ const { DBTransaction } = require('./transaction')
 const { extractify } = require('./extractor')
 const { NotFoundError } = require('./error')
 
+const { Future } = require('perhaps')
+
 const Queue = require('avenue')
 
 const Loop = require('./loop')
@@ -14,8 +16,11 @@ class DBDatabase {
         this._transactor = transactor
         this._transaction = null
         this._loop = loop
+        this._closing = false
+        this._closed = new Future
         this._name = name
         this._mode = mode
+        this._transactions = new Set
     }
 
     get name () {
@@ -41,8 +46,10 @@ class DBDatabase {
         }
         const request = new DBRequest
         const loop = new Loop
-        this._transactor.transaction(loop, names, mode == 'readonly')
-        return new DBTransaction(this._schema, this._database, loop, mode)
+        const transaction =  new DBTransaction(this._schema, this._database, loop, mode)
+        this._transactions.add(transaction)
+        this._transactor.transaction({ db: this, transaction, loop }, names, mode == 'readonly')
+        return transaction
     }
 
     createObjectStore (name, { autoIncrement = false, keyPath = null } = {}) {
@@ -77,6 +84,7 @@ class DBDatabase {
 
     // https://www.w3.org/TR/IndexedDB/#dom-idbdatabase-close
     close () {
+        this._closing = true
         this._transactor.queue.push(null)
     }
 
