@@ -213,8 +213,11 @@ class Loop {
             case 'destroy': {
                     const { id } = event
                     const store = schema.store[id]
-                    delete schema.store[id]
-                    await transaction.remove(store.qualified)
+                    if (! store.deleted) {
+                        delete schema.store[id]
+                        console.log(store.qualified)
+                        await transaction.remove(store.qualified)
+                    }
                 }
                 break
             }

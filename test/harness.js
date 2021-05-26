@@ -316,16 +316,18 @@ module.exports = async function (okay, name) {
     globalize(createdb)
     async function harness (f) {
         indexedDB.destructible.promise.catch(error => console.log(error.stack))
-        const deleted = new Future
+        const dones = []
         add_completion_callback(function () {
-            console.log('--- CALLBACK')
             for (const test of tests) {
+                const done = new Future
+                dones.push(done)
                 if (test.db) {
                     test.db.close()
-                    indexedDB.deleteDatabase(test.db.name)
+                    indexedDB.deleteDatabase(test.db.name).onsuccess = function () {
+                        done.resolve()
+                    }
                 }
             }
-            deleted.resolve()
         })
         await f()
         while (futures.length != 0) {
@@ -334,8 +336,10 @@ module.exports = async function (okay, name) {
         while (janitors.length != 0) {
             janitors.shift()()
         }
-        await deleted.promise
-        await indexedDB.destructible.destroy().promise.catch(error => {})
+        while (dones.length != 0) {
+            await dones.shift().promise
+        }
+        await indexedDB.destructible.destroy().promise
     }
     globalize(harness)
     function indexeddb_test(upgrade_func, open_func, description, options) {

@@ -3,6 +3,8 @@ const assert = require('assert')
 const fs = require('fs').promises
 const path = require('path')
 
+const rmrf = require('./rmrf')
+
 const rescue = require('rescue')
 
 const { Future } = require('perhaps')
@@ -13,6 +15,8 @@ const Memento = require('memento')
 const comparator = require('./compare')
 
 const Transactor = require('./transactor')
+
+const Turnstile = require('turnstile')
 
 const { DBTransaction } = require('./transaction')
 const { DBOpenDBRequest } = require('./request')
@@ -50,23 +54,19 @@ const Loop = require('./loop')
 
 //
 class Opener {
-    constructor (destructible, directory, name, previous) {
+    constructor (destructible, schema, directory, name, previous) {
         this.destructible = destructible
         this.directory = directory
         this.name = name
-        this.connections = []
-        const schema = { name: {}, store: {}, max: 0, index: {}, extractor: {} }
-        const transactor = new Transactor
-        this._sleep = Future.resolve()
-        this.connections.push({ method: 'initialize', previous })
-        this.destructible.durable('connections', this._connect(schema, transactor))
-        this.destructible.durable('transactions', this._transact(schema, transactor))
+        this._transactor = new Transactor
+        this.destructible.durable('transactions', this._transact(schema))
         this.opening = null
         this._handles = []
     }
 
-    async _waitForClose () {
+    async close (event) {
         for (const connection of this._handles) {
+            console.log(connection._closing)
             if (! connection._closing) {
                 dispatchEvent(connection.request, new Event('versionchange'))
             }
@@ -80,41 +80,104 @@ class Opener {
         }
     }
 
-    _maybeClose (transactor, db) {
+    _maybeClose (db) {
         if (db._closing && db._transactions.size == 0) {
             const index = this._handles.indexOf(db)
             assert(index != -1)
             this._handles.splice(index, 1)
             db._closed.resolve()
-            console.log(this._handles.length, this.connections)
-            if (this._handles.length == 0 && this.connections.length == 0) {
+            console.log(this._handles.length, db._closing, db._transactions.size)
+            if (this._handles.length == 0) {
+                console.log('YES CLOSE')
                 this.destructible.destroy()
-                transactor.queue.push(null)
-                this._sleep.resolve()
+                this._transactor.queue.push(null)
             }
         }
     }
 
-    async _transact (schema, transactor) {
+    async _transact (schema) {
         let count = 0
-        for await (const event of transactor.queue.shifter()) {
+        for await (const event of this._transactor.queue.shifter()) {
             switch (event.method) {
             case 'transact': {
                     const { names, extra: { loop, db, transaction } } = event
                     this.destructible.ephemeral(`transaction.${count++}`, async () => {
                         // **TODO** How is this mutating????
-                        await this.opening.memento.snapshot(snapshot => loop.run(snapshot, schema, names))
+                        await this._memento.snapshot(snapshot => loop.run(snapshot, schema, names))
                         db._transactions.delete(transaction)
-                        this._maybeClose(transactor, db)
+                        this._maybeClose(db)
                     })
                 }
             case 'close': {
                     const { extra: { db } } = event
-                    this._maybeClose(transactor, db)
+                    this._maybeClose(db)
                 }
                 break
             }
         }
+    }
+
+    static async open (destructible, schema, directory, name, { request }) {
+        const opening = new Opener(destructible, schema, directory, name)
+        // **TODO** `version` should be a read-only property of the
+        // Memento object.
+        await opening.destructible.ephemeral($ => $(), 'upgrade', async () => {
+            try {
+                await fs.mkdir(path.join(directory, name), { recurse: true })
+                const paired = new Queue().shifter().paired
+                const connections = new Map
+                const loop = new Loop(schema)
+                const db = request.result = new DBDatabase(name, schema, opening._transactor, loop, 'versionupgrade')
+                opening._memento = await Memento.open({
+                    destructible: destructible.durable('memento'),
+                    turnstile: this._turnstile,
+                    directory: path.join(directory, name),
+                    comparators: { indexeddb: comparator }
+                }, async upgrade => {
+                    if (upgrade.version.current == 0) {
+                        await upgrade.store('schema', { 'id': Number })
+                    }
+                    const max = (await upgrade.cursor('schema').array()).pop()
+                    schema.max = max ? max.id : 0
+                    const paired = new Queue().shifter().paired
+                    request.readyState = 'done'
+                    request.transaction = new DBTransaction(schema, null, loop, 'versionupgrade')
+                    db._transactions.add(request.transaction)
+                    opening._handles.push(db)
+                    connections.set(db, new Set)
+                    request.transaction._database = db
+                    connections.get(db).add(db._transaction = request.transaction)
+                    dispatchEvent(request, new Event('upgradeneeded'))
+                    await loop.run(upgrade, schema, [])
+                })
+                db._transactions.delete(request.transaction)
+                opening._maybeClose(db)
+                request.readyState = 'done'
+                dispatchEvent(request, new Event('success'))
+            } catch (error) {
+                console.log(error.stack)
+                rescue(error, [{ symbol: Memento.Error.ROLLBACK }])
+            }
+        }).promise.catch(error => console.log(error.stack))
+        return opening
+    }
+}
+
+class Connector {
+    constructor (destructible, directory, name, map) {
+        const schema = { name: {}, store: {}, max: 0, index: {}, extractor: {} }
+        this._opener = { destructible: new Destructible('opener').destroy() }
+        this._destructible = destructible
+        this._directory = directory
+        this._name = name
+        this._map = map
+        this._events = []
+        this._sleep = Future.resolve()
+        this._destructible.durable('connections', this._connect(schema))
+    }
+
+    push (event) {
+        this._events.push(event)
     }
 
     // Looks like a job for Turnstile, but I don't seem to be able to bring
@@ -124,95 +187,62 @@ class Opener {
     // cannot foresee and will never encouter myself.
 
     //
-    async _connect (schema, transactor) {
-        console.log('--- starting ---')
+    async _connect (schema) {
+        await new Promise(resolve => setImmediate(resolve))
         for (;;) {
-            console.log('???', this.destructible.destroyed, this.connections)
             // **TODO** Seeing a log of Lists gathering in _isolation.panic in
             // Destructible.
-            if (this.connections.length == 0) {
-                if (this.destructible.destroyed) {
+            console.log(this._events, this._opener.destructible.destroyed)
+            if (this._events.length == 0) {
+                if (this._opener.destructible.destroyed) {
                     break
                 }
                 this._sleep = new Future
                 await this._sleep.promise
                 continue
             }
-            const event = this.connections.shift()
+            const event = this._events.shift()
             switch (event.method) {
             case 'initialize': {
                     await event.previous.promise
                 }
                 break
             case 'open': {
-                    if (this.opening == null || this.opening.version < event.version) {
-                        if (this.opening != null) {
-                            await this._waitForClose()
+                    if (this._opener.destructible.destroyed || this._opener.version < event.version) {
+                        if (! this._opener.destructible.destroyed) {
+                            await this._opener.close(event)
                         }
-                        // **TODO** `version` should be a read-only property of the
-                        // Memento object.
-                        await this.destructible.ephemeral($ => $(), 'upgrade', async () => {
-                            try {
-                                const directory = path.join(this.directory, event.name)
-                                await fs.mkdir(directory, { recurse: true })
-                                const paired = new Queue().shifter().paired
-                                const connections = new Map
-                                const memento = await Memento.open({
-                                    destructible: this.destructible.durable('memento'),
-                                    turnstile: this._turnstile,
-                                    directory: directory,
-                                    comparators: { indexeddb: comparator }
-                                }, async upgrade => {
-                                    if (upgrade.version.current == 0) {
-                                        await upgrade.store('schema', { 'id': Number })
-                                    }
-                                    const max = (await upgrade.cursor('schema').array()).pop()
-                                    schema.max = max ? max.id : 0
-                                    const paired = new Queue().shifter().paired
-                                    event.request.readyState = 'done'
-                                    const loop = new Loop(schema)
-                                    event.request.transaction = new DBTransaction(schema, null, loop, 'versionupgrade')
-                                    const db = event.request.result = new DBDatabase(event.name, schema, transactor, loop, 'versionupgrade')
-                                    this._handles.push(db)
-                                    connections.set(db, new Set)
-                                    event.request.transaction._database = db
-                                    connections.get(db).add(db._transaction = event.request.transaction)
-                                    dispatchEvent(event.request, new Event('upgradeneeded'))
-                                    event.upgraded = true
-                                    await loop.run(upgrade, schema, [])
-                                })
-                                this.opening = { memento, transactor, queue: paired.queue, connections }
-                                // **TODO** This looks all wrong.
-                                if (! event.upgraded) {
-                                    loop.terminated = true
-                                    event.request.readyState = 'done'
-                                    event.request.result = new DBDatabase(database, queues)
-                                }
-                                dispatchEvent(event.request, new Event('success'))
-                            } catch (error) {
-                                console.log(error.stack)
-                                rescue(error, [{ symbol: Memento.Error.ROLLBACK }])
-                            }
-                        }).promise.catch(error => console.log(error.stack))
+                        this._opener = await Opener.open(this._destructible.ephemeral('opener'), schema, this._directory, this._name, event)
+                        this._opener.destructible.promise.then(() => {
+                            this._sleep.resolve()
+                            console.log('DID RESOLVE !!!!!')
+                        })
+                    } else {
+                        this._opener.connect(event)
                     }
                 }
                 break
             case 'delete': {
-                    if (this.opening != null) {
-                        console.log('--- would wait for close ---')
+                    if (! this._opener.destructible.destroyed) {
+                        console.log('will close')
+                        await this._opener.close(event)
                     }
-                    console.log('--- DELETING ---')
+                    await rmrf(process.version, fs, path.join(this._directory, this._name))
+                    dispatchEvent(event.request, new Event('success'))
                 }
                 break
             }
         }
-        console.log('--- stopping ---')
+        console.log('I AM LEAVING')
+        delete this._map[this._name]
+        this._destructible.destroy()
     }
 }
 
 class DBFactory {
     constructor ({ directory }) {
         this.destructible = new Destructible(`indexeddb: ${directory}`)
+
         this._directory = directory
 
         // "Let queue be the connection queue for origin and name." We have a
@@ -227,7 +257,9 @@ class DBFactory {
         // Initialize the set of databases.
         this._queue.push({ method: 'initialize' })
 
-        this._databases = {}
+        this._connectors = {}
+
+        this._turnstile = new Turnstile(this.destructible.durable('turnstile'))
     }
 
     // IDBFactory.
@@ -240,27 +272,22 @@ class DBFactory {
     // 1 if it does not exist.
 
     _vivify (name) {
-        if (!(name in this._databases)) {
-            this._databases[name] = new Opener(this.destructible.ephemeral(`indexeddb.${name}`), this._directory, name, new Destructible('previous').destroy())
-        } else if (this._databases[name].destructible.destroyed) {
-            this._databases[name] = new Opener(this.destructible.ephemeral(`indexeddb.${name}`), this._directory, name, this._databases[name].destructible)
+        if (!(name in this._connectors)) {
+            this._connectors[name] = new Connector(this.destructible.ephemeral(`indexeddb.${name}`), this._directory, name, new Destructible('previous').destroy(), this._connectors)
         }
+        return this._connectors[name]
     }
 
     open (name, version = null) {
-        this._vivify(name)
         const request = new DBOpenDBRequest()
-        this._databases[name].connections.push({ method: 'open', request, name, version })
-        this._databases[name]._sleep.resolve()
+        this._vivify(name).push({ method: 'open', request, version })
         return request
     }
 
     // **TODO** Implement `IDBFactory.deleteDatabase()`.
     deleteDatabase (name) {
-        this._vivify(name)
         const request = new DBOpenDBRequest()
-        this._databases[name].connections.push({ method: 'delete', request: request, name })
-        this._databases[name]._sleep.resolve()
+        this._vivify(name).push({ method: 'delete', request })
         return request
     }
 
