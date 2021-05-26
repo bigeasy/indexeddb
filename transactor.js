@@ -43,7 +43,7 @@ class Transactor {
                     iterator = iterator.next
                 }
                 const { names, readOnly, extra } = wait
-                this.queue.push({ names, readOnly, extra })
+                this.queue.push({ method: 'transact', names, readOnly, extra })
             }
         }
     }

@@ -85,7 +85,7 @@ class DBDatabase {
     // https://www.w3.org/TR/IndexedDB/#dom-idbdatabase-close
     close () {
         this._closing = true
-        this._transactor.queue.push(null)
+        this._transactor.queue.push({ method: 'close', extra: { db: this } })
     }
 
     // **TODO** `onabort`, `onclose`, `onerror`, `onversionchange`.
