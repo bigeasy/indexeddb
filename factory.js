@@ -8,6 +8,7 @@ const rmrf = require('./rmrf')
 const rescue = require('rescue')
 
 const { Future } = require('perhaps')
+const { DBVersionChangeEvent } = require('./event')
 const { Queue } = require('avenue')
 const Destructible = require('destructible')
 const Memento = require('memento')
@@ -117,7 +118,7 @@ class Opener {
         }
     }
 
-    static async open (destructible, schema, directory, name, { request }) {
+    static async open (destructible, schema, directory, name, { request, version }) {
         const opening = new Opener(destructible, schema, directory, name)
         // **TODO** `version` should be a read-only property of the
         // Memento object.
@@ -208,6 +209,7 @@ class Connector {
                         if (! this._opener.destructible.destroyed) {
                             await this._opener.close(event)
                         }
+                        this._version = event.version || 1
                         this._opener = await Opener.open(this._destructible.ephemeral('opener'), schema, this._directory, this._name, event)
                         this._opener.destructible.promise.then(() => {
                             this._sleep.resolve()
@@ -225,7 +227,7 @@ class Connector {
                     }
                     await rmrf(process.version, fs, path.join(this._directory, this._name))
                     event.request.source = null
-                    dispatchEvent(event.request, new Event('success'))
+                    dispatchEvent(event.request, new DBVersionChangeEvent('success', { oldVersion: this._version }))
                 }
                 break
             }
