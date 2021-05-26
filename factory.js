@@ -224,6 +224,7 @@ class Connector {
                         await this._opener.close(event)
                     }
                     await rmrf(process.version, fs, path.join(this._directory, this._name))
+                    event.request.source = null
                     dispatchEvent(event.request, new Event('success'))
                 }
                 break
