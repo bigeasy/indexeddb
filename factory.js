@@ -203,10 +203,6 @@ class Connector {
             }
             const event = this._events.shift()
             switch (event.method) {
-            case 'initialize': {
-                    await event.previous.promise
-                }
-                break
             case 'open': {
                     if (this._opener.destructible.destroyed || this._opener.version < event.version) {
                         if (! this._opener.destructible.destroyed) {
