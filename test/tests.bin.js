@@ -48,7 +48,8 @@ require('arguable')(module, async arguable => {
         sources.push(block)
     }
     const count = (sources.join('\n').match(/(?:assert_throws_dom|assert_equals|assert_true|assert_array_equals|assert_key_equals|assert_readonly)/g) || []).length
-    const name = path.basename(test, '.htm')
+    const name = path.basename(test).replace(/.html?$/, '')
+    console.log(name)
     await fs.writeFile(path.resolve(__dirname, `${name}.wpt.t.js`), $_(`
         require('proof')(${count}, async okay => {
             await require('./harness')(okay, ${util.inspect(name)})

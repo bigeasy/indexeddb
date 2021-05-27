@@ -1,5 +1,5 @@
 require('proof')(3, async okay => {
-    await require('./harness')(okay, 'idbfactory-deleteDatabase-request-success.html')
+    await require('./harness')(okay, 'idbfactory-deleteDatabase-request-success')
     await harness(async function () {
 
         async_test(t => {
