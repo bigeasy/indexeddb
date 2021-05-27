@@ -1,0 +1,56 @@
+require('proof')(1, async okay => {
+    await require('./harness')(okay, 'idbfactory_deleteDatabase4')
+    okay('dummy')
+    await harness(async function () {
+
+        var t = async_test("Delete an existing database"),
+            dbname = location + '-' + t.name;
+
+        t.step(function() {
+            indexedDB.deleteDatabase(dbname);
+
+            var db;
+            var openrq = indexedDB.open(dbname, 3);
+
+            openrq.onupgradeneeded = function(e) {
+                e.target.result.createObjectStore('store');
+            };
+            openrq.onsuccess = t.step_func(function(e) {
+                db = e.target.result;
+
+                // Errors
+                db.onversionchange = fail(t, "db.versionchange");
+                db.onerror = fail(t, "db.error");
+                db.abort = fail(t, "db.abort");
+
+                step_timeout(t.step_func(Second), 4);
+                db.close();
+            });
+
+            // Errors
+            openrq.onerror = fail(t, "open.error");
+            openrq.onblocked = fail(t, "open.blocked");
+        });
+
+        function Second(e) {
+            var deleterq = indexedDB.deleteDatabase(dbname);
+
+            deleterq.onsuccess = function(e) { t.done(); }
+
+            deleterq.onerror = fail(t, "delete.error");
+            deleterq.onblocked = fail(t, "delete.blocked");
+            deleterq.onupgradeneeded = fail(t, "delete.upgradeneeded");
+        }
+
+        async_test("Delete a nonexistent database").step(function(e) {
+            var deleterq = indexedDB.deleteDatabase('nonexistent');
+
+            deleterq.onsuccess = this.step_func(function(e) { this.done(); });
+
+            deleterq.onerror = fail(this, "delete.error");
+            deleterq.onblocked = fail(this, "delete.blocked");
+            deleterq.onupgradeneeded = fail(this, "delete.upgradeneeded");
+        });
+
+    })
+})
