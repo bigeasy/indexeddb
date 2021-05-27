@@ -198,6 +198,13 @@ class Loop {
                     dispatchEvent(request, new Event('success'))
                 }
                 break
+            case 'abort': {
+                    this._aborted = true
+                    if (transaction.rollback) {
+                        transaction.rollback()
+                    }
+                }
+                break
             case 'destroy': {
                     const { id } = event
                     const store = schema.store[id]

@@ -21,7 +21,7 @@ module.exports = async function (okay, name) {
         }
     }
     globalize('wpt', 'location')
-    globalize({ title: 'wpt' }, 'document')
+    globalize({ title: 'wpt', location: 'wpt' }, 'document')
     const { DBRequest } = require('../request')
     globalize(DBRequest, 'IDBRequest')
     const { DBVersionChangeEvent } = require('../event')
@@ -32,9 +32,10 @@ module.exports = async function (okay, name) {
     globalize(indexedDB, 'indexedDB')
     globalize({ indexedDB }, 'window')
     const tests = []
+    let count = 0
     class Test {
         constructor (future, name, properties) {
-            this.name = name
+            this.name = name || `test-${++count}`
             this.phase = this.phases.INITIAL
             this.status = this.statuses.NORUN
             this.timeout_id = null
@@ -99,7 +100,6 @@ module.exports = async function (okay, name) {
         futures.push(future)
         if (f != null) {
             f(new Test(future))
-            console.log('got f')
         }
         return new Test(future)
     }
@@ -317,7 +317,7 @@ module.exports = async function (okay, name) {
     }
     globalize(createdb)
     async function harness (f) {
-        indexedDB.destructible.promise.catch(error => console.log(error.stack))
+//        indexedDB.destructible.promise.catch(error => console.log(error.stack))
         const dones = []
         add_completion_callback(function () {
             for (const test of tests) {
@@ -338,7 +338,6 @@ module.exports = async function (okay, name) {
         while (janitors.length != 0) {
             janitors.shift()()
         }
-        console.log('done', dones)
         while (dones.length != 0) {
             await dones.shift().promise
         }

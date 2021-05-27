@@ -116,17 +116,17 @@ class Opener {
     }
 
     static async open (destructible, schema, directory, name, { request, version }) {
-        const opening = new Opener(destructible, schema, directory, name)
         // **TODO** `version` should be a read-only property of the
         // Memento object.
-        await opening.destructible.ephemeral($ => $(), 'upgrade', async () => {
-            try {
+        return await destructible.ephemeral($ => $(), 'upgrade', async () => {
+                const opener = new Opener(destructible, schema, directory, name)
                 await fs.mkdir(path.join(directory, name), { recurse: true })
                 const paired = new Queue().shifter().paired
                 const connections = new Map
                 const loop = new Loop(schema)
-                const db = request.result = new DBDatabase(name, schema, opening._transactor, loop, 'versionupgrade')
-                opening._memento = await Memento.open({
+                const db = request.result = new DBDatabase(name, schema, opener._transactor, loop, 'versionupgrade')
+            try {
+                opener._memento = await Memento.open({
                     destructible: destructible.durable('memento'),
                     turnstile: this._turnstile,
                     version: 1,
@@ -142,7 +142,7 @@ class Opener {
                     request.readyState = 'done'
                     request.transaction = new DBTransaction(schema, null, loop, 'versionupgrade')
                     db._transactions.add(request.transaction)
-                    opening._handles.push(db)
+                    opener._handles.push(db)
                     connections.set(db, new Set)
                     request.transaction._database = db
                     connections.get(db).add(db._transaction = request.transaction)
@@ -150,15 +150,20 @@ class Opener {
                     await loop.run(upgrade, schema, [])
                 })
                 db._transactions.delete(request.transaction)
-                opening._maybeClose(db)
+                opener._maybeClose(db)
                 request.readyState = 'done'
                 dispatchEvent(request, new Event('success'))
+                return opener
             } catch (error) {
-                console.log(error.stack)
                 rescue(error, [{ symbol: Memento.Error.ROLLBACK }])
+                db._transactions.delete(request.transaction)
+                db._closing = true
+                opener._maybeClose(db)
+                dispatchEvent(request, new Event('error', { bubbles: true, cancelable: true }))
+                opener._transactor.queue.push({ method: 'close', extra: { db } })
+                return { destructible: new Destructible('errored').destroy() }
             }
-        }).promise.catch(error => console.log(error.stack))
-        return opening
+        }).promise.catch(error => {})
     }
 }
 
