@@ -67,7 +67,6 @@ class Opener {
 
     async close (event) {
         for (const connection of this._handles) {
-            console.log(connection._closing)
             if (! connection._closing) {
                 dispatchEvent(connection.request, new Event('versionchange'))
             }
@@ -87,9 +86,7 @@ class Opener {
             assert(index != -1)
             this._handles.splice(index, 1)
             db._closed.resolve()
-            console.log(this._handles.length, db._closing, db._transactions.size)
             if (this._handles.length == 0) {
-                console.log('YES CLOSE')
                 this.destructible.destroy()
                 this._transactor.queue.push(null)
             }
@@ -129,9 +126,11 @@ class Opener {
                 const connections = new Map
                 const loop = new Loop(schema)
                 const db = request.result = new DBDatabase(name, schema, opening._transactor, loop, 'versionupgrade')
+                assert(version)
                 opening._memento = await Memento.open({
                     destructible: destructible.durable('memento'),
                     turnstile: this._turnstile,
+                    version: 1,
                     directory: path.join(directory, name),
                     comparators: { indexeddb: comparator }
                 }, async upgrade => {
@@ -193,7 +192,6 @@ class Connector {
         for (;;) {
             // **TODO** Seeing a log of Lists gathering in _isolation.panic in
             // Destructible.
-            console.log(this._events, this._opener.destructible.destroyed)
             if (this._events.length == 0) {
                 if (this._opener.destructible.destroyed) {
                     break
@@ -209,12 +207,10 @@ class Connector {
                         if (! this._opener.destructible.destroyed) {
                             await this._opener.close(event)
                         }
+                        assert(event.version)
                         this._version = event.version || 1
                         this._opener = await Opener.open(this._destructible.ephemeral('opener'), schema, this._directory, this._name, event)
-                        this._opener.destructible.promise.then(() => {
-                            this._sleep.resolve()
-                            console.log('DID RESOLVE !!!!!')
-                        })
+                        this._opener.destructible.promise.then(() => this._sleep.resolve())
                     } else {
                         this._opener.connect(event)
                     }
@@ -222,7 +218,6 @@ class Connector {
                 break
             case 'delete': {
                     if (! this._opener.destructible.destroyed) {
-                        console.log('will close')
                         await this._opener.close(event)
                     }
                     await rmrf(process.version, fs, path.join(this._directory, this._name))
@@ -232,7 +227,6 @@ class Connector {
                 break
             }
         }
-        console.log('I AM LEAVING')
         delete this._map[this._name]
         this._destructible.destroy()
     }
@@ -279,7 +273,7 @@ class DBFactory {
 
     open (name, version = null) {
         const request = new DBOpenDBRequest()
-        this._vivify(name).push({ method: 'open', request, version })
+        this._vivify(name).push({ method: 'open', request, version: version || 1 })
         return request
     }
 

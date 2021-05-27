@@ -35,13 +35,8 @@ class Loop {
     //
     async run (transaction, schema, names) {
         await new Promise(resolve => setImmediate(resolve))
-        for (const name of names) {
-            console.log(name)
-        }
-        console.log('pause done', this.queue.length)
         while (this.queue.length != 0) {
             const event = this.queue.shift()
-            console.log(event)
             SWITCH: switch (event.method) {
             // Don't worry about rollback of the update to the schema object. We
             // are not going to use this object if the upgrade fails.
@@ -56,11 +51,9 @@ class Loop {
                 break
             case 'deleteStore': {
                     const { id } = event
-                    console.log('--- HERE ---')
                 }
                 break
             case 'index': {
-                    console.log('--- here ---')
                     const { id } = event
                     const index = schema.store[id]
                     const store = schema.store[index.storeId]
@@ -81,7 +74,6 @@ class Loop {
                     }
                     const got = await transaction.get(properties.qualified, [ key ])
                     if (got != null) {
-                        console.log('I REALLY SHOULD EMIT AN ERROR')
                         const event = new Event('error', { bubbles: true, cancelable: true })
                         const error = new DOMException('Unique key constraint violation.', 'ConstraintError')
                         request.error = error
@@ -116,7 +108,6 @@ class Loop {
                             const got = await transaction.cursor(index.qualified, [[ extracted ]])
                                                          .terminate(item => compare(item.key[0], extracted) != 0)
                                                          .array()
-                            console.log('GOT', got)
                             if (got.length != 0) {
                                 const event = new Event('error', { bubbles: true, cancelable: true })
                                 const error = new DOMException('Unique key constraint violation.', 'ConstraintError')
@@ -162,8 +153,6 @@ class Loop {
             case 'openCursor': {
                     const { name, request, cursor } = event
                     const properties = schema.store[schema.name[name]]
-                    console.log('openCursor', !! request)
-                    console.log(`store.${name}`)
                     cursor._outer = { iterator: transaction.cursor(properties.qualified).iterator()[Symbol.asyncIterator](), next: null }
                     cursor._outer.next = await cursor._outer.iterator.next()
                     if (cursor._outer.next.done) {
@@ -179,7 +168,6 @@ class Loop {
                     const { request, cursor } = event
                     for (;;) {
                         const next = cursor._inner.next()
-                        console.log('????', next.value)
                         if (next.done) {
                             cursor._outer.next = await cursor._outer.iterator.next()
                             if (cursor._outer.next.done) {
@@ -215,7 +203,6 @@ class Loop {
                     const store = schema.store[id]
                     if (! store.deleted) {
                         delete schema.store[id]
-                        console.log(store.qualified)
                         await transaction.remove(store.qualified)
                     }
                 }

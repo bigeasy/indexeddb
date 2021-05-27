@@ -24,6 +24,8 @@ module.exports = async function (okay, name) {
     globalize({ title: 'wpt' }, 'document')
     const { DBRequest } = require('../request')
     globalize(DBRequest, 'IDBRequest')
+    const { DBVersionChangeEvent } = require('../event')
+    globalize(DBVersionChangeEvent, 'IDBVersionChangeEvent')
     const { DBKeyRange } = require('../keyrange')
     globalize(DBKeyRange, 'IDBKeyRange')
     const indexedDB = require('..').create({ directory })
