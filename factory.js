@@ -121,12 +121,13 @@ class Opener {
         // **TODO** `version` should be a read-only property of the
         // Memento object.
         return await destructible.ephemeral($ => $(), 'upgrade', async () => {
-                const opener = new Opener(destructible, schema, directory, name)
-                await fs.mkdir(path.join(directory, name), { recurse: true })
-                const paired = new Queue().shifter().paired
-                const connections = new Map
-                const loop = new Loop(schema)
-                const db = request.result = new DBDatabase(name, schema, opener._transactor, loop, 'versionupgrade')
+            const opener = new Opener(destructible, schema, directory, name)
+            await fs.mkdir(path.join(directory, name), { recurse: true })
+            const paired = new Queue().shifter().paired
+            const connections = new Map
+            const loop = new Loop(schema)
+            this._version = version
+            const db = request.result = new DBDatabase(name, schema, opener._transactor, loop, 'versionupgrade', version)
             try {
                 opener._memento = await Memento.open({
                     destructible: destructible.durable('memento'),

@@ -11,7 +11,7 @@ const Queue = require('avenue')
 const Loop = require('./loop')
 
 class DBDatabase {
-    constructor (name, schema, transactor, loop, mode) {
+    constructor (name, schema, transactor, loop, mode, version) {
         this._schema = schema
         this._transactor = transactor
         this._transaction = null
@@ -19,6 +19,7 @@ class DBDatabase {
         this._closing = false
         this._closed = new Future
         this._name = name
+        this._version = version
         this._mode = mode
         this._transactions = new Set
     }
@@ -28,7 +29,7 @@ class DBDatabase {
     }
 
     get version () {
-        throw new Error
+        return this._version
     }
 
     get objectStoreNames () {
