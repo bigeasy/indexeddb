@@ -126,7 +126,6 @@ class Opener {
                 const connections = new Map
                 const loop = new Loop(schema)
                 const db = request.result = new DBDatabase(name, schema, opening._transactor, loop, 'versionupgrade')
-                assert(version)
                 opening._memento = await Memento.open({
                     destructible: destructible.durable('memento'),
                     turnstile: this._turnstile,
@@ -207,7 +206,6 @@ class Connector {
                         if (! this._opener.destructible.destroyed) {
                             await this._opener.close(event)
                         }
-                        assert(event.version)
                         this._version = event.version || 1
                         this._opener = await Opener.open(this._destructible.ephemeral('opener'), schema, this._directory, this._name, event)
                         this._opener.destructible.promise.then(() => this._sleep.resolve())
@@ -273,7 +271,7 @@ class DBFactory {
 
     open (name, version = null) {
         const request = new DBOpenDBRequest()
-        this._vivify(name).push({ method: 'open', request, version: version || 1 })
+        this._vivify(name).push({ method: 'open', request, version })
         return request
     }
 
