@@ -65,7 +65,21 @@ class Opener {
         this.destructible.durable('transactions', this._transact(schema))
         this.opening = null
         this._handles = []
-        this._instance = Opener.count++
+    }
+
+    async close (event) {
+        for (const connection of this._handles) {
+            if (! connection._closing) {
+                dispatchEvent(connection.request, new Event('versionchange'))
+            }
+        }
+        // **TODO** No, it's a closing flag you're looking for.
+        if (this._handles.some(connection => ! connection._closing)) {
+            dispatchEvent(event.request, new Event('blocked'))
+        }
+        for (const connection of this._handles) {
+            await connection._closed.promise
+        }
     }
 
     _maybeClose (db) {
