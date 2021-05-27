@@ -1,8 +1,10 @@
 const { DBObjectStore } = require('./store')
 const { Queue } = require('avenue')
+const { EventTarget, getEventAttributeValue, setEventAttributeValue } = require('event-target-shim')
 
-class DBTransaction {
+class DBTransaction extends EventTarget {
     constructor (schema, database, loop, mode) {
+        super()
         if (mode == null) {
             throw new Error
         }
@@ -13,6 +15,23 @@ class DBTransaction {
         this._database = database
         this._loop = loop
         this._mode = mode
+    }
+
+    get onabort () {
+        return getEventAttributeValue(this, 'abort')
+    }
+
+    set onabort (value) {
+        console.log('yes, setting')
+        setEventAttributeValue(this, 'abort', value)
+    }
+
+    get oncomplete () {
+        return getEventAttributeValue(this, 'complete')
+    }
+
+    set oncomplete (value) {
+        setEventAttributeValue(this, 'complete', value)
     }
 
     get objectStoreNames () {

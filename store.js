@@ -155,7 +155,7 @@ class DBObjectStore {
         this._schema.store[indexId] = index
         this._schema.store[this._id].indices[name] = indexId
         this._schema.extractor[indexId] = extractify(keyPath)
-        this._loop.queue.push({ method: 'index', id: indexId })
+        this._loop.queue.push({ method: 'index', id: indexId, unique, multiEntry })
         return new DBIndex(this._transaction, this._schema, this._loop, indexId)
     }
 

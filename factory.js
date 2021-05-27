@@ -26,6 +26,8 @@ const { DBDatabase } = require('./database')
 const { Event } = require('event-target-shim')
 const { dispatchEvent } = require('./dispatch')
 
+const { AbortError } = require('./error')
+
 const Loop = require('./loop')
 
 // An interim attempt to bridge the W3C Event based interface of IndexedDB with
@@ -101,7 +103,7 @@ class Opener {
                     const { names, extra: { loop, db, transaction } } = event
                     this.destructible.ephemeral(`transaction.${count++}`, async () => {
                         // **TODO** How is this mutating????
-                        await this._memento.snapshot(snapshot => loop.run(snapshot, schema, names))
+                        await this._memento.snapshot(snapshot => loop.run(transaction, snapshot, schema, names))
                         db._transactions.delete(transaction)
                         this._maybeClose(db)
                     })
@@ -145,9 +147,10 @@ class Opener {
                     opener._handles.push(db)
                     connections.set(db, new Set)
                     request.transaction._database = db
+                    request.error = null
                     connections.get(db).add(db._transaction = request.transaction)
                     dispatchEvent(request, new Event('upgradeneeded'))
-                    await loop.run(upgrade, schema, [])
+                    await loop.run(request.transaction, upgrade, schema, [])
                 })
                 db._transactions.delete(request.transaction)
                 opener._maybeClose(db)
@@ -159,6 +162,8 @@ class Opener {
                 db._transactions.delete(request.transaction)
                 db._closing = true
                 opener._maybeClose(db)
+                request.result = undefined
+                request.error = new AbortError
                 dispatchEvent(request, new Event('error', { bubbles: true, cancelable: true }))
                 opener._transactor.queue.push({ method: 'close', extra: { db } })
                 return { destructible: new Destructible('errored').destroy() }

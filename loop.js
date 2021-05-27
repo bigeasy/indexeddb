@@ -28,15 +28,21 @@ class Loop {
         this.terminated = false
     }
 
+    _abort (tx) {
+        this._aborted = true
+        dispatchEvent(tx, new Event('abort'))
+    }
+
     // Most of the logic of this implementation is in this one function.
     // The interface implementations do a lot of argument validation, but
     // most of the real work is here.
 
     //
-    async run (transaction, schema, names) {
+    async run (tx, transaction, schema, names) {
         await new Promise(resolve => setImmediate(resolve))
         while (this.queue.length != 0) {
             const event = this.queue.shift()
+                    console.log(event, this.queue.length)
             SWITCH: switch (event.method) {
             // Don't worry about rollback of the update to the schema object. We
             // are not going to use this object if the upgrade fails.
@@ -54,12 +60,39 @@ class Loop {
                 }
                 break
             case 'index': {
-                    const { id } = event
+                    const { id, unique } = event
                     const index = schema.store[id]
                     const store = schema.store[index.storeId]
+                    const extractor = schema.extractor[id]
                     await transaction.store(index.qualified, { key: 'indexeddb' })
                     transaction.set('schema', store)
                     transaction.set('schema', index)
+                    console.log('here')
+                    for await (const items of transaction.cursor(store.qualified).iterator()) {
+                        for (const item of items) {
+                            const extracted = extractor(item.value)
+                            transaction.set(index.qualified, { key: [ extracted, item.key ] })
+                            console.log(extracted)
+                        }
+                    }
+                    console.log('there')
+                    if (unique) {
+                        let previous = null, count = 0
+                        OUTER: for await (const items of transaction.cursor(index.qualified).iterator()) {
+                            for (const item of items) {
+                                if (count++ == 0) {
+                                    previous = item
+                                    continue
+                                }
+                                if (compare(previous.key[0], item.key[0]) == 0) {
+                                    this._abort(tx)
+                                    break OUTER
+                                }
+                                previous = item
+                            }
+                        }
+                    }
+                    index.extant = true
                 }
                 break
             case 'add': {
@@ -96,7 +129,11 @@ class Loop {
                     }
                     const record = { key, value }
                     for (const indexName in properties.indices) {
+                        console.log('oh, no, index', properties.indices)
                         const index = schema.store[properties.indices[indexName]]
+                        if (! index.extant) {
+                            continue
+                        }
                         let extracted
                         try {
                             extracted = valuify(schema.extractor[index.id](record.value))
@@ -199,10 +236,7 @@ class Loop {
                 }
                 break
             case 'abort': {
-                    this._aborted = true
-                    if (transaction.rollback) {
-                        transaction.rollback()
-                    }
+                    this._abort(tx)
                 }
                 break
             case 'destroy': {
@@ -216,6 +250,12 @@ class Loop {
                 break
             }
             await new Promise(resolve => setImmediate(resolve))
+        }
+        if (this._aborted) {
+            if (transaction.rollback) {
+                transaction.rollback()
+            }
+        } else {
         }
         this.queue.terminated = true
     }

@@ -39,6 +39,7 @@ module.exports = async function (okay, name) {
             this.phase = this.phases.INITIAL
             this.status = this.statuses.NORUN
             this.timeout_id = null
+            this._janitors = []
             this.index = null
             this.properites = properties || {}
             this._future = future
@@ -84,8 +85,14 @@ module.exports = async function (okay, name) {
                 return step.apply(self, [ f, self ].concat(vargs))
             }
         }
+        add_cleanup (f) {
+            this._janitors.push(f)
+        }
         done () {
             this.phase = this.phases.COMPLETE
+            while (this._janitors.length != 0) {
+                this._janitors.shift()()
+            }
             this._future.resolve()
         }
     }
@@ -317,7 +324,7 @@ module.exports = async function (okay, name) {
     }
     globalize(createdb)
     async function harness (f) {
-//        indexedDB.destructible.promise.catch(error => console.log(error.stack))
+        indexedDB.destructible.promise.catch(error => console.log(error.stack))
         const dones = []
         add_completion_callback(function () {
             for (const test of tests) {

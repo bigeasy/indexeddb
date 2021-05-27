@@ -42,3 +42,11 @@ class NotFoundError extends DOMException {
 }
 
 exports.NotFoundError = NotFoundError
+
+class AbortError extends DOMException {
+    constructor (message = 'A request was aborted, for example through a call to IDBTransaction.abort.') {
+        super(message, 'AbortError')
+    }
+}
+
+exports.AbortError = AbortError
