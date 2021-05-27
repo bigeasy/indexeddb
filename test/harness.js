@@ -321,9 +321,9 @@ module.exports = async function (okay, name) {
         const dones = []
         add_completion_callback(function () {
             for (const test of tests) {
-                const done = new Future
-                dones.push(done)
                 if (test.db) {
+                    const done = new Future
+                    dones.push(done)
                     test.db.close()
                     indexedDB.deleteDatabase(test.db.name).onsuccess = function () {
                         done.resolve()
@@ -338,6 +338,7 @@ module.exports = async function (okay, name) {
         while (janitors.length != 0) {
             janitors.shift()()
         }
+        console.log('done', dones)
         while (dones.length != 0) {
             await dones.shift().promise
         }

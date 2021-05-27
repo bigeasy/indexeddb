@@ -220,6 +220,8 @@ class Connector {
                     }
                     await rmrf(process.version, fs, path.join(this._directory, this._name))
                     event.request.source = null
+                    event.request.error = null
+                    event.request.readyState = 'done'
                     dispatchEvent(event.request, new DBVersionChangeEvent('success', { oldVersion: this._version }))
                 }
                 break
