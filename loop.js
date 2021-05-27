@@ -256,6 +256,7 @@ class Loop {
                 transaction.rollback()
             }
         } else {
+            dispatchEvent(tx, new Event('complete'))
         }
         this.queue.terminated = true
     }
