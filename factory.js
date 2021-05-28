@@ -247,6 +247,12 @@ class Connector {
                         await this._opener.close(event)
                     }
                     await rmrf(process.version, fs, path.join(this._directory, this._name))
+                    const id = schema.name[this._name]
+                    if (id != null) {
+                        delete schema.store[id]
+                        delete schema.extractor[id]
+                        delete schema.name[this._name]
+                    }
                     event.request.source = null
                     event.request.error = null
                     event.request.readyState = 'done'

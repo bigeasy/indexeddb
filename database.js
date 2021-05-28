@@ -33,7 +33,7 @@ class DBDatabase {
     }
 
     get objectStoreNames () {
-        throw new Error
+        return Object.keys(this._schema.name)
     }
 
     transaction (names, mode = 'readonly') {
