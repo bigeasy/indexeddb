@@ -85,7 +85,7 @@ class DBDatabase {
 
     // https://www.w3.org/TR/IndexedDB/#dom-idbdatabase-close
     close () {
-        console.log('did close', this._transactions.size)
+        console.log('called close', this._transactions.size)
         this._closing = true
         this._transactor.queue.push({ method: 'close', extra: { db: this } })
     }

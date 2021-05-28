@@ -333,6 +333,7 @@ module.exports = async function (okay, name) {
                     dones.push(done)
                     test.db.close()
                     indexedDB.deleteDatabase(test.db.name).onsuccess = function () {
+                        console.log('did delete')
                         done.resolve()
                     }
                 }
@@ -348,6 +349,7 @@ module.exports = async function (okay, name) {
         while (dones.length != 0) {
             await dones.shift().promise
         }
+        console.log('done')
         await indexedDB.destructible.destroy().promise
     }
     globalize(harness)
