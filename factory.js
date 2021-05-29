@@ -248,7 +248,10 @@ class Connector {
                         this._version = event.version || 1
                         this._opener = await Opener.open(this.destructible.ephemeral('opener'), schema, this._directory, this._name, this._version, event)
                         this._opener.destructible.promise.then(() => this._sleep.resolve())
-                        this._checkVersion(event)
+                        // **TODO** Spaghetti.
+                        if (this._opener.memento != null) {
+                            this._checkVersion(event)
+                        }
                     } else {
                         this._opener.connect(schema, this._name, event)
                         this._checkVersion(event)
