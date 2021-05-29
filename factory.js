@@ -321,7 +321,21 @@ class DBFactory {
         return this._connectors[name]
     }
 
-    open (name, version = null) {
+    open (name, version) {
+        if (version === undefined) {
+            version = null
+        } else {
+            if (
+                typeof version != 'number' ||
+                isNaN(version) ||
+                version < 1 ||
+                version > Number.MAX_SAFE_INTEGER
+            ) {
+                throw new TypeError
+            } else {
+                version = Math.floor(version)
+            }
+        }
         const request = new DBOpenDBRequest()
         this._vivify(name).push({ method: 'open', request, version })
         return request
