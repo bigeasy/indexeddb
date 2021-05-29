@@ -4,6 +4,8 @@ const { DBTransaction } = require('./transaction')
 const { extractify } = require('./extractor')
 const { NotFoundError } = require('./error')
 
+const { DOMStringList } = require('./stringlist')
+
 const { Future } = require('perhaps')
 
 const Queue = require('avenue')
@@ -33,7 +35,9 @@ class DBDatabase {
     }
 
     get objectStoreNames () {
-        return Object.keys(this._schema.name)
+        const list =  new DOMStringList()
+        list.push.apply(list, Object.keys(this._schema.name))
+        return list
     }
 
     transaction (names, mode = 'readonly') {
@@ -85,7 +89,6 @@ class DBDatabase {
 
     // https://www.w3.org/TR/IndexedDB/#dom-idbdatabase-close
     close () {
-        console.log('called close', this._transactions.size)
         this._closing = true
         this._transactor.queue.push({ method: 'close', extra: { db: this } })
     }

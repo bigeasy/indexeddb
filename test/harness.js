@@ -263,9 +263,15 @@ module.exports = async function (okay, name) {
     }
     globalize(fail)
     function assert_true (condition, message) {
-        okay(condition, `${scope.name} - assertion ${scope.count++}`)
+        message || (message = `assertion ${scope.count++}`)
+        okay(condition, message)
     }
     globalize(assert_true)
+    function assert_false (condition, message) {
+        message || (message = `assertion ${scope.count++}`)
+        okay(! condition, message)
+    }
+    globalize(assert_false)
     function assert_equals (actual, expected, message) {
         message || (message = `assertion ${scope.count++}`)
         okay(actual, expected, `${scope.name} - ${message}`)

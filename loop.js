@@ -42,7 +42,6 @@ class Loop {
         await new Promise(resolve => setImmediate(resolve))
         while (this.queue.length != 0) {
             const event = this.queue.shift()
-                    console.log(event, this.queue.length)
             SWITCH: switch (event.method) {
             // Don't worry about rollback of the update to the schema object. We
             // are not going to use this object if the upgrade fails.
@@ -67,15 +66,12 @@ class Loop {
                     await transaction.store(index.qualified, { key: 'indexeddb' })
                     transaction.set('schema', store)
                     transaction.set('schema', index)
-                    console.log('here')
                     for await (const items of transaction.cursor(store.qualified).iterator()) {
                         for (const item of items) {
                             const extracted = extractor(item.value)
                             transaction.set(index.qualified, { key: [ extracted, item.key ] })
-                            console.log(extracted)
                         }
                     }
-                    console.log('there')
                     if (unique) {
                         let previous = null, count = 0
                         OUTER: for await (const items of transaction.cursor(index.qualified).iterator()) {
@@ -129,7 +125,6 @@ class Loop {
                     }
                     const record = { key, value }
                     for (const indexName in properties.indices) {
-                        console.log('oh, no, index', properties.indices)
                         const index = schema.store[properties.indices[indexName]]
                         if (! index.extant) {
                             continue
@@ -253,6 +248,7 @@ class Loop {
         }
         if (this._aborted) {
             if (transaction.rollback) {
+                console.log('YES ROLLBACK')
                 transaction.rollback()
             }
         } else {

@@ -2,6 +2,7 @@ const { DBRequest } = require('./request')
 const { DBKeyRange } = require('./keyrange')
 const { DBCursor, DBCursorWithValue } = require('./cursor')
 const { DBIndex } = require('./index')
+const { DOMStringList } = require('./stringlist')
 const { dispatchEvent } = require('./dispatch')
 const { Event } = require('event-target-shim')
 const { InvalidStateError, DataError, ReadOnlyError } = require('./error')
@@ -37,6 +38,12 @@ class DBObjectStore {
         return this._name
     }
 
+    get indexNames () {
+        const list =  new DOMStringList()
+        list.push.apply(list, Object.keys(this._schema.store[this._id].indices))
+        return list
+    }
+
     put (value, key = null) {
         const store = this._schema.store[this._id]
         if (store.deleted) {
@@ -62,7 +69,6 @@ class DBObjectStore {
     }
 
     add (value, key = null) {
-        console.log('called called called', this._transaction.mode)
         const store = this._schema.store[this._id]
         if (store.deleted) {
             throw new InvalidStateError

@@ -138,6 +138,7 @@ class Opener {
         opener._version = version
         const db = request.result = new DBDatabase(name, schema, opener._transactor, loop, 'versionupgrade', version)
         opener._handles.push(db)
+        let current
         try {
             opener.memento = await Memento.open({
                 destructible: destructible.durable('memento'),
@@ -146,6 +147,7 @@ class Opener {
                 directory: path.join(directory, name),
                 comparators: { indexeddb: comparator }
             }, async upgrade => {
+                current = upgrade.version.current
                 if (upgrade.version.current == 0) {
                     await upgrade.store('schema', { 'id': Number })
                 }
@@ -175,6 +177,7 @@ class Opener {
         } catch (error) {
             rescue(error, [{ symbol: Memento.Error.ROLLBACK }])
             db._transactions.delete(request.transaction)
+            db._version = current
             db._closing = true
             opener._maybeClose(db)
             request.result = undefined
