@@ -329,9 +329,11 @@ module.exports = async function (okay, name) {
         add_completion_callback(function () {
             for (const test of tests) {
                 if (test.db) {
+                    console.log('has db')
                     const done = new Future
                     dones.push(done)
                     test.db.close()
+                    console.log('will delete db')
                     indexedDB.deleteDatabase(test.db.name).onsuccess = function () {
                         console.log('did delete')
                         done.resolve()

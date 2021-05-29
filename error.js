@@ -50,3 +50,11 @@ class AbortError extends DOMException {
 }
 
 exports.AbortError = AbortError
+
+class VersionError extends DOMException {
+    constructor (message = 'A request was aborted, for example through a call to IDBTransaction.abort.') {
+        super(message, 'VersionError')
+    }
+}
+
+exports.VersionError = VersionError

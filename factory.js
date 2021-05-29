@@ -26,7 +26,7 @@ const { DBDatabase } = require('./database')
 const { Event } = require('event-target-shim')
 const { dispatchEvent } = require('./dispatch')
 
-const { AbortError } = require('./error')
+const { VersionError, AbortError } = require('./error')
 
 const Loop = require('./loop')
 
@@ -108,7 +108,7 @@ class Opener {
                     const { names, extra: { loop, db, transaction } } = event
                     this.destructible.ephemeral(`transaction.${count++}`, async () => {
                         // **TODO** How is this mutating????
-                        await this._memento.snapshot(snapshot => loop.run(transaction, snapshot, schema, names))
+                        await this.memento.snapshot(snapshot => loop.run(transaction, snapshot, schema, names))
                         db._transactions.delete(transaction)
                         this._maybeClose(db)
                     })
@@ -125,8 +125,6 @@ class Opener {
     connect (schema, name, { request }) {
         const db = request.result = new DBDatabase(name, schema, this._transactor, null, 'readonly', this._version)
         this._handles.push(db)
-        request.error = null
-        dispatchEvent(request, new Event('success'))
     }
 
     static async open (destructible, schema, directory, name, version, { request }) {
@@ -141,7 +139,7 @@ class Opener {
         const db = request.result = new DBDatabase(name, schema, opener._transactor, loop, 'versionupgrade', version)
         opener._handles.push(db)
         try {
-            opener._memento = await Memento.open({
+            opener.memento = await Memento.open({
                 destructible: destructible.durable('memento'),
                 turnstile: this._turnstile,
                 version: version,
@@ -171,9 +169,8 @@ class Opener {
                 // will call maybe close with an already closed db.
             })
             opener._maybeClose(db)
-            db._version = opener._memento.version
+            db._version = opener.memento.version
             request.readyState = 'done'
-            dispatchEvent(request, new Event('success'))
             return opener
         } catch (error) {
             rescue(error, [{ symbol: Memento.Error.ROLLBACK }])
@@ -205,6 +202,20 @@ class Connector {
     push (event) {
         assert(! this.destructible.destroyed)
         this._events.push(event)
+        this._sleep.resolve()
+    }
+
+    _checkVersion ({ request, version }) {
+        if (version == null || this._opener.memento.version == version) {
+            request.error = null
+            dispatchEvent(request, new Event('success'))
+        } else {
+            request.result._closing = true
+            request.error = new VersionError
+            this._opener._maybeClose(request.result)
+            request.result = null
+            dispatchEvent(request, new Event('error'))
+        }
     }
 
     // Looks like a job for Turnstile, but I don't seem to be able to bring
@@ -230,15 +241,17 @@ class Connector {
             const event = this._events.shift()
             switch (event.method) {
             case 'open': {
-                    if (this._opener.destructible.destroyed || this._opener.version < event.version) {
+                    if (this._opener.destructible.destroyed || (event.version != null && this._opener.memento.version < event.version)) {
                         if (! this._opener.destructible.destroyed) {
                             await this._opener.close(event)
                         }
                         this._version = event.version || 1
                         this._opener = await Opener.open(this.destructible.ephemeral('opener'), schema, this._directory, this._name, this._version, event)
                         this._opener.destructible.promise.then(() => this._sleep.resolve())
+                        this._checkVersion(event)
                     } else {
                         this._opener.connect(schema, this._name, event)
+                        this._checkVersion(event)
                     }
                 }
                 break
