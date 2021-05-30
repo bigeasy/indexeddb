@@ -1,5 +1,6 @@
 module.exports = async function (okay, name) {
     const { Future } = require('perhaps')
+    const { Event } = require('event-target-shim')
     const fs = require('fs').promises
     const assert = require('assert')
     const compare = require('../compare')
@@ -20,6 +21,7 @@ module.exports = async function (okay, name) {
             okay.leak(name)
         }
     }
+    glboalize('Event', Event)
     globalize('wpt', 'location')
     globalize({ title: 'wpt', location: 'wpt' }, 'document')
     const { DBRequest } = require('../request')
