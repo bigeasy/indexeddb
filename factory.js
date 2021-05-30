@@ -71,10 +71,13 @@ class Opener {
     async close (event) {
         for (const connection of this._handles) {
             if (! connection._closing) {
-                dispatchEvent(connection.request, new Event('versionchange'))
+                dispatchEvent(connection, new Event('versionchange'))
             }
         }
         // **TODO** No, it's a closing flag you're looking for.
+        for (const db of this._handles) {
+            console.log('>', db._closing)
+        }
         if (this._handles.some(connection => ! connection._closing)) {
             dispatchEvent(event.request, new Event('blocked'))
         }
@@ -161,7 +164,7 @@ class Opener {
                 request.transaction._database = db
                 request.error = null
                 connections.get(db).add(db._transaction = request.transaction)
-                dispatchEvent(request, new Event('upgradeneeded'))
+                dispatchEvent(request, new DBVersionChangeEvent('upgradeneeded', { newVersion: upgrade.version.target, oldVersion: upgrade.version.current }))
                 await loop.run(request.transaction, upgrade, schema, [])
                 // **TODO** What to do if the database is closed before we can
                 // indicate success?

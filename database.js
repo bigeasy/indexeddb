@@ -3,6 +3,7 @@ const { DBRequest } = require('./request')
 const { DBTransaction } = require('./transaction')
 const { extractify } = require('./extractor')
 const { NotFoundError } = require('./error')
+const { EventTarget, getEventAttributeValue, setEventAttributeValue } = require('event-target-shim')
 
 const { DOMStringList } = require('./stringlist')
 
@@ -12,8 +13,9 @@ const Queue = require('avenue')
 
 const Loop = require('./loop')
 
-class DBDatabase {
+class DBDatabase extends EventTarget {
     constructor (name, schema, transactor, loop, mode, version) {
+        super()
         this._schema = schema
         this._transactor = transactor
         this._transaction = null
@@ -24,6 +26,14 @@ class DBDatabase {
         this._version = version
         this._mode = mode
         this._transactions = new Set
+    }
+
+    get onversionchange () {
+        return getEventAttributeValue(this, 'versionchange')
+    }
+
+    set onversionchange (value) {
+        setEventAttributeValue(this, 'versionchange', value)
     }
 
     get name () {
