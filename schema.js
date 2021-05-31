@@ -14,17 +14,13 @@ class Schema {
 
     constructor (root) {
         this._root = root
-        this._copy = {
-            name: JSON.parse(JSON.stringify(this._root.name)),
-            store: JSON.parse(JSON.stringify(this._root.store))
-        }
-        this._pending = Schema.root(0)
-        this._deleted = { index: new Set, store: new Set }
+        this.reset()
     }
 
     createObjectStore (name, keyPath, autoIncrement) {
         const id = ++this._root.max
-        const schema = this._pending.store[id] = {
+        this._added.add(id)
+        const store = this._pending.store[id] = {
             type: 'store',
             id: id,
             name: name,
@@ -37,7 +33,7 @@ class Schema {
         this._pending.extractor[id] = keyPath != null
             ? extractify(keyPath)
             : null
-        return id
+        return store
     }
 
     deleteObjectStore (name) {
@@ -46,37 +42,26 @@ class Schema {
         this._deleted.store.add(store.id)
     }
 
-    _getObjectStore (name) {
-        const id = this._pending.name[name] || this._copy.name[name]
-        if (id == null) {
-            return null
-        }
-        return this._pending.store[id] || this._copy.store[id]
+    isDeleted (id) {
+        return this._deleted.store.has(id) || this._deleted.index.has(id)
     }
 
     getObjectStore (name) {
-        const store = this._getObjectStore(name)
-        if (store == null || this._deleted.store.has(store.id)) {
+        const storeId = this._pending.name[name]
+        if (storeId == null) {
             return null
-        }
-        return store
-    }
-
-    _copyStore (storeName) {
-        const storeId = this._pending.name[storeName] || this._copy.name[storeName]
-        if (storeId in this._copy.store) {
-            if (! (storeId in this._pending.store)) {
-                this._pending.store[storeId] = JSON.parse(JSON.stringify(this._copy.store[storeId]))
-            }
-        } else {
-            assert(storeId in this._pending.store)
         }
         return this._pending.store[storeId]
     }
 
+    getObjectStoreNames () {
+        return Object.keys(this._pending.name)
+    }
+
     createIndex (storeName, indexName, keyPath, multiEntry, unique) {
-        const store = this._copyStore(storeName)
+        const store = this.getObjectStore(storeName)
         const indexId = ++this._root.max
+        this._added.add(indexId)
         const index = this._pending.store[indexId] = {
             type: 'index',
             id: indexId,
@@ -89,11 +74,11 @@ class Schema {
         }
         store.index[indexName] = indexId
         this._pending.extractor[indexId] = extractify(keyPath)
-        return indexId
+        return index
     }
 
     deleteIndex (storeName, indexName) {
-        const store = this._copyStore(storeName)
+        const store = this.getObjectStore(storeName)
         this._deleted.index.add(store.index[indexName])
         delete store.index[indexName]
     }
@@ -108,6 +93,10 @@ class Schema {
             return null
         }
         return this._pending.store[id] || this._copy.store[id]
+    }
+
+    getIndexNames (storeName) {
+        return Object.keys(this.getObjectStore(storeName).index)
     }
 
     getExtractor (id) {
@@ -134,6 +123,26 @@ class Schema {
         for (const id in this._pending.extractor) {
             this._root.extractor[id] = this._pending.extractor[id]
         }
+        this.reset()
+    }
+
+    abort () {
+        console.log('rollback')
+        for (const id of this._added) {
+            console.log('rollback', id)
+            this._pending.store[id].rolledback = true
+        }
+        this.reset()
+    }
+
+    reset () {
+        this._pending = {
+            name: JSON.parse(JSON.stringify(this._root.name)),
+            store: JSON.parse(JSON.stringify(this._root.store)),
+            extractor: {}
+        }
+        this._added = new Set
+        this._deleted = { index: new Set, store: new Set }
     }
 }
 

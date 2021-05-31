@@ -1,7 +1,7 @@
 class DBCursor {
-    constructor (request, loop, query) {
+    constructor (transaction, request, query) {
         this._request = request
-        this._loop = loop
+        this._transaction = transaction
         this._query = query
     }
 
@@ -31,7 +31,7 @@ class DBCursor {
     }
 
     continue (key) {
-        this._loop.queue.push({ method: 'item', cursor: this, request: this._request })
+        this._transaction._queue.push({ method: 'item', cursor: this, request: this._request })
     }
 
     continuePrimaryKey (key, primaryKey) {
@@ -50,8 +50,8 @@ class DBCursor {
 exports.DBCursor = DBCursor
 
 class DBCursorWithValue extends DBCursor {
-    constructor (request, loop, query) {
-        super(request, loop, query)
+    constructor (transaction, request, query) {
+        super(transaction, request, query)
         this._value = null
     }
 

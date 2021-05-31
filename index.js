@@ -4,58 +4,56 @@ const { TransactionInactiveError, InvalidStateError } = require('./error')
 
 class DBIndex {
     // TODO Make loop a property of transaction.
-    constructor (transaction, schema, loop, id) {
+    constructor (transaction, schema, store, index) {
         this._transaction = transaction
         this._schema = schema
-        this._loop = loop
-        this._id = id
-        this._index = schema.store[id]
+        this._store = store
+        this._index = index
     }
 
     get name () {
-        throw new Error
+        return this._index.name
     }
 
     get keyPath () {
-        throw new Error
+        return this._index.keyPath
     }
 
     get multiEntry () {
-        throw new Error
+        return this._index.multiEntry
     }
 
     get unique () {
-        throw new Error
+        return this._index.unique
     }
 
     get (query) {
         const request = new DBRequest
-        if (this._index.deleted) {
+        if (this._schema.isDeleted(this._index.id) || this._schema.isDeleted(this._store.id) || this._index.rolledback) {
             throw new InvalidStateError
         }
-        if (this._transaction._aborted) {
+        if (this._transaction._state != 'active') {
             throw new TransactionInactiveError
         }
         if (!(query instanceof DBKeyRange)) {
             query = DBKeyRange.only(query)
         }
-        this._loop.queue.push({ method: 'get', key: false, id: this._id, query, request })
+        this._transaction._queue.push({ method: 'get', type: 'index', key: false, store: this._store, index: this._index, query, request })
         return request
     }
 
     getKey (query) {
         const request = new DBRequest
-        console.log('>>>>', this._index.deleted)
-        if (this._index.deleted) {
+        if (this._schema.isDeleted(this._index.id) || this._schema.isDeleted(this._store.id) || this._index.rolledback) {
             throw new InvalidStateError
         }
-        if (this._transaction._aborted) {
+        if (this._transaction._state != 'active') {
             throw new TransactionInactiveError
         }
         if (!(query instanceof DBKeyRange)) {
             query = DBKeyRange.only(query)
         }
-        this._loop.queue.push({ method: 'get', key: true, id: this._id, query, request })
+        this._transaction._queue.push({ method: 'get', type: 'index', key: true, store: this._store, index: this._index, query, request })
         return request
     }
 

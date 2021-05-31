@@ -52,9 +52,25 @@ class AbortError extends DOMException {
 exports.AbortError = AbortError
 
 class VersionError extends DOMException {
-    constructor (message = 'A request was aborted, for example through a call to IDBTransaction.abort.') {
+    constructor (message = '**TODO** Error message.') {
         super(message, 'VersionError')
     }
 }
 
 exports.VersionError = VersionError
+
+class ConstraintError extends DOMException {
+    constructor (message = '**TODO** Error message.') {
+        super(message, 'ConstraintError')
+    }
+}
+
+exports.ConstraintError = ConstraintError
+
+class InvalidAccessError extends DOMException {
+    constructor (message = '**TODO** Error message.') {
+        super(message, 'InvalidAccessError')
+    }
+}
+
+exports.InvalidAccessError = InvalidAccessError

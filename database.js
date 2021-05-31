@@ -2,7 +2,7 @@ const { DBObjectStore } = require('./store')
 const { DBRequest } = require('./request')
 const { DBTransaction } = require('./transaction')
 const { extractify } = require('./extractor')
-const { NotFoundError } = require('./error')
+const { ConstraintError, TransactionInactiveError, InvalidStateError, NotFoundError } = require('./error')
 const { EventTarget, getEventAttributeValue, setEventAttributeValue } = require('event-target-shim')
 
 const { DOMStringList } = require('./stringlist')
@@ -11,20 +11,18 @@ const { Future } = require('perhaps')
 
 const Queue = require('avenue')
 
-const Loop = require('./loop')
+const Schema = require('./schema')
 
 class DBDatabase extends EventTarget {
-    constructor (name, schema, transactor, loop, mode, version) {
+    constructor (name, schema, transactor, version) {
         super()
         this._schema = schema
         this._transactor = transactor
         this._transaction = null
-        this._loop = loop
         this._closing = false
         this._closed = new Future
         this._name = name
         this._version = version
-        this._mode = mode
         this._transactions = new Set
     }
 
@@ -46,7 +44,7 @@ class DBDatabase extends EventTarget {
 
     get objectStoreNames () {
         const list =  new DOMStringList()
-        list.push.apply(list, Object.keys(this._schema.name).filter(name => ! this._schema.store[this._schema.name[name]].deleted))
+        list.push.apply(list, this._schema.getObjectStoreNames())
         return list
     }
 
@@ -55,15 +53,14 @@ class DBDatabase extends EventTarget {
             names = [ names ]
         }
         for (const name of names) {
-            if (! (name in this._schema.name)) {
+            if (! this._schema.getObjectStore(name)) {
                 throw new NotFoundError
             }
         }
         const request = new DBRequest
-        const loop = new Loop
-        const transaction =  new DBTransaction(this._schema, this._database, loop, mode)
+        const transaction =  new DBTransaction(this._schema, this._database, mode)
         this._transactions.add(transaction)
-        this._transactor.transaction({ db: this, transaction, loop }, names, mode == 'readonly')
+        this._transactor.transaction({ db: this, transaction }, names, mode == 'readonly')
         return transaction
     }
 
@@ -72,30 +69,37 @@ class DBDatabase extends EventTarget {
         if (name === undefined) {
             throw new TypeError
         }
-        const id = this._schema.max++
-        const schema = this._schema.store[id] = {
-            type: 'store',
-            id: id,
-            name: name,
-            qualified: `store.${id}`,
-            keyPath: keyPath,
-            autoIncrement: autoIncrement ? 0 : null,
-            indices: {}
+        if (this._transaction == null) {
+            throw new InvalidStateError
         }
-        this._transaction._created.push(id)
-        this._schema.name[name] = id
-        const extractor = this._schema.extractor[schema.id] = keyPath != null
-            ? extractify(keyPath)
-            : null
-        this._loop.queue.push({ method: 'store', id, name, autoIncrement, keyPath })
-        return new DBObjectStore(this._transaction, name, this, this._loop, this._schema, id)
+        if (this._transaction._state != 'active') {
+            throw new TransactionInactiveError
+        }
+        if (this._schema.getObjectStore(name) != null) {
+            throw new ConstraintError
+        }
+        const store = this._schema.createObjectStore(name, keyPath, autoIncrement)
+        this._transaction._queue.push({ method: 'create', type: 'store', store: store })
+        console.log(this._schema.getObjectStore(name))
+        return new DBObjectStore(this._transaction, this._schema, name)
     }
 
     deleteObjectStore (name) {
-        const id = this._schema.name[name]
-        this._schema.store[id].deleted = true
-        delete this._schema.name[name]
-        this._loop.queue.push({ method: 'destroy', id: id })
+        if (name === undefined) {
+            throw new TypeError
+        }
+        if (this._transaction == null) {
+            throw new InvalidStateError
+        }
+        if (this._transaction._state != 'active') {
+            throw new TransactionInactiveError
+        }
+        const store = this._schema.getObjectStore(name)
+        if (store == null) {
+            throw new NotFoundError
+        }
+        this._schema.deleteObjectStore(name)
+        this._transaction._queue.push({ method: 'destroy', store: store })
     }
 
     // https://www.w3.org/TR/IndexedDB/#dom-idbdatabase-close

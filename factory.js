@@ -7,6 +7,8 @@ const rmrf = require('./rmrf')
 
 const rescue = require('rescue')
 
+const Schema = require('./schema')
+
 const { Future } = require('perhaps')
 const { DBVersionChangeEvent } = require('./event')
 const { Queue } = require('avenue')
@@ -27,8 +29,6 @@ const { Event } = require('event-target-shim')
 const { dispatchEvent } = require('./dispatch')
 
 const { VersionError, AbortError } = require('./error')
-
-const Loop = require('./loop')
 
 // An interim attempt to bridge the W3C Event based interface of IndexedDB with
 // the `async`/`await` interface of Memento. Assuming that eventually this works
@@ -108,10 +108,10 @@ class Opener {
         for await (const event of this._transactor.queue.shifter()) {
             switch (event.method) {
             case 'transact': {
-                    const { names, extra: { loop, db, transaction } } = event
+                    const { names, extra: { db, transaction } } = event
                     this.destructible.ephemeral(`transaction.${count++}`, async () => {
                         // **TODO** How is this mutating????
-                        await this.memento.snapshot(snapshot => loop.run(transaction, snapshot, schema, names))
+                        await this.memento.snapshot(snapshot => transaction._run(snapshot, schema, names))
                         db._transactions.delete(transaction)
                         this._maybeClose(db)
                     })
@@ -126,20 +126,19 @@ class Opener {
     }
 
     connect (schema, name, { request }) {
-        const db = request.result = new DBDatabase(name, schema, this._transactor, null, 'readonly', this._version)
+        const db = request.result = new DBDatabase(name, new Schema(schema), this._transactor, this._version)
         this._handles.push(db)
     }
 
-    static async open (destructible, schema, directory, name, version, { request }) {
+    static async open (destructible, root, directory, name, version, { request }) {
         // **TODO** `version` should be a read-only property of the
         // Memento object.
-        const opener = new Opener(destructible, schema, directory, name)
+        const opener = new Opener(destructible, root, directory, name)
         await fs.mkdir(path.join(directory, name), { recursive: true })
         const paired = new Queue().shifter().paired
-        const connections = new Map
-        const loop = new Loop(schema)
+        const schema = new Schema(root)
         opener._version = version
-        const db = request.result = new DBDatabase(name, schema, opener._transactor, loop, 'versionupgrade', version)
+        const db = request.result = new DBDatabase(name, schema, opener._transactor)
         opener._handles.push(db)
         let current
         try {
@@ -151,6 +150,7 @@ class Opener {
                 comparators: { indexeddb: comparator }
             }, async upgrade => {
                 current = upgrade.version.current
+                db._version = upgrade.version.target
                 if (upgrade.version.current == 0) {
                     await upgrade.store('schema', { 'id': Number })
                 }
@@ -158,14 +158,12 @@ class Opener {
                 schema.max = max ? max.id + 1 : 0
                 const paired = new Queue().shifter().paired
                 request.readyState = 'done'
-                request.transaction = new DBTransaction(schema, null, loop, 'versionupgrade')
-                db._transactions.add(request.transaction)
-                connections.set(db, new Set)
-                request.transaction._database = db
+                const transaction = request.transaction = new DBTransaction(schema, db, 'versionchange')
+                db._transactions.add(transaction)
                 request.error = null
-                connections.get(db).add(db._transaction = request.transaction)
+                db._transaction = transaction
                 dispatchEvent(request, new DBVersionChangeEvent('upgradeneeded', { newVersion: upgrade.version.target, oldVersion: upgrade.version.current }))
-                await loop.run(request.transaction, upgrade, schema, [])
+                await transaction._run(upgrade, [])
                 // **TODO** What to do if the database is closed before we can
                 // indicate success?
                 db._transactions.delete(request.transaction)

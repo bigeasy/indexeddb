@@ -5,7 +5,7 @@ const { DBIndex } = require('./index')
 const { DOMStringList } = require('./stringlist')
 const { dispatchEvent } = require('./dispatch')
 const { Event } = require('event-target-shim')
-const { InvalidStateError, DataError, ReadOnlyError } = require('./error')
+const { NotFoundError, InvalidStateError, DataError, ReadOnlyError } = require('./error')
 const { extractify } = require('./extractor')
 const { valuify } = require('./value')
 
@@ -22,76 +22,70 @@ class DBObjectStore {
     // object store, we push messages with a request object. The work is
     // performed by the loop object. The loop object is run after the locking is
     // performed.
-    constructor (transaction, name, database, loop, schema, id) {
+    constructor (transaction, schema, name) {
         assert(schema, 'schema is null')
-        assert(typeof id == 'number')
         this._transaction = transaction
-        this._name = name
-        this._store = schema.store[id]
-        this._database = database
-        this._loop = loop
         this._schema = schema
-        this._id = id
+        this._store = this._schema.getObjectStore(name)
     }
 
     get name () {
-        return this._name
+        return this._store.name
     }
 
     get indexNames () {
         const list =  new DOMStringList()
-        const indices = Object.keys(this._schema.store[this._id].indices).filter(name => {
-            return ! this._schema.store[this._schema.store[this._id].indices[name]].deleted
-        })
-        list.push.apply(list, indices)
+        list.push.apply(list, this._schema.getIndexNames(this._store.name))
         return list
     }
 
     put (value, key = null) {
-        const store = this._schema.store[this._id]
-        if (store.deleted) {
+        if (this._schema.isDeleted(this._store.id)) {
             throw new InvalidStateError
         }
         if (this._transaction.mode == "readonly") {
             throw new ReadOnlyError
         }
-        if (key != null && store.keyPath != null) {
+        console.log(this._store, key)
+        if (key != null && this._store.keyPath != null) {
             throw new DataError
         }
-        if (key == null && store.autoIncrement == null && store.keyPath == null) {
+        if (key == null && this._store.autoIncrement == null && this._store.keyPath == null) {
             throw new DataError
         }
         if (key != null) {
             key = valuify(key)
-        } else if (store.autoIncrement == null) {
-            key = valuify((this._schema.extractor[store.id])(value))
+        } else if (this._store.autoIncrement == null) {
+            key = valuify(this._schema.getExtractor(this._store.id)(value))
         }
+        console.log('key >>>>>', key)
         const request = new DBRequest
-        this._loop.queue.push({ method: 'put', request, id: this._id, key, value })
+        this._transaction._queue.push({ method: 'put', request, store: this._store, key, value })
         return request
     }
 
     add (value, key = null) {
-        const store = this._schema.store[this._id]
-        if (store.deleted) {
+        console.log('>>>', this._store.rolledback)
+        // **TODO** Take a store object I think.
+        if (this._schema.isDeleted(this._store.id) || this._store.rolledback) {
             throw new InvalidStateError
         }
-        if (this._transaction.mode == "readonly") {
+        if (this._transaction.mode == 'readonly') {
             throw new ReadOnlyError
         }
-        if (key != null && store.keyPath != null) {
+        if (key != null && this._store.keyPath != null) {
             throw new DataError
         }
-        if (key == null && store.autoIncrement == null && store.keyPath == null) {
+        if (key == null && this._store.autoIncrement == null && this._store.keyPath == null) {
             throw new DataError
         }
         if (key != null) {
             key = valuify(key)
-        } else if (store.autoIncrement == null) {
-            key = valuify((this._schema.extractor[store.id])(value))
+        } else if (this._store.autoIncrement == null) {
+            key = valuify(this._schema.getExtractor(this._store.id)(value))
         }
         const request = new DBRequest
-        this._loop.queue.push({ method: 'add', request, id: this._id, value, key })
+        this._transaction._queue.push({ method: 'add', request, store: this._store, value, key })
         return request
     }
 
@@ -101,13 +95,13 @@ class DBObjectStore {
 
     clear () {
         const request = new DBRequest
-        this._loop.queue.push({ method: 'clear', request, id: this._id })
+        this._transaction._queue.push({ method: 'clear', request, store: this._store })
         return request
     }
 
     get (key) {
         const request = new DBRequest
-        this._loop.queue.push({ method: 'get', request, id: this._id, key })
+        this._transaction._queue.push({ method: 'get', type: 'store', request, store: this._store, key })
         return request
     }
 
@@ -124,15 +118,14 @@ class DBObjectStore {
     }
 
     count (query) {
-        const store = this._schema.store[this._id]
-        if (store.deleted) {
+        if (this._schema.isDeleted(this._store.id)) {
             throw new InvalidStateError
         }
         if (query == null) {
             query = new DBKeyRange(null, null)
         }
         const request = new DBRequest
-        this._loop.queue.push({ method: 'count', request, id: this._id, query })
+        this._transaction._queue.push({ method: 'count', request, store: this._store, query })
         return request
     }
 
@@ -141,9 +134,9 @@ class DBObjectStore {
             query = new DBKeyRange(null, null)
         }
         const request = new DBRequest
-        const cursor = new DBCursorWithValue(request, this._loop, query)
+        const cursor = new DBCursorWithValue(this._transaction, request, query)
         request.result = cursor
-        this._loop.queue.push({ method: 'openCursor', request, name: this._name, cursor: cursor, direction })
+        this._transaction._queue.push({ method: 'openCursor', request, store: this._store, cursor: cursor, direction })
         return request
     }
 
@@ -152,37 +145,57 @@ class DBObjectStore {
     }
 
     index (name) {
-        const properties = this._schema.store[this._id]
-        const indexId = properties.indices[name]
-        return new DBIndex(this._transaction, this._schema, this._loop, indexId)
+        if (this._schema.isDeleted(this._store.id)) {
+            throw new InvalidStateError
+        }
+        if (this._transaction._state == 'finished') {
+            throw new InvalidStateError
+        }
+        const index = this._schema.getIndex(this._store.name, name)
+        if (index == null) {
+            throw new NotFoundError
+        }
+        return new DBIndex(this._transaction, this._schema, this._store, index)
     }
 
     createIndex (name, keyPath, { unique = false, multiEntry = false } = {}) {
-        const indexId = this._schema.max++
-        const index = {
-            type: 'index',
-            id: indexId,
-            storeId: this._id,
-            name: name,
-            qualified: `index.${indexId}`,
-            keyPath: keyPath,
-            multiEntry: multiEntry,
-            unique: unique
+        if (this._transaction.mode != 'versionchange') {
+            throw new InvalidStateError
         }
-        this._transaction._created.push(indexId)
-        this._schema.store[indexId] = index
-        this._schema.store[this._id].indices[name] = indexId
-        this._schema.extractor[indexId] = extractify(keyPath)
-        this._loop.queue.push({ method: 'index', id: indexId, unique, multiEntry })
-        return new DBIndex(this._transaction, this._schema, this._loop, indexId)
+        if (this._schema.isDeleted(this._store.id)) {
+            throw new InvalidStateError
+        }
+        if (this._transaction._state != 'active') {
+            throw new InvalidStateError
+        }
+        if (this._schema.getIndex(this._name, name) != null) {
+            throw new ConstraintError
+        }
+        // **TODO** If keyPath is not a valid key path, throw a "SyntaxError" DOMException.
+        if (Array.isArray(keyPath) && multiEntry) {
+            throw new InvalidAccessError
+        }
+        const index = this._schema.createIndex(this._store.name, name, keyPath, multiEntry, unique)
+        this._transaction._queue.push({ method: 'create', type: 'index', store: this._store, index })
+        return new DBIndex(this._transaction, this._schema, this._store, index)
     }
 
     deleteIndex (name) {
-        const indexId = this._schema.store[this._id].indices[name]
-        const index = this._schema.store[indexId]
-        index.deleted = true
-        delete this._schema.store[this._id].indices[name]
-        this._loop.queue.push({ method: 'destroy', id: indexId })
+        if (this._transaction.mode != 'versionchange') {
+            throw new InvalidStateError
+        }
+        if (this._schema.isDeleted(this._store.id)) {
+            throw new InvalidStateError
+        }
+        if (this._transaction._state != 'active') {
+            throw new InvalidStateError
+        }
+        const index = this._schema.getIndex(this._store.name, name)
+        if (index == null) {
+            throw new NotFoundError
+        }
+        this._schema.deleteIndex(this._store.name, index.name)
+        this._transaction._queue.push({ method: 'destroy', store: this._store, index: index })
     }
 }
 
