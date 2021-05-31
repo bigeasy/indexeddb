@@ -217,7 +217,6 @@ class Loop {
                     const { name, request, cursor, direction } = event
                     const properties = schema.store[schema.name[name]]
                     let builder = transaction.cursor(properties.qualified)
-                console.log('OPEN CURSOR', name, properties)
                     if (direction == 'prev') {
                         builder.reverse()
                     }
@@ -235,6 +234,25 @@ class Loop {
                 break
             case 'item': {
                     await this._item(event)
+                }
+                break
+            case 'count': {
+                    const { id, request, query } = event
+                    const store = schema.store[id]
+                    switch (store.type) {
+                    case 'store': {
+                            request.result = 0
+                            let cursor = query.lower == null ? transaction.cursor(store.qualified) : transaction.cursor(store.qualified, [ query.lower ])
+                            cursor = query.upper == null ? cursor : cursor.terminate(item => ! query.includes(item.key))
+                            for await (const items of cursor.iterator()) {
+                                for (const item of items) {
+                                    request.result++
+                                }
+                            }
+                            dispatchEvent(request, new Event('success'))
+                        }
+                        break
+                    }
                 }
                 break
             case 'clear': {

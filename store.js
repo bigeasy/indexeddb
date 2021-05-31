@@ -124,7 +124,16 @@ class DBObjectStore {
     }
 
     count (query) {
-        throw new Error
+        const store = this._schema.store[this._id]
+        if (store.deleted) {
+            throw new InvalidStateError
+        }
+        if (query == null) {
+            query = new DBKeyRange(null, null)
+        }
+        const request = new DBRequest
+        this._loop.queue.push({ method: 'count', request, id: this._id, query })
+        return request
     }
 
     openCursor (query, direction = 'next') {
