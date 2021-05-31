@@ -31,6 +31,15 @@ class Loop {
 
     _abort (tx) {
         this._aborted = true
+        while (this.queue.length != 0) {
+            const event = this.queue.shift()
+            if ('request' in event) {
+                const { request } = event
+                delete request.result
+                request.error = new AbortError
+                dispatchEvent(request, new Event('error'))
+            }
+        }
         dispatchEvent(tx, new Event('abort'))
     }
 

@@ -58,7 +58,7 @@ class DBTransaction extends EventTarget {
         // Mark any stores created by this transaction as deleted, then queue
         // them for actual destruction.
         //
-        this._loop.queue.push({ method: 'abort' })
+        this._loop._abort(this)
         // **TODO** Can't I track this in the loop.
         for (const id of this._created) {
             this._schema.store[id].deleted = true
