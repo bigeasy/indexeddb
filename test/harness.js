@@ -21,7 +21,11 @@ module.exports = async function (okay, name) {
             okay.leak(name)
         }
     }
-    global.Event = Event
+    if (process.versions.node.split('.')[0] < 15) {
+        globalize('Event', Event)
+    } else {
+        global.Event = Event
+    }
     globalize('wpt', 'location')
     globalize({ title: 'wpt', location: 'wpt' }, 'document')
     const { DBRequest } = require('../request')
