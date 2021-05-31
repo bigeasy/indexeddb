@@ -40,7 +40,7 @@ class DBObjectStore {
     }
 
     put (value, key = null) {
-        if (this._schema.isDeleted(this._store.id)) {
+        if (this._schema.isDeleted(this._store)) {
             throw new InvalidStateError
         }
         if (this._transaction.mode == "readonly") {
@@ -67,7 +67,7 @@ class DBObjectStore {
     add (value, key = null) {
         console.log('>>>', this._store.rolledback)
         // **TODO** Take a store object I think.
-        if (this._schema.isDeleted(this._store.id) || this._store.rolledback) {
+        if (this._schema.isDeleted(this._store)) {
             throw new InvalidStateError
         }
         if (this._transaction.mode == 'readonly') {
@@ -118,7 +118,7 @@ class DBObjectStore {
     }
 
     count (query) {
-        if (this._schema.isDeleted(this._store.id)) {
+        if (this._schema.isDeleted(this._store)) {
             throw new InvalidStateError
         }
         if (query == null) {
@@ -145,7 +145,7 @@ class DBObjectStore {
     }
 
     index (name) {
-        if (this._schema.isDeleted(this._store.id)) {
+        if (this._schema.isDeleted(this._store)) {
             throw new InvalidStateError
         }
         if (this._transaction._state == 'finished') {
@@ -162,7 +162,7 @@ class DBObjectStore {
         if (this._transaction.mode != 'versionchange') {
             throw new InvalidStateError
         }
-        if (this._schema.isDeleted(this._store.id)) {
+        if (this._schema.isDeleted(this._store)) {
             throw new InvalidStateError
         }
         if (this._transaction._state != 'active') {
@@ -184,7 +184,7 @@ class DBObjectStore {
         if (this._transaction.mode != 'versionchange') {
             throw new InvalidStateError
         }
-        if (this._schema.isDeleted(this._store.id)) {
+        if (this._schema.isDeleted(this._store)) {
             throw new InvalidStateError
         }
         if (this._transaction._state != 'active') {

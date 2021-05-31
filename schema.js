@@ -42,8 +42,16 @@ class Schema {
         this._deleted.store.add(store.id)
     }
 
-    isDeleted (id) {
-        return this._deleted.store.has(id) || this._deleted.index.has(id)
+    isDeleted (store) {
+        assert(typeof store == 'object')
+        if (store.rolledback) {
+            return true
+        }
+        if (store.type == 'index') {
+            return this._deleted.index.has(store.id) ||
+                this._deleted.store.has(store.storeId)
+        }
+        return this._deleted.store.has(store.id)
     }
 
     getObjectStore (name) {

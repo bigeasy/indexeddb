@@ -29,7 +29,7 @@ class DBIndex {
 
     get (query) {
         const request = new DBRequest
-        if (this._schema.isDeleted(this._index.id) || this._schema.isDeleted(this._store.id) || this._index.rolledback) {
+        if (this._schema.isDeleted(this._index)) {
             throw new InvalidStateError
         }
         if (this._transaction._state != 'active') {
@@ -44,7 +44,7 @@ class DBIndex {
 
     getKey (query) {
         const request = new DBRequest
-        if (this._schema.isDeleted(this._index.id) || this._schema.isDeleted(this._store.id) || this._index.rolledback) {
+        if (this._schema.isDeleted(this._index)) {
             throw new InvalidStateError
         }
         if (this._transaction._state != 'active') {
