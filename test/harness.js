@@ -21,7 +21,7 @@ module.exports = async function (okay, name) {
             okay.leak(name)
         }
     }
-    glboalize('Event', Event)
+    global.Event = Event
     globalize('wpt', 'location')
     globalize({ title: 'wpt', location: 'wpt' }, 'document')
     const { DBRequest } = require('../request')
