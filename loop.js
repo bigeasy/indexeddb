@@ -8,6 +8,7 @@ const { Future } = require('perhaps')
 const { Queue } = require('avenue')
 const { Event } = require('event-target-shim')
 const { dispatchEvent } = require('./dispatch')
+
 const Verbatim = require('verbatim')
 const DOMException = require('domexception')
 
