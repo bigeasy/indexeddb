@@ -155,7 +155,7 @@ class Opener {
                     await upgrade.store('schema', { 'id': Number })
                 }
                 const max = (await upgrade.cursor('schema').array()).pop()
-                schema.max = max ? max.id : 0
+                schema.max = max ? max.id + 1 : 0
                 const paired = new Queue().shifter().paired
                 request.readyState = 'done'
                 request.transaction = new DBTransaction(schema, null, loop, 'versionupgrade')

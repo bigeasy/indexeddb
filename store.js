@@ -40,7 +40,10 @@ class DBObjectStore {
 
     get indexNames () {
         const list =  new DOMStringList()
-        list.push.apply(list, Object.keys(this._schema.store[this._id].indices))
+        const indices = Object.keys(this._schema.store[this._id].indices).filter(name => {
+            return ! this._schema.store[this._schema.store[this._id].indices[name]].deleted
+        })
+        list.push.apply(list, indices)
         return list
     }
 
@@ -131,7 +134,7 @@ class DBObjectStore {
         const request = new DBRequest
         const cursor = new DBCursorWithValue(request, this._loop, query)
         request.result = cursor
-        this._loop.queue.push({ method: 'openCursor', request, name: this._name, cursor: cursor })
+        this._loop.queue.push({ method: 'openCursor', request, name: this._name, cursor: cursor, direction })
         return request
     }
 

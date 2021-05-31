@@ -3,7 +3,7 @@ const assert = require('assert')
 const compare = require('./compare')
 
 const rescue = require('rescue')
-const { DataError } = require('./error')
+const { AbortError, DataError } = require('./error')
 const { Future } = require('perhaps')
 const { Queue } = require('avenue')
 const { Event } = require('event-target-shim')
@@ -33,6 +33,26 @@ class Loop {
         dispatchEvent(tx, new Event('abort'))
     }
 
+    async _item ({ request, cursor }) {
+        for (;;) {
+            const next = cursor._inner.next()
+            if (next.done) {
+                cursor._outer.next = await cursor._outer.iterator.next()
+                if (cursor._outer.next.done) {
+                    request.result = null
+                    dispatchEvent(request, new Event('success'))
+                    break
+                } else {
+                    cursor._inner = cursor._outer.next.value[Symbol.iterator]()
+                }
+            } else {
+                cursor._value = next.value
+                dispatchEvent(request, new Event('success'))
+                break
+            }
+        }
+    }
+
     // Most of the logic of this implementation is in this one function.
     // The interface implementations do a lot of argument validation, but
     // most of the real work is here.
@@ -48,10 +68,10 @@ class Loop {
             case 'store': {
                     const { id, name, keyPath, autoIncrement } = event
                     const properties = schema.store[id]
-                    if (! properties.deleted) {
+                    //if (! properties.deleted) {
                         transaction.set('schema', properties)
                         await transaction.store(properties.qualified, { key: 'indexeddb' })
-                    }
+                    //}
                 }
                 break
             case 'deleteStore': {
@@ -62,37 +82,45 @@ class Loop {
                     const { id, unique } = event
                     const index = schema.store[id]
                     const store = schema.store[index.storeId]
-                    const extractor = schema.extractor[id]
-                    await transaction.store(index.qualified, { key: 'indexeddb' })
-                    transaction.set('schema', store)
-                    transaction.set('schema', index)
-                    for await (const items of transaction.cursor(store.qualified).iterator()) {
-                        for (const item of items) {
-                            const extracted = extractor(item.value)
-                            transaction.set(index.qualified, { key: [ extracted, item.key ] })
-                        }
-                    }
-                    if (unique) {
-                        let previous = null, count = 0
-                        OUTER: for await (const items of transaction.cursor(index.qualified).iterator()) {
+                    console.log(store)
+                    //if (! this._aborted && ! store.deleted) {
+                        const extractor = schema.extractor[id]
+                        await transaction.store(index.qualified, { key: 'indexeddb' })
+                        transaction.set('schema', store)
+                        transaction.set('schema', index)
+                        for await (const items of transaction.cursor(store.qualified).iterator()) {
                             for (const item of items) {
-                                if (count++ == 0) {
-                                    previous = item
-                                    continue
-                                }
-                                if (compare(previous.key[0], item.key[0]) == 0) {
-                                    this._abort(tx)
-                                    break OUTER
-                                }
-                                previous = item
+                                const extracted = extractor(item.value)
+                                transaction.set(index.qualified, { key: [ extracted, item.key ] })
                             }
                         }
-                    }
-                    index.extant = true
+                        if (unique) {
+                            let previous = null, count = 0
+                            OUTER: for await (const items of transaction.cursor(index.qualified).iterator()) {
+                                for (const item of items) {
+                                    if (count++ == 0) {
+                                        previous = item
+                                        continue
+                                    }
+                                    if (compare(previous.key[0], item.key[0]) == 0) {
+                                        this._abort(tx)
+                                        break OUTER
+                                    }
+                                    previous = item
+                                }
+                            }
+                        }
+                        index.extant = true
+                    //}
                 }
                 break
             case 'add': {
                     let { id, key, value, request } = event
+                    if (this._aborted) {
+                        request.error = new AbortError
+                        dispatchEvent(request, new Event('error', { cancels: true, bubbles: true }))
+                        continue
+                    }
                     const properties = schema.store[id]
                     event.value = value = Verbatim.deserialize(Verbatim.serialize(value))
                     if (key == null) {
@@ -161,8 +189,11 @@ class Loop {
                     switch (store.type) {
                     case 'store': {
                             const got = await transaction.get(store.qualified, [ key ])
-                            request.result = Verbatim.deserialize(Verbatim.serialize(got.value))
+                            if (got != null) {
+                                request.result = Verbatim.deserialize(Verbatim.serialize(got.value))
+                            }
                             dispatchEvent(request, new Event('success'))
+
                         }
                         break
                     case 'index': {
@@ -183,38 +214,27 @@ class Loop {
                 }
                 break
             case 'openCursor': {
-                    const { name, request, cursor } = event
+                    const { name, request, cursor, direction } = event
                     const properties = schema.store[schema.name[name]]
-                    cursor._outer = { iterator: transaction.cursor(properties.qualified).iterator()[Symbol.asyncIterator](), next: null }
+                    let builder = transaction.cursor(properties.qualified)
+                console.log('OPEN CURSOR', name, properties)
+                    if (direction == 'prev') {
+                        builder.reverse()
+                    }
+                    cursor._outer = { iterator: builder.iterator()[Symbol.asyncIterator](), next: null }
                     cursor._outer.next = await cursor._outer.iterator.next()
+                    console.log(cursor._outer.next.done)
                     if (cursor._outer.next.done) {
                         request.result = null
                         dispatchEvent(request, new Event('success'))
                     } else {
                         cursor._inner = cursor._outer.next.value[Symbol.iterator]()
-                        this.queue.push({ method: 'item', request, name, cursor })
+                        await this._item(event)
                     }
                 }
                 break
             case 'item': {
-                    const { request, cursor } = event
-                    for (;;) {
-                        const next = cursor._inner.next()
-                        if (next.done) {
-                            cursor._outer.next = await cursor._outer.iterator.next()
-                            if (cursor._outer.next.done) {
-                                request.result = null
-                                dispatchEvent(request, new Event('success'))
-                                break
-                            } else {
-                                cursor._inner = cursor._outer.next.value[Symbol.iterator]()
-                            }
-                        } else {
-                            cursor._value = next.value
-                            dispatchEvent(request, new Event('success'))
-                            break
-                        }
-                    }
+                    await this._item(event)
                 }
                 break
             case 'clear': {
@@ -248,7 +268,6 @@ class Loop {
         }
         if (this._aborted) {
             if (transaction.rollback) {
-                console.log('YES ROLLBACK')
                 transaction.rollback()
             }
         } else {

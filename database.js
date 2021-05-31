@@ -46,7 +46,7 @@ class DBDatabase extends EventTarget {
 
     get objectStoreNames () {
         const list =  new DOMStringList()
-        list.push.apply(list, Object.keys(this._schema.name))
+        list.push.apply(list, Object.keys(this._schema.name).filter(name => ! this._schema.store[this._schema.name[name]].deleted))
         return list
     }
 
@@ -82,6 +82,7 @@ class DBDatabase extends EventTarget {
             autoIncrement: autoIncrement ? 0 : null,
             indices: {}
         }
+        this._transaction._created.push(id)
         this._schema.name[name] = id
         const extractor = this._schema.extractor[schema.id] = keyPath != null
             ? extractify(keyPath)

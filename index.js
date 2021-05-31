@@ -45,6 +45,7 @@ class DBIndex {
 
     getKey (query) {
         const request = new DBRequest
+        console.log('>>>>', this._index.deleted)
         if (this._index.deleted) {
             throw new InvalidStateError
         }
