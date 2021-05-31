@@ -1,4 +1,4 @@
-require('proof')(18, okay => {
+require('proof')(26, okay => {
     const Schema = require('../schema')
     const root = Schema.root(0)
     {
@@ -24,5 +24,22 @@ require('proof')(18, okay => {
         okay(subsequent.createIndex('store', 'index3', 'value', true, true), 4, 'subsequent create index store is alreay copied')
         okay(subsequent.createObjectStore('store2', 'key', true), 5, 'subsequent create extracted, auto-increment store')
         okay(isolated.getObjectStore('store2'), null, 'isolated still isolated')
+        subsequent.merge()
+    }
+    {
+        const isolated = new Schema(root)
+        const pending = new Schema(root)
+        okay(!! pending.getObjectStore('store2'), 'has object store')
+        pending.deleteObjectStore('store2')
+        okay(! pending.getObjectStore('store2'), 'object store deleted')
+        okay(!! isolated.getObjectStore('store2'), 'isolated still has object store')
+        okay(!! pending.getIndex('store', 'index2'), 'has index')
+        pending.deleteIndex('store', 'index2')
+        okay(! pending.getIndex('store', 'index2'), 'has index deleted')
+        okay(!! isolated.getIndex('store', 'index2'), 'isolated still has index')
+        pending.merge()
+        const subsequent = new Schema(root)
+        okay(! subsequent.getObjectStore('store2'), 'subsequent object store deleted')
+        okay(! subsequent.getIndex('store', 'index2'), 'subsequent index deleted')
     }
 })
