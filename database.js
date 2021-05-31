@@ -2,7 +2,7 @@ const { DBObjectStore } = require('./store')
 const { DBRequest } = require('./request')
 const { DBTransaction } = require('./transaction')
 const { extractify } = require('./extractor')
-const { ConstraintError, TransactionInactiveError, InvalidStateError, NotFoundError } = require('./error')
+const { InvalidAccessError, ConstraintError, TransactionInactiveError, InvalidStateError, NotFoundError } = require('./error')
 const { EventTarget, getEventAttributeValue, setEventAttributeValue } = require('event-target-shim')
 
 const { DOMStringList } = require('./stringlist')
@@ -62,6 +62,12 @@ class DBDatabase extends EventTarget {
             if (! this._schema.getObjectStore(name)) {
                 throw new NotFoundError
             }
+        }
+        if (names.length == 0) {
+            throw new InvalidAccessError
+        }
+        if (mode != 'readonly' && mode != 'readwrite') {
+            throw new TypeError
         }
         const request = new DBRequest
         const transaction =  new DBTransaction(this._schema, this._database, mode)
