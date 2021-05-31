@@ -49,6 +49,12 @@ class DBDatabase extends EventTarget {
     }
 
     transaction (names, mode = 'readonly') {
+        if (this._transaction != null) {
+            throw new InvalidStateError
+        }
+        if (this._closing) {
+            throw new InvalidStateError
+        }
         if (typeof names == 'string') {
             names = [ names ]
         }

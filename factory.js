@@ -167,6 +167,7 @@ class Opener {
                 // **TODO** What to do if the database is closed before we can
                 // indicate success?
                 db._transactions.delete(request.transaction)
+                db._transaction = null
                 // **TODO** This creates a race. If we close as the last action and
                 // then sleep or something then our transact queue will close and we
                 // will call maybe close with an already closed db.
