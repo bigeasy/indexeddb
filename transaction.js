@@ -19,7 +19,7 @@ const { Queue } = require('avenue')
 const { EventTarget, getEventAttributeValue, setEventAttributeValue } = require('event-target-shim')
 
 class DBTransaction extends EventTarget {
-    constructor (schema, database, mode) {
+    constructor (schema, database, mode, previousVersion) {
         super()
         if (mode == null) {
             throw new Error
@@ -29,6 +29,7 @@ class DBTransaction extends EventTarget {
         this._database = database
         this._queue = []
         this._mode = mode
+        this._previousVersion = previousVersion
     }
 
     get onabort () {
@@ -69,6 +70,9 @@ class DBTransaction extends EventTarget {
     abort () {
         this._state = 'finished'
         this._schema.abort()
+        if (this._mode == 'versionchange') {
+            this._database._version = this._previousVersion
+        }
         // Mark any stores created by this transaction as deleted, then queue
         // them for actual destruction.
         //

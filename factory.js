@@ -158,7 +158,7 @@ class Opener {
                 schema.max = max ? max.id + 1 : 0
                 const paired = new Queue().shifter().paired
                 request.readyState = 'done'
-                const transaction = request.transaction = new DBTransaction(schema, db, 'versionchange')
+                const transaction = request.transaction = new DBTransaction(schema, db, 'versionchange', upgrade.version.current)
                 db._transactions.add(transaction)
                 request.error = null
                 db._transaction = transaction
@@ -183,6 +183,7 @@ class Opener {
             db._closing = true
             opener._maybeClose(db)
             request.result = undefined
+            request.transaction = null
             request.error = new AbortError
             dispatchEvent(request, new Event('error', { bubbles: true, cancelable: true }))
             opener._transactor.queue.push({ method: 'close', extra: { db } })
