@@ -22,7 +22,7 @@ module.exports = async function (okay, name) {
         }
     }
     if (process.versions.node.split('.')[0] < 15) {
-        globalize('Event', Event)
+        globalize(Event, 'Event')
     } else {
         global.Event = Event
     }
