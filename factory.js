@@ -71,7 +71,7 @@ class Opener {
     async close (event) {
         for (const connection of this._handles) {
             if (! connection._closing) {
-                dispatchEvent(connection, new Event('versionchange'))
+                dispatchEvent(null, connection, new Event('versionchange'))
             }
         }
         // **TODO** No, it's a closing flag you're looking for.
@@ -79,7 +79,7 @@ class Opener {
             console.log('>', db._closing)
         }
         if (this._handles.some(connection => ! connection._closing)) {
-            dispatchEvent(event.request, new Event('blocked'))
+            dispatchEvent(null, event.request, new Event('blocked'))
         }
         for (const connection of this._handles) {
             await connection._closed.promise
@@ -162,7 +162,7 @@ class Opener {
                 db._transactions.add(transaction)
                 request.error = null
                 db._transaction = transaction
-                dispatchEvent(request, new DBVersionChangeEvent('upgradeneeded', { newVersion: upgrade.version.target, oldVersion: upgrade.version.current }))
+                dispatchEvent(transaction, request, new DBVersionChangeEvent('upgradeneeded', { newVersion: upgrade.version.target, oldVersion: upgrade.version.current }))
                 await transaction._run(upgrade, [])
                 // **TODO** What to do if the database is closed before we can
                 // indicate success?
@@ -185,7 +185,7 @@ class Opener {
             request.result = undefined
             request.transaction = null
             request.error = new AbortError
-            dispatchEvent(request, new Event('error', { bubbles: true, cancelable: true }))
+            dispatchEvent(null, request, new Event('error', { bubbles: true, cancelable: true }))
             opener._transactor.queue.push({ method: 'close', extra: { db } })
             return { destructible: new Destructible('errored').destroy() }
         }
@@ -216,13 +216,13 @@ class Connector {
     _checkVersion ({ request, version }) {
         if (version == null || this._opener.memento.version == version) {
             request.error = null
-            dispatchEvent(request, new Event('success'))
+            dispatchEvent(null, request, new Event('success'))
         } else {
             request.result._closing = true
             request.error = new VersionError
             this._opener._maybeClose(request.result)
             request.result = null
-            dispatchEvent(request, new Event('error'))
+            dispatchEvent(null, request, new Event('error'))
         }
     }
 
@@ -280,7 +280,7 @@ class Connector {
                     event.request.source = null
                     event.request.error = null
                     event.request.readyState = 'done'
-                    dispatchEvent(event.request, new DBVersionChangeEvent('success', { oldVersion: this._version }))
+                    dispatchEvent(null, event.request, new DBVersionChangeEvent('success', { oldVersion: this._version }))
                 }
                 break
             }

@@ -82,10 +82,10 @@ class DBTransaction extends EventTarget {
                 const { request } = event
                 delete request.result
                 request.error = new AbortError
-                dispatchEvent(request, new Event('error'))
+                dispatchEvent(null, request, new Event('error'))
             }
         }
-        dispatchEvent(this, new Event('abort'))
+        dispatchEvent(null, this, new Event('abort'))
     }
 
     async _item ({ request, cursor }) {
@@ -95,14 +95,14 @@ class DBTransaction extends EventTarget {
                 cursor._outer.next = await cursor._outer.iterator.next()
                 if (cursor._outer.next.done) {
                     request.result = null
-                    dispatchEvent(request, new Event('success'))
+                    dispatchEvent(this, request, new Event('success'))
                     break
                 } else {
                     cursor._inner = cursor._outer.next.value[Symbol.iterator]()
                 }
             } else {
                 cursor._value = next.value
-                dispatchEvent(request, new Event('success'))
+                dispatchEvent(this, request, new Event('success'))
                 break
             }
         }
@@ -186,7 +186,7 @@ class DBTransaction extends EventTarget {
                         const event = new Event('error', { bubbles: true, cancelable: true })
                         const error = new DOMException('Unique key constraint violation.', 'ConstraintError')
                         request.error = error
-                        const caught = dispatchEvent(request, event)
+                        const caught = dispatchEvent(this, request, event)
                         console.log('???', caught)
                         break SWITCH
                     }
@@ -226,7 +226,7 @@ class DBTransaction extends EventTarget {
                                 const event = new Event('error', { bubbles: true, cancelable: true })
                                 const error = new DOMException('Unique key constraint violation.', 'ConstraintError')
                                 request.error = error
-                                const caught = dispatchEvent(request, event)
+                                const caught = dispatchEvent(this, request, event)
                                 console.log('???', caught)
                                 break SWITCH
                             }
@@ -234,7 +234,7 @@ class DBTransaction extends EventTarget {
                         transaction.set(index.qualified, { key: [ extracted, key ] })
                     }
                     transaction.set(store.qualified, record)
-                    dispatchEvent(request, new Event('success'))
+                    dispatchEvent(this, request, new Event('success'))
                 }
                 break
             case 'get': {
@@ -245,7 +245,7 @@ class DBTransaction extends EventTarget {
                             if (got != null) {
                                 request.result = Verbatim.deserialize(Verbatim.serialize(got.value))
                             }
-                            dispatchEvent(request, new Event('success'))
+                            dispatchEvent(this, request, new Event('success'))
                         }
                         break
                     case 'index': {
@@ -257,7 +257,7 @@ class DBTransaction extends EventTarget {
                                 const got = await transaction.get(store.qualified, [ indexGot[0].key[1] ])
                                 request.result = Verbatim.deserialize(Verbatim.serialize(key ? got.key : got.value))
                             }
-                            dispatchEvent(request, new Event('success'))
+                            dispatchEvent(this, request, new Event('success'))
                         }
                         break
                     }
@@ -273,7 +273,7 @@ class DBTransaction extends EventTarget {
                     cursor._outer.next = await cursor._outer.iterator.next()
                     if (cursor._outer.next.done) {
                         request.result = null
-                        dispatchEvent(request, new Event('success'))
+                        dispatchEvent(this, request, new Event('success'))
                     } else {
                         cursor._inner = cursor._outer.next.value[Symbol.iterator]()
                         await this._item(event)
@@ -296,7 +296,7 @@ class DBTransaction extends EventTarget {
                                     request.result++
                                 }
                             }
-                            dispatchEvent(request, new Event('success'))
+                            dispatchEvent(this, request, new Event('success'))
                         }
                         break
                     }
@@ -311,7 +311,7 @@ class DBTransaction extends EventTarget {
                         }
                     }
                     // TODO Clear an index.
-                    dispatchEvent(request, new Event('success'))
+                    dispatchEvent(this, request, new Event('success'))
                 }
                 break
             case 'destroy': {
@@ -347,7 +347,7 @@ class DBTransaction extends EventTarget {
             }
             this._schema.merge()
             this._state = 'finished'
-            dispatchEvent(this, new Event('complete'))
+            dispatchEvent(null, this, new Event('complete'))
         }
     }
 }
