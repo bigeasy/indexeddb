@@ -193,13 +193,15 @@ class Opener {
 }
 
 class Connector {
-    constructor (destructible, directory, name, map) {
+    constructor (factory, name) {
         const schema = { name: {}, store: {}, max: 0, index: {}, extractor: {} }
         this._opener = { destructible: new Destructible('opener').destroy() }
-        this.destructible = destructible
-        this._directory = directory
+        this.destructible = factory.deferrable.ephemeral($ => $(), `indexeddb.${name}`)
+        factory.deferrable.increment()
+        this.destructible.destruct(() => factory.deferrable.decrement())
+        this._directory = factory._directory
         this._name = name
-        this._map = map
+        this._map = factory._connectors
         this._events = []
         this._sleep = Future.resolve()
         this.destructible.durable('connections', this._connect(schema))
@@ -292,6 +294,10 @@ class DBFactory {
     constructor ({ directory }) {
         this.destructible = new Destructible(`indexeddb: ${directory}`)
 
+        this.deferrable = this.destructible.durable($ => $(), { countdown: 1 }, 'deferrable')
+
+        this.destructible.destruct(() => this.deferrable.decrement())
+
         this._directory = directory
 
         // "Let queue be the connection queue for origin and name." We have a
@@ -308,7 +314,7 @@ class DBFactory {
 
         this._connectors = {}
 
-        this._turnstile = new Turnstile(this.destructible.durable('turnstile'))
+        this._turnstile = new Turnstile(this.deferrable.durable('turnstile'))
     }
 
     // IDBFactory.
@@ -322,7 +328,7 @@ class DBFactory {
 
     _vivify (name) {
         if (!(name in this._connectors)) {
-            this._connectors[name] = new Connector(this.destructible.ephemeral(`indexeddb.${name}`), this._directory, name, this._connectors)
+            this._connectors[name] = new Connector(this, name)
         }
         return this._connectors[name]
     }

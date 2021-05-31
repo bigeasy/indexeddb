@@ -29,6 +29,10 @@ class DBObjectStore {
         this._store = this._schema.getObjectStore(name)
     }
 
+    get transaction () {
+        return this._transaction
+    }
+
     get name () {
         return this._store.name
     }
