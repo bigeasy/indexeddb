@@ -25,7 +25,7 @@
                             "avenue":                       "0.6.13",
                             "domexception":                 "2.0.1",
                             "event-target-shim":            "6.0.2",
-                            "memento":                      "^0.1.23",
+                            "memento":                      "^0.1.24",
                             "perhaps":                      "0.0.10",
                             "turnstile":                    "6.0.0-alpha.76",
                             "rescue":                       "7.0.0-alpha.14",
