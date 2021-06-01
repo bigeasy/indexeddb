@@ -88,7 +88,7 @@ class DBTransaction extends EventTarget {
                 dispatchEvent(null, request, new Event('error'))
             }
         }
-        dispatchEvent(null, this, new Event('abort'))
+        dispatchEvent(null, this, new Event('abort', { cancelable: true }))
     }
 
     async _item ({ request, cursor }) {
@@ -172,42 +172,20 @@ class DBTransaction extends EventTarget {
             case 'index': {
                 }
                 break
-            case 'add': {
-                    let { store, key, value, request } = event
-                    if (store.deleted) {
-                        continue
-                    }
-                    event.value = value = Verbatim.deserialize(Verbatim.serialize(value))
-                    if (key == null) {
-                        event.key = key = ++store.autoIncrement
-                        if (store.keyPath != null) {
-                            vivify(value, store.keyPath, key)
+            case 'set': {
+                    const { store, key, value, overwrite, request } = event
+                    if (! overwrite) {
+                        const got = await transaction.get(store.qualified, [ key ])
+                        if (got != null) {
+                            const event = new Event('error', { bubbles: true, cancelable: true })
+                            const error = new DOMException('Unique key constraint violation.', 'ConstraintError')
+                            request.error = error
+                            const caught = dispatchEvent(this, request, event)
+                            console.log('???', caught)
+                            break SWITCH
                         }
                     }
-                    const got = await transaction.get(store.qualified, [ key ])
-                    if (got != null) {
-                        const event = new Event('error', { bubbles: true, cancelable: true })
-                        const error = new DOMException('Unique key constraint violation.', 'ConstraintError')
-                        request.error = error
-                        const caught = dispatchEvent(this, request, event)
-                        console.log('???', caught)
-                        break SWITCH
-                    }
-                }
-                /* fall through */
-            case 'put': {
-                    // TODO Move extraction into store interface.
-                    let { store, key, value, request } = event
-                    if (store.deleted) {
-                        continue
-                    }
-                    value = Verbatim.deserialize(Verbatim.serialize(value))
-                    if (key == null) {
-                        key = ++store.autoIncrement
-                        if (store.keyPath != null) {
-                            vivify(value, store.keyPath, key)
-                        }
-                    }
+                    request.result = key
                     const record = { key, value }
                     for (const indexName in store.index) {
                         const index = this._schema.getIndex(store.name, indexName)

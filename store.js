@@ -4,9 +4,12 @@ const { DBCursor, DBCursorWithValue } = require('./cursor')
 const { DBIndex } = require('./index')
 const { DOMStringList } = require('./stringlist')
 const { Event } = require('event-target-shim')
-const { NotFoundError, InvalidStateError, DataError, ReadOnlyError } = require('./error')
+const { TransactionInactiveError, NotFoundError, InvalidStateError, DataError, ReadOnlyError } = require('./error')
 const { extractify } = require('./extractor')
+const { vivify } = require('./setter')
 const { valuify } = require('./value')
+
+const Verbatim = require('verbatim')
 
 const assert = require('assert')
 
@@ -42,36 +45,12 @@ class DBObjectStore {
         return list
     }
 
-    put (value, key = null) {
+    _addOrPut (value, key, overwrite) {
         if (this._schema.isDeleted(this._store)) {
             throw new InvalidStateError
         }
-        if (this._transaction.mode == "readonly") {
-            throw new ReadOnlyError
-        }
-        console.log(this._store, key)
-        if (key != null && this._store.keyPath != null) {
-            throw new DataError
-        }
-        if (key == null && this._store.autoIncrement == null && this._store.keyPath == null) {
-            throw new DataError
-        }
-        if (key != null) {
-            key = valuify(key)
-        } else if (this._store.autoIncrement == null) {
-            key = valuify(this._schema.getExtractor(this._store.id)(value))
-        }
-        console.log('key >>>>>', key)
-        const request = new DBRequest
-        this._transaction._queue.push({ method: 'put', request, store: this._store, key, value })
-        return request
-    }
-
-    add (value, key = null) {
-        console.log('>>>', this._store.rolledback)
-        // **TODO** Take a store object I think.
-        if (this._schema.isDeleted(this._store)) {
-            throw new InvalidStateError
+        if (this._transaction._state != 'active') {
+            throw new TransactionInactiveError
         }
         if (this._transaction.mode == 'readonly') {
             throw new ReadOnlyError
@@ -82,14 +61,36 @@ class DBObjectStore {
         if (key == null && this._store.autoIncrement == null && this._store.keyPath == null) {
             throw new DataError
         }
-        if (key != null) {
+        value = Verbatim.deserialize(Verbatim.serialize(value))
+        if (this._store.keyPath != null) {
+            key = this._schema.getExtractor(this._store.id)(value)
+        }
+        if (this._store.autoIncrement != null) {
+            if (key == null) {
+                key = this._store.autoIncrement++
+                if (this._store.keyPath != null) {
+                    vivify(value, this._store.keyPath, key)
+                }
+            } else {
+                key = valuify(key)
+                if (key >= this._store.autoIncrement) {
+                    this._store.autoIncrement = key + 1
+                }
+            }
+        } else {
             key = valuify(key)
-        } else if (this._store.autoIncrement == null) {
-            key = valuify(this._schema.getExtractor(this._store.id)(value))
         }
         const request = new DBRequest
-        this._transaction._queue.push({ method: 'add', request, store: this._store, value, key })
+        this._transaction._queue.push({ method: 'set', request, store: this._store, key, value, overwrite })
         return request
+    }
+
+    put (value, key = null) {
+        return this._addOrPut(value, key, true)
+    }
+
+    add (value, key = null) {
+        return this._addOrPut(value, key, false)
     }
 
     delete (query) {

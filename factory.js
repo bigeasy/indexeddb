@@ -9,6 +9,8 @@ const rescue = require('rescue')
 
 const Schema = require('./schema')
 
+const { extractify } = require('./extractor')
+
 const { Future } = require('perhaps')
 const { DBVersionChangeEvent } = require('./event')
 const { Queue } = require('avenue')
@@ -111,9 +113,14 @@ class Opener {
                     const { names, extra: { db, transaction } } = event
                     this.destructible.ephemeral(`transaction.${count++}`, async () => {
                         // **TODO** How is this mutating????
-                        await this.memento.snapshot(snapshot => transaction._run(snapshot, schema, names))
+                        if (transaction.mode == 'readonly') {
+                            await this.memento.snapshot(snapshot => transaction._run(snapshot, schema, names))
+                        } else {
+                            await this.memento.mutator(mutator => transaction._run(mutator, schema, names))
+                        }
                         db._transactions.delete(transaction)
                         this._maybeClose(db)
+                        this._transactor.complete(names)
                     })
                 }
             case 'close': {
@@ -126,11 +133,13 @@ class Opener {
     }
 
     connect (schema, name, { request }) {
+        console.log('--- CONNECT EXISTING ---')
         const db = request.result = new DBDatabase(name, new Schema(schema), this._transactor, this._version)
         this._handles.push(db)
     }
 
     static async open (destructible, root, directory, name, version, { request }) {
+        console.log('--- OPEN EXISTING ---', root)
         // **TODO** `version` should be a read-only property of the
         // Memento object.
         const opener = new Opener(destructible, root, directory, name)
@@ -142,6 +151,7 @@ class Opener {
         opener._handles.push(db)
         let current
         try {
+            let upgraded = false
             opener.memento = await Memento.open({
                 destructible: destructible.durable('memento'),
                 turnstile: this._turnstile,
@@ -156,6 +166,21 @@ class Opener {
                 }
                 const max = (await upgrade.cursor('schema').array()).pop()
                 schema.max = max ? max.id + 1 : 0
+                console.log('here')
+                // **TODO** Really need to do a join.
+                debugger
+                for await (const items of upgrade.cursor('schema').iterator()) {
+                    for (const item of items) {
+                        root.store[item.id] = item
+                        root.name[item.name] = item.id
+                        if (item.keyPath != null) {
+                            root.extractor[item.id] = extractify(item.keyPath)
+                        }
+                    }
+                }
+                schema.reset()
+                console.log('?', schema.getObjectStore('books'))
+                console.log('there')
                 const paired = new Queue().shifter().paired
                 request.readyState = 'done'
                 const transaction = request.transaction = new DBTransaction(schema, db, 'versionchange', upgrade.version.current)
@@ -171,7 +196,23 @@ class Opener {
                 // **TODO** This creates a race. If we close as the last action and
                 // then sleep or something then our transact queue will close and we
                 // will call maybe close with an already closed db.
+                upgraded = true
             })
+            if (! upgraded) {
+                await opener.memento.snapshot(async snapshot => {
+                    for await (const items of snapshot.cursor('schema').iterator()) {
+                        for (const item of items) {
+                            console.log('>>>>', item)
+                            root.store[item.id] = item
+                            root.name[item.name] = item.id
+                            if (item.keyPath != null) {
+                                root.extractor[item.id] = extractify(item.keyPath)
+                            }
+                        }
+                    }
+                    schema.reset()
+                })
+            }
             opener._maybeClose(db)
             db._version = opener.memento.version
             request.readyState = 'done'
@@ -280,7 +321,9 @@ class Connector {
                     event.request.source = null
                     event.request.error = null
                     event.request.readyState = 'done'
+                    console.log('i am here')
                     dispatchEvent(null, event.request, new DBVersionChangeEvent('success', { oldVersion: this._version }))
+                    console.log('i am there')
                 }
                 break
             }

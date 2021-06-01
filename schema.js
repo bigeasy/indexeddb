@@ -20,13 +20,14 @@ class Schema {
     createObjectStore (name, keyPath, autoIncrement) {
         const id = ++this._root.max
         this._added.add(id)
+        assert(typeof keyPath == 'string' || keyPath == null)
         const store = this._pending.store[id] = {
             type: 'store',
             id: id,
             name: name,
             qualified: `store.${id}`,
             keyPath: keyPath,
-            autoIncrement: autoIncrement ? 0 : null,
+            autoIncrement: autoIncrement ? 1 : null,
             index: {}
         }
         this._pending.name[name] = id

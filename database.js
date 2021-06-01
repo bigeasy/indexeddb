@@ -59,6 +59,7 @@ class DBDatabase extends EventTarget {
             names = [ names ]
         }
         for (const name of names) {
+            debugger
             if (! this._schema.getObjectStore(name)) {
                 throw new NotFoundError
             }
