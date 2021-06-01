@@ -3,7 +3,7 @@ const assert = require('assert')
 const compare = require('./compare')
 
 const rescue = require('rescue')
-const { AbortError, DataError } = require('./error')
+const { InvalidStateError, AbortError, DataError } = require('./error')
 const { Future } = require('perhaps')
 const { Event } = require('event-target-shim')
 const { dispatchEvent } = require('./dispatch')
@@ -64,6 +64,9 @@ class DBTransaction extends EventTarget {
     }
 
     objectStore (name) {
+        if (this._state == 'finished') {
+            throw new InvalidStateError
+        }
         return new DBObjectStore(this, this._schema, name)
     }
 
