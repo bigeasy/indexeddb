@@ -28,8 +28,11 @@ module.exports = async function (okay, name) {
     }
     globalize('wpt', 'location')
     globalize({ title: 'wpt', location: 'wpt' }, 'document')
-    const { DBRequest } = require('../request')
+    const { DBOpenDBRequest, DBRequest } = require('../request')
+    const { DBTransaction } = require('../transaction')
     globalize(DBRequest, 'IDBRequest')
+    globalize(DBOpenDBRequest, 'IDBOpenDBRequest')
+    globalize(DBTransaction, 'IDBTransaction')
     const { DBVersionChangeEvent } = require('../event')
     globalize(DBVersionChangeEvent, 'IDBVersionChangeEvent')
     const { DBKeyRange } = require('../keyrange')

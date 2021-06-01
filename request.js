@@ -47,6 +47,10 @@ class DBOpenDBRequest extends DBRequest {
     set onupgradeneeded (value) {
         setEventAttributeValue(this, 'upgradeneeded', value)
     }
+
+    toString () {
+        return '[object IDBOpenDBRequest]'
+    }
 }
 
 exports.DBRequest = DBRequest
