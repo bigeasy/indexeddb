@@ -1,4 +1,4 @@
-require('proof')(1, okay => {
+require('proof')(2, okay => {
     const Event = require('../living/generated/Event')
     const EventTarget = require('../living/generated/EventTarget')
 
@@ -17,8 +17,10 @@ require('proof')(1, okay => {
 
     const targetable = new Targetable
 
-    targetable.addEventListener('hello', () => console.log('hello'))
+    targetable.addEventListener('hello', () => { throw new Error })
 
-    targetable.dispatchEvent(new object.Event('hello'))
-    okay(new object.Event('hello').type, 'hello', 'event')
+    const event = new object.Event('hello')
+    okay(event.type, 'hello', 'event')
+    EventTarget.convert(targetable)._dispatch(Event.convert(event), false, true)
+    okay(Event.convert(event)._legacyOutputDidListenersThrowFlag, 'legacy output did listeners throw flag')
 })

@@ -101,7 +101,7 @@ class EventTargetImpl {
 
   // https://dom.spec.whatwg.org/#concept-event-dispatch
   // legacyOutputDidListenersThrowFlag optional parameter is not necessary here since it is only used by indexDB.
-  _dispatch(eventImpl, targetOverride /* , legacyOutputDidListenersThrowFlag */) {
+  _dispatch(eventImpl, targetOverride, legacyOutputDidListenersThrowFlag) {
     let targetImpl = this;
     let clearTargets = false;
     let activationTarget = null;
@@ -202,7 +202,7 @@ class EventTargetImpl {
           eventImpl.eventPhase = EVENT_PHASE.CAPTURING_PHASE;
         }
 
-        invokeEventListeners(struct, eventImpl, "capturing");
+        invokeEventListeners(struct, eventImpl, "capturing", legacyOutputDidListenersThrowFlag);
       }
 
       for (let i = 0; i < eventImpl._path.length; i++) {
@@ -218,7 +218,7 @@ class EventTargetImpl {
           eventImpl.eventPhase = EVENT_PHASE.BUBBLING_PHASE;
         }
 
-        invokeEventListeners(struct, eventImpl, "bubbling");
+        invokeEventListeners(struct, eventImpl, "bubbling", legacyOutputDidListenersThrowFlag);
       }
     }
 
@@ -252,7 +252,7 @@ module.exports = {
 };
 
 // https://dom.spec.whatwg.org/#concept-event-listener-invoke
-function invokeEventListeners(struct, eventImpl, phase) {
+function invokeEventListeners(struct, eventImpl, phase, legacyOutputDidListenersThrowFlag) {
   const structIndex = eventImpl._path.indexOf(struct);
   for (let i = structIndex; i >= 0; i--) {
     const t = eventImpl._path[i];
@@ -271,11 +271,11 @@ function invokeEventListeners(struct, eventImpl, phase) {
   eventImpl.currentTarget = idlUtils.wrapperForImpl(struct.item);
 
   const listeners = struct.item._eventListeners;
-  innerInvokeEventListeners(eventImpl, listeners, phase, struct.itemInShadowTree);
+  innerInvokeEventListeners(eventImpl, listeners, phase, struct.itemInShadowTree, legacyOutputDidListenersThrowFlag);
 }
 
 // https://dom.spec.whatwg.org/#concept-event-listener-inner-invoke
-function innerInvokeEventListeners(eventImpl, listeners, phase, itemInShadowTree) {
+function innerInvokeEventListeners(eventImpl, listeners, phase, itemInShadowTree, legacyOutputDidListenersThrowFlag) {
   let found = false;
 
   const { type, target } = eventImpl;
@@ -339,6 +339,9 @@ function innerInvokeEventListeners(eventImpl, listeners, phase, itemInShadowTree
     } catch (e) {
       if (window) {
         reportException(window, e);
+      }
+      if (legacyOutputDidListenersThrowFlag) {
+        eventImpl._legacyOutputDidListenersThrowFlag = true
       }
       // Errors in window-less documents just get swallowed... can you think of anything better?
     }

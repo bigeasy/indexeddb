@@ -30,6 +30,7 @@ class EventImpl {
     this._initializedFlag = true;
     this._stopPropagationFlag = false;
     this._stopImmediatePropagationFlag = false;
+    this._legacyOutputDidListenersThrowFlag = false;
     this._canceledFlag = false;
     this._inPassiveListenerFlag = false;
     this._dispatchFlag = false;
