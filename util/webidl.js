@@ -143,9 +143,9 @@ function addDir(dir) {
   transformer.addSource(resolved, resolved);
 }
 
-addDir("..")
+addDir("../src/idl")
 
-const outputDir = path.resolve(__dirname, "../idl/");
+const outputDir = path.resolve(__dirname, "../src/generated/");
 
 // Clean up any old stuff lying around.
 rimraf.sync(outputDir);

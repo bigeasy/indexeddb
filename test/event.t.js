@@ -1,30 +1,24 @@
 require('proof')(1, okay => {
-    const Event = require('../idl/Event')
-//    const { JSDOM } = require('jsdom')
-//    console.log(JSDOM)
-
-//    const jsdom = new JSDOM('<html></html')
-//    console.log(new jsdom.window.EventTarget)
+    const Event = require('../living/generated/Event')
+    const EventTarget = require('../living/generated/EventTarget')
 
     const object = {}
 
-//    EventTarget.install(object, [ 'Window' ])
+    EventTarget.install(object, [ 'Window' ])
     Event.install(object, [ 'Window' ])
 
-//    console.log(object)
+    console.log(new object.EventTarget)
 
-//    console.log(new object.EventTarget)
+    class Targetable extends object.EventTarget {
+        constructor () {
+            super()
+        }
+    }
 
-//    class Targetable extends object.EventTarget {
-//        constructor () {
-//            super()
- //       }
-  //  }
+    const targetable = new Targetable
 
-//    const targetable = new Targetable
+    targetable.addEventListener('hello', () => console.log('hello'))
 
-//    targetable.addEventListener('hello', () => console.log('hello'))
-
-//    targetable.dispatchEvent(new object.Event('hello'))
+    targetable.dispatchEvent(new object.Event('hello'))
     okay(new object.Event('hello').type, 'hello', 'event')
 })

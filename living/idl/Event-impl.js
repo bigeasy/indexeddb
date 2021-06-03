@@ -1,7 +1,7 @@
 "use strict";
 
-const idlUtils = require("./idl/utils");
-const EventInit = require("./idl/EventInit");
+const idlUtils = require("../generated/utils");
+const EventInit = require("../generated/EventInit");
 
 class EventImpl {
   constructor(globalObject, args, privateData) {
