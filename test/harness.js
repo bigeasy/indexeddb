@@ -35,7 +35,7 @@ module.exports = async function (okay, name) {
     globalize(DBRequest, 'IDBRequest')
     globalize(DBOpenDBRequest, 'IDBOpenDBRequest')
     globalize(DBTransaction, 'IDBTransaction')
-    const { DBVersionChangeEvent } = require('../event')
+    const { DBVersionChangeEvent } = require('../_event')
     globalize(DBVersionChangeEvent, 'IDBVersionChangeEvent')
     const { DBKeyRange } = require('../keyrange')
     globalize(DBKeyRange, 'IDBKeyRange')

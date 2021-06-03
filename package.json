@@ -26,6 +26,7 @@
                             "domexception":                 "2.0.1",
                             "event-target-shim":            "6.0.2",
                             "memento":                      "^0.1.24",
+                            "jsdom":                        "16.6.0",
                             "perhaps":                      "0.0.10",
                             "turnstile":                    "6.0.0-alpha.76",
                             "rescue":                       "7.0.0-alpha.14",
@@ -36,7 +37,9 @@
                             "arguable":                     "13.0.0-alpha.2",
                             "cheerio":                      "1.0.0-rc.9",
                             "programmatic":                 "2.0.0-alpha.9",
-                            "proof":                        "^9.0.3"
+                            "proof":                        "^9.0.3",
+                            "rimraf":                       "3.0.2",
+                            "webidl2js":                    "16.2.0"
     },
     "main":                 "indexeddb",
     "scripts":

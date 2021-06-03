@@ -34,7 +34,3 @@ require('proof')(4, async okay => {
     okay({ value: 1 }, { value: 1 }, 'okay if deep strict equal')
 })
 ```
-
-Project status.
-
-12 of 383 Web Platform Tests passing: 3.13%.

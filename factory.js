@@ -12,7 +12,7 @@ const Schema = require('./schema')
 const { extractify } = require('./extractor')
 
 const { Future } = require('perhaps')
-const { DBVersionChangeEvent } = require('./event')
+const { DBVersionChangeEvent } = require('./_event')
 const { Queue } = require('avenue')
 const Destructible = require('destructible')
 const Memento = require('memento')

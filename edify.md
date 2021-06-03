@@ -38,3 +38,25 @@ require('proof')(%(tests)d, async okay => {
     okay({ value: 1 }, { value: 1 }, 'okay if deep strict equal')
 })
 ```
+
+## Open for Discussion
+
+At the time of writing I was unable to find an implementation of
+`Event`/`EventTarget` that provided an implementation of the "get the parent"
+algorithm mentioned in the specification. Without this I was unable to implement
+progation of error or abort events from the Transaction to the Database.
+
+Initially I was unable to find an implementation that implemented the
+
+Was informed in one thread that you could start with the [Simple implementation
+of
+EventTarget](https://developer.mozilla.org/en-US/docs/Web/API/EventTarget#simple_implementation_of_eventtarget)
+at MDN, but this simple implementation barely covers the dispatch algorithm as
+documented in the spec.
+
+I've noticed that the Node.js source goes to great lengths to make private
+members private using symbols. I've yet to adopt this style of programming
+myself. It adds a lot of code to declare an identifier before you use it when
+you can just type it as you need it. If privacy is so dear the language should
+(and has) add support for private members that can still be referenced merely by
+typing out an identifier name.
