@@ -1,9 +1,5 @@
-const { DBObjectStore } = require('./store')
-const { DBRequest } = require('./_request')
-const { DBTransaction } = require('./transaction')
 const { extractify } = require('./extractor')
 const { InvalidAccessError, ConstraintError, TransactionInactiveError, InvalidStateError, NotFoundError } = require('./error')
-const { EventTarget } = require('./interfaces')
 const { createEventAccessor } = require('./living/helpers/create-event-accessor')
 
 const { DOMStringList } = require('./stringlist')
@@ -14,33 +10,27 @@ const Queue = require('avenue')
 
 const Schema = require('./schema')
 
-class DBDatabase extends EventTarget {
-    constructor (name, schema, transactor, version) {
-        super()
+const { setupForSimpleEventAccessors } = require('./living/helpers/create-event-accessor')
+
+const IDBObjectStore = require('./living/generated/IDBObjectStore.js')
+const IDBTransaction = require('./living/generated/IDBTransaction.js')
+
+const EventTargetImpl = require('./living/idl/EventTarget-impl.js').implementation
+
+const webidl = require('./living/generated/utils.js')
+
+class IDBDatabaseImpl extends EventTargetImpl  {
+    constructor (globalObject, [], { name, schema, transactor, version }) {
+        super(globalObject, [], {})
+        this._globalObject = globalObject
         this._schema = schema
         this._transactor = transactor
         this._transaction = null
         this._closing = false
         this._closed = new Future
-        this._name = name
-        this._version = version
+        this.name = name
+        this.version = version
         this._transactions = new Set
-    }
-
-    get onversionchange () {
-        return getEventAttributeValue(this, 'versionchange')
-    }
-
-    set onversionchange (value) {
-        setEventAttributeValue(this, 'versionchange', value)
-    }
-
-    get name () {
-        return this._name
-    }
-
-    get version () {
-        return this._version
     }
 
     get objectStoreNames () {
@@ -71,11 +61,10 @@ class DBDatabase extends EventTarget {
         if (mode != 'readonly' && mode != 'readwrite') {
             throw new TypeError
         }
-        const request = new DBRequest
-        const transaction =  new DBTransaction(this._schema, this._database, mode)
+        const transaction = IDBTransaction.createImpl(this._globalObject, [], { schema: this._schema, database: this._database, mode })
         this._transactions.add(transaction)
         this._transactor.transaction({ db: this, transaction }, names, mode == 'readonly')
-        return transaction
+        return webidl.wrapperForImpl(transaction)
     }
 
     createObjectStore (name, { autoIncrement = false, keyPath = null } = {}) {
@@ -94,8 +83,7 @@ class DBDatabase extends EventTarget {
         }
         const store = this._schema.createObjectStore(name, keyPath, autoIncrement)
         this._transaction._queue.push({ method: 'create', type: 'store', store: store })
-        console.log(this._schema.getObjectStore(name))
-        return new DBObjectStore(this._transaction, this._schema, name)
+        return IDBObjectStore.create(this._globalObject, [], { transaction: this._transaction, schema: this._schema, name })
     }
 
     deleteObjectStore (name) {
@@ -125,4 +113,6 @@ class DBDatabase extends EventTarget {
     // **TODO** `onabort`, `onclose`, `onerror`, `onversionchange`.
 }
 
-exports.DBDatabase = DBDatabase
+setupForSimpleEventAccessors(IDBDatabaseImpl.prototype, [ 'abort', 'close', 'error', 'versionchange' ]);
+
+module.exports = { implementation: IDBDatabaseImpl }

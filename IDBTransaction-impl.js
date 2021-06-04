@@ -13,27 +13,28 @@ const DOMException = require('domexception')
 const { extractify } = require('./extractor')
 const { vivify } = require('./setter')
 const { valuify } = require('./value')
-const { DBObjectStore } = require('./store')
 const { Queue } = require('avenue')
 
 const { createEventAccessor } = require('./living/helpers/create-event-accessor')
-
-const interfaces = require('./interfaces')
 
 const EventTarget = require('./living/generated/EventTarget')
 const Event = require('./living/generated/Event')
 const IDBRequest = require('./living/generated/IDBRequest')
 const IDBOpenDBRequest = require('./living/generated/IDBOpenDBRequest')
 const IDBVersionChangeEvent = require('./living/generated/IDBVersionChangeEvent')
+const IDBObjectStore = require('./living/generated/IDBObjectStore')
+
+const EventTargetImpl = require('./living/idl/EventTarget-impl').implementation
 
 const webidl = require('./living/generated/utils')
 
-class DBTransaction /* extends EventTarget */ {
-    constructor (schema, database, mode, previousVersion) {
-        // super()
+class IDBTransactionImpl extends EventTargetImpl {
+    constructor (globalObject, args, { schema, database, mode, previousVersion }) {
+        super(globalObject, [], {})
         if (mode == null) {
             throw new Error
         }
+        this._globalObject = globalObject
         this._schema = schema
         this._state = 'active'
         this._database = database
@@ -77,7 +78,7 @@ class DBTransaction /* extends EventTarget */ {
         if (this._state == 'finished') {
             throw new InvalidStateError
         }
-        return new DBObjectStore(this, this._schema, name)
+        return IDBObjectStore.create(this._globalObject, [], { transaction: this, schema: this._schema, name })
     }
 
     abort () {
@@ -225,7 +226,7 @@ class DBTransaction /* extends EventTarget */ {
                         transaction.set(index.qualified, { key: [ extracted, key ] })
                     }
                     transaction.set(store.qualified, record)
-                    dispatchEvent(this, webidl.wrapperForImpl(request), Event.create(interfaces, [ 'success' ], {}))
+                    dispatchEvent(this, webidl.wrapperForImpl(request), Event.create(this._globalObject, [ 'success' ], {}))
                 }
                 break
             case 'get': {
@@ -236,7 +237,7 @@ class DBTransaction /* extends EventTarget */ {
                             if (got != null) {
                                 request.result = Verbatim.deserialize(Verbatim.serialize(got.value))
                             }
-                            dispatchEvent(this, webidl.wrapperForImpl(request), Event.create(interfaces, [ 'success' ], {}))
+                            dispatchEvent(this, webidl.wrapperForImpl(request), Event.create(this._globalObject, [ 'success' ], {}))
                         }
                         break
                     case 'index': {
@@ -343,4 +344,4 @@ class DBTransaction /* extends EventTarget */ {
     }
 }
 
-exports.DBTransaction = DBTransaction
+module.exports = { implementation: IDBTransactionImpl }

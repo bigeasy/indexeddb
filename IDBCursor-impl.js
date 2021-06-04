@@ -1,4 +1,4 @@
-class DBCursor {
+class IDBCursorImpl {
     constructor (transaction, request, query) {
         this._request = request
         this._transaction = transaction
@@ -47,17 +47,4 @@ class DBCursor {
     }
 }
 
-exports.DBCursor = DBCursor
-
-class DBCursorWithValue extends DBCursor {
-    constructor (transaction, request, query) {
-        super(transaction, request, query)
-        this._value = null
-    }
-
-    get value () {
-        return this._value.value
-    }
-}
-
-exports.DBCursorWithValue = DBCursorWithValue
+module.exports = { implementation:  IDBCursorImpl }

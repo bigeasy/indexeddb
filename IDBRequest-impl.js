@@ -1,6 +1,6 @@
 const EventTargetImpl = require('./living/idl/EventTarget-impl.js').implementation
 
-const { createEventAccessor, setupForSimpleEventAccessors } = require('./living/helpers/create-event-accessor')
+const { setupForSimpleEventAccessors } = require('./living/helpers/create-event-accessor')
 
 class IDBRequestImpl extends EventTargetImpl {
     constructor (globalObject, args, privateData) {

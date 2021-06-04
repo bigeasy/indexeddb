@@ -22,16 +22,13 @@ const Transactor = require('./transactor')
 
 const Turnstile = require('turnstile')
 
-const { DBTransaction } = require('./transaction')
-const { DBDatabase } = require('./database')
-
-const interfaces = require('./interfaces')
-
 const EventTarget = require('./living/generated/EventTarget')
 const Event = require('./living/generated/Event')
 const IDBRequest = require('./living/generated/IDBRequest')
 const IDBOpenDBRequest = require('./living/generated/IDBOpenDBRequest')
 const IDBVersionChangeEvent = require('./living/generated/IDBVersionChangeEvent')
+const IDBDatabase = require('./living/generated/IDBDatabase')
+const IDBTransaction = require('./living/generated/IDBTransaction')
 
 const { createEventAccessor } = require('./living/helpers/create-event-accessor')
 const { dispatchEvent } = require('./dispatch')
@@ -97,6 +94,7 @@ class Opener {
     }
 
     _maybeClose (db) {
+        console.log(db._closing, db._transactions.size)
         if (db._closing && db._transactions.size == 0) {
             const index = this._handles.indexOf(db)
             if (~index) {
@@ -126,7 +124,9 @@ class Opener {
                         } else {
                             await this.memento.mutator(mutator => transaction._run(mutator, schema, names))
                         }
+                        console.log(db._transactions.size)
                         db._transactions.delete(transaction)
+                        console.log(db._transactions.size)
                         this._maybeClose(db)
                         this._transactor.complete(names)
                     })
@@ -146,7 +146,7 @@ class Opener {
         this._handles.push(db)
     }
 
-    static async open (destructible, root, directory, name, version, { request }) {
+    static async open (globalObject, destructible, root, directory, name, version, { request }) {
         console.log('--- OPEN EXISTING ---', root)
         // **TODO** `version` should be a read-only property of the
         // Memento object.
@@ -155,7 +155,8 @@ class Opener {
         const paired = new Queue().shifter().paired
         const schema = new Schema(root)
         opener._version = version
-        const db = request.result = new DBDatabase(name, schema, opener._transactor)
+        const db = IDBDatabase.createImpl(globalObject, [], { name, schema, transactor: opener._transactor })
+        request.result = webidl.wrapperForImpl(db)
         opener._handles.push(db)
         let current
         try {
@@ -174,9 +175,7 @@ class Opener {
                 }
                 const max = (await upgrade.cursor('schema').array()).pop()
                 schema.max = max ? max.id + 1 : 0
-                console.log('here')
                 // **TODO** Really need to do a join.
-                debugger
                 for await (const items of upgrade.cursor('schema').iterator()) {
                     for (const item of items) {
                         root.store[item.id] = item
@@ -187,29 +186,25 @@ class Opener {
                     }
                 }
                 schema.reset()
-                console.log('?', schema.getObjectStore('books'))
-                console.log('there')
                 const paired = new Queue().shifter().paired
                 request.readyState = 'done'
-                const transaction = request.transaction = new DBTransaction(schema, db, 'versionchange', upgrade.version.current)
+                console.log('-?-', this._globalObject)
+                const transaction = IDBTransaction.createImpl(globalObject, [], { schema, db, mode: 'versionchange', previousVersion: upgrade.version.current })
+                request.transaction = webidl.wrapperForImpl(transaction)
+                db._transaction = transaction
                 db._transactions.add(transaction)
                 request.error = null
-                db._transaction = transaction
-                try {
-                const vce = IDBVersionChangeEvent.create(interfaces, [ 'upgradeneeded', { newVersion: upgrade.version.target, oldVersion: upgrade.version.current } ], {})
+                const vce = IDBVersionChangeEvent.create(globalObject, [ 'upgradeneeded', { newVersion: upgrade.version.target, oldVersion: upgrade.version.current } ], {})
                 dispatchEvent(transaction, webidl.wrapperForImpl(request), vce)
                 await transaction._run(upgrade, [])
                 // **TODO** What to do if the database is closed before we can
                 // indicate success?
-                db._transactions.delete(request.transaction)
+                db._transactions.delete(transaction)
                 db._transaction = null
                 // **TODO** This creates a race. If we close as the last action and
                 // then sleep or something then our transact queue will close and we
                 // will call maybe close with an already closed db.
                 upgraded = true
-                } catch (e) {
-                    console.log(e.stack)
-                }
             })
             if (! upgraded) {
                 await opener.memento.snapshot(async snapshot => {
@@ -251,6 +246,7 @@ class Connector {
         const schema = { name: {}, store: {}, max: 0, index: {}, extractor: {} }
         this._opener = { destructible: new Destructible('opener').destroy() }
         this.destructible = factory.deferrable.ephemeral($ => $(), `indexeddb.${name}`)
+        this._globalObject = factory._globalObject
         factory.deferrable.increment()
         this.destructible.destruct(() => factory.deferrable.decrement())
         this._directory = factory._directory
@@ -270,7 +266,7 @@ class Connector {
     _checkVersion ({ request, version }) {
         if (version == null || this._opener.memento.version == version) {
             request.error = null
-            dispatchEvent(null, webidl.wrapperForImpl(request), Event.create(interfaces, [ 'success' ], {}))
+            dispatchEvent(null, webidl.wrapperForImpl(request), Event.create(this._globalObject, [ 'success' ], {}))
         } else {
             request.result._closing = true
             request.error = new VersionError
@@ -308,7 +304,7 @@ class Connector {
                             await this._opener.close(event)
                         }
                         this._version = event.version || 1
-                        this._opener = await Opener.open(this.destructible.ephemeral('opener'), schema, this._directory, this._name, this._version, event)
+                        this._opener = await Opener.open(this._globalObject, this.destructible.ephemeral('opener'), schema, this._directory, this._name, this._version, event)
                         this._opener.destructible.promise.then(() => this._sleep.resolve())
                         // **TODO** Spaghetti.
                         if (this._opener.memento != null) {
@@ -346,9 +342,11 @@ class Connector {
     }
 }
 
-class DBFactory {
-    constructor ({ directory }) {
-        this.destructible = new Destructible(`indexeddb: ${directory}`)
+class IDBFactoryImpl {
+    constructor (globalObject, args, { destructible, directory }) {
+        this._globalObject = globalObject
+
+        this.destructible = destructible
 
         this.deferrable = this.destructible.durable($ => $(), { countdown: 1 }, 'deferrable')
 
@@ -404,20 +402,18 @@ class DBFactory {
                 version = Math.floor(version)
             }
         }
-        const request = IDBOpenDBRequest.createImpl(interfaces)
+        const request = IDBOpenDBRequest.createImpl(this._globalObject)
         this._vivify(name).push({ method: 'open', request, version })
         return webidl.wrapperForImpl(request)
     }
 
-    // **TODO** Implement `IDBFactory.deleteDatabase()`.
     deleteDatabase (name) {
-        const request = IDBOpenDBRequest.createImpl(interfaces)
+        const request = IDBOpenDBRequest.createImpl(this._globalObject)
         this._vivify(name).push({ method: 'delete', request })
         return webidl.wrapperForImpl(request)
     }
 
-    // **TODO** Put the compare function here.
     cmp = comparator
 }
 
-exports.DBFactory = DBFactory
+module.exports = { implementation: IDBFactoryImpl }

@@ -7,6 +7,7 @@ require('proof')(2, async okay => {
 
         var open_rq = createdb(t);
         open_rq.onupgradeneeded = function(e) {
+            console.log('onupgradeneeded')
             db = e.target.result;
             var objStore = db.createObjectStore("store", { keyPath: "key" });
 

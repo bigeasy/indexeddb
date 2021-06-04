@@ -1,6 +1,6 @@
 module.exports = async function (okay, name) {
     const { Future } = require('perhaps')
-    const { Event } = require('../interfaces')
+    const Destructible = require('destructible')
     const fs = require('fs').promises
     const assert = require('assert')
     const compare = require('../compare')
@@ -28,18 +28,19 @@ module.exports = async function (okay, name) {
     }
     globalize('wpt', 'location')
     globalize({ title: 'wpt', location: 'wpt' }, 'document')
-    const { DBOpenDBRequest, DBRequest } = require('../_request')
-    const { DBDatabase } = require('../database')
+    //const { IDBDatabase } = require('../database')
+    /*
     globalize(DBDatabase, 'IDBDatabase')
     const { DBTransaction } = require('../transaction')
     globalize(DBRequest, 'IDBRequest')
     globalize(DBOpenDBRequest, 'IDBOpenDBRequest')
     globalize(DBTransaction, 'IDBTransaction')
-    const { DBVersionChangeEvent } = require('../_event')
     globalize(DBVersionChangeEvent, 'IDBVersionChangeEvent')
     const { DBKeyRange } = require('../keyrange')
     globalize(DBKeyRange, 'IDBKeyRange')
-    const indexedDB = require('..').create({ directory })
+    */
+    const destructible = new Destructible('harness')
+    const indexedDB = require('..').create(destructible, directory)
     globalize(indexedDB, 'indexedDB')
     globalize({ indexedDB }, 'window')
     // Copy and paste from WPT.
@@ -546,7 +547,7 @@ module.exports = async function (okay, name) {
         while (janitors.length != 0) {
             janitors.shift()()
         }
-        await indexedDB.destructible.destroy().promise
+        await destructible.destroy().promise
     }
     globalize(harness)
     function indexeddb_test(upgrade_func, open_func, description, options) {

@@ -1,7 +1,3 @@
-const { DBKeyRange } = require('./keyrange')
-const { DBCursor, DBCursorWithValue } = require('./cursor')
-const { DBIndex } = require('./index')
-const { DOMStringList } = require('./stringlist')
 const { TransactionInactiveError, NotFoundError, InvalidStateError, DataError, ReadOnlyError } = require('./error')
 const { extractify } = require('./extractor')
 const { vivify } = require('./setter')
@@ -12,7 +8,6 @@ const Verbatim = require('verbatim')
 const assert = require('assert')
 
 const IDBRequest = require('./living/generated/IDBRequest')
-const interfaces = require('./interfaces')
 
 const webidl = require('./living/generated/utils')
 
@@ -22,20 +17,22 @@ const webidl = require('./living/generated/utils')
 // specific transaction.
 
 
-class DBObjectStore {
+class IDBObjectStoreImpl {
     // The loop is the event loop for the transaction associated with this
     // object store, we push messages with a request object. The work is
     // performed by the loop object. The loop object is run after the locking is
     // performed.
-    constructor (transaction, schema, name) {
+    constructor (globalObject, [], { transaction, schema, name }) {
         assert(schema, 'schema is null')
+        this._globalObject = globalObject
+        assert(typeof transaction == 'object')
         this._transaction = transaction
         this._schema = schema
         this._store = this._schema.getObjectStore(name)
     }
 
     get transaction () {
-        return this._transaction
+        return webidl.wrapperForImpl(this._transaction)
     }
 
     get name () {
@@ -83,7 +80,7 @@ class DBObjectStore {
         } else {
             key = valuify(key)
         }
-        const request = IDBRequest.createImpl(interfaces)
+        const request = IDBRequest.createImpl(this._globalObject)
         this._transaction._queue.push({ method: 'set', request, store: this._store, key, value, overwrite })
         return webidl.wrapperForImpl(request)
     }
@@ -107,7 +104,7 @@ class DBObjectStore {
     }
 
     get (key) {
-        const request = IDBRequest.createImpl(interfaces)
+        const request = IDBRequest.createImpl(this._globalObject)
         this._transaction._queue.push({ method: 'get', type: 'store', request, store: this._store, key })
         return webidl.wrapperForImpl(request)
     }
@@ -206,4 +203,4 @@ class DBObjectStore {
     }
 }
 
-exports.DBObjectStore = DBObjectStore
+module.exports = { implementation: IDBObjectStoreImpl }

@@ -7,6 +7,8 @@ require('proof')(6, okay => {
 
     const object = {}
 
+    const interfaces = require('../interfaces')
+
     EventTarget.install(object, [ 'Window' ])
     Event.install(object, [ 'Window' ])
     IDBRequest.install(object, [ 'Window' ])
