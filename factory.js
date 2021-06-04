@@ -12,7 +12,6 @@ const Schema = require('./schema')
 const { extractify } = require('./extractor')
 
 const { Future } = require('perhaps')
-const { DBVersionChangeEvent } = require('./_event')
 const { Queue } = require('avenue')
 const Destructible = require('destructible')
 const Memento = require('memento')
@@ -24,13 +23,22 @@ const Transactor = require('./transactor')
 const Turnstile = require('turnstile')
 
 const { DBTransaction } = require('./transaction')
-const { DBOpenDBRequest } = require('./request')
 const { DBDatabase } = require('./database')
 
-const { Event } = require('event-target-shim')
+const interfaces = require('./interfaces')
+
+const EventTarget = require('./living/generated/EventTarget')
+const Event = require('./living/generated/Event')
+const IDBRequest = require('./living/generated/IDBRequest')
+const IDBOpenDBRequest = require('./living/generated/IDBOpenDBRequest')
+const IDBVersionChangeEvent = require('./living/generated/IDBVersionChangeEvent')
+
+const { createEventAccessor } = require('./living/helpers/create-event-accessor')
 const { dispatchEvent } = require('./dispatch')
 
 const { VersionError, AbortError } = require('./error')
+
+const webidl = require('./living/generated/utils')
 
 // An interim attempt to bridge the W3C Event based interface of IndexedDB with
 // the `async`/`await` interface of Memento. Assuming that eventually this works
@@ -187,7 +195,9 @@ class Opener {
                 db._transactions.add(transaction)
                 request.error = null
                 db._transaction = transaction
-                dispatchEvent(transaction, request, new DBVersionChangeEvent('upgradeneeded', { newVersion: upgrade.version.target, oldVersion: upgrade.version.current }))
+                try {
+                const vce = IDBVersionChangeEvent.create(interfaces, [ 'upgradeneeded', { newVersion: upgrade.version.target, oldVersion: upgrade.version.current } ], {})
+                dispatchEvent(transaction, webidl.wrapperForImpl(request), vce)
                 await transaction._run(upgrade, [])
                 // **TODO** What to do if the database is closed before we can
                 // indicate success?
@@ -197,6 +207,9 @@ class Opener {
                 // then sleep or something then our transact queue will close and we
                 // will call maybe close with an already closed db.
                 upgraded = true
+                } catch (e) {
+                    console.log(e.stack)
+                }
             })
             if (! upgraded) {
                 await opener.memento.snapshot(async snapshot => {
@@ -257,7 +270,7 @@ class Connector {
     _checkVersion ({ request, version }) {
         if (version == null || this._opener.memento.version == version) {
             request.error = null
-            dispatchEvent(null, request, new Event('success'))
+            dispatchEvent(null, webidl.wrapperForImpl(request), Event.create(interfaces, [ 'success' ], {}))
         } else {
             request.result._closing = true
             request.error = new VersionError
@@ -322,7 +335,7 @@ class Connector {
                     event.request.error = null
                     event.request.readyState = 'done'
                     console.log('i am here')
-                    dispatchEvent(null, event.request, new DBVersionChangeEvent('success', { oldVersion: this._version }))
+                    // dispatchEvent(null, event.request, new DBVersionChangeEvent('success', { oldVersion: this._version }))
                     console.log('i am there')
                 }
                 break
@@ -391,16 +404,16 @@ class DBFactory {
                 version = Math.floor(version)
             }
         }
-        const request = new DBOpenDBRequest()
+        const request = IDBOpenDBRequest.createImpl(interfaces)
         this._vivify(name).push({ method: 'open', request, version })
-        return request
+        return webidl.wrapperForImpl(request)
     }
 
     // **TODO** Implement `IDBFactory.deleteDatabase()`.
     deleteDatabase (name) {
-        const request = new DBOpenDBRequest()
+        const request = IDBOpenDBRequest.createImpl(interfaces)
         this._vivify(name).push({ method: 'delete', request })
-        return request
+        return webidl.wrapperForImpl(request)
     }
 
     // **TODO** Put the compare function here.

@@ -1,4 +1,4 @@
-const { Event } = require('event-target-shim')
+const { Event } = require('./interfaces')
 
 class DBVersionChangeEvent extends Event {
     constructor (type, { newVersion = null, oldVersion }) {

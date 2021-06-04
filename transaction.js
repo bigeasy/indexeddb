@@ -5,7 +5,6 @@ const compare = require('./compare')
 const rescue = require('rescue')
 const { InvalidStateError, AbortError, DataError } = require('./error')
 const { Future } = require('perhaps')
-const { Event } = require('event-target-shim')
 const { dispatchEvent } = require('./dispatch')
 
 const Verbatim = require('verbatim')
@@ -16,11 +15,22 @@ const { vivify } = require('./setter')
 const { valuify } = require('./value')
 const { DBObjectStore } = require('./store')
 const { Queue } = require('avenue')
-const { EventTarget, getEventAttributeValue, setEventAttributeValue } = require('event-target-shim')
 
-class DBTransaction extends EventTarget {
+const { createEventAccessor } = require('./living/helpers/create-event-accessor')
+
+const interfaces = require('./interfaces')
+
+const EventTarget = require('./living/generated/EventTarget')
+const Event = require('./living/generated/Event')
+const IDBRequest = require('./living/generated/IDBRequest')
+const IDBOpenDBRequest = require('./living/generated/IDBOpenDBRequest')
+const IDBVersionChangeEvent = require('./living/generated/IDBVersionChangeEvent')
+
+const webidl = require('./living/generated/utils')
+
+class DBTransaction /* extends EventTarget */ {
     constructor (schema, database, mode, previousVersion) {
-        super()
+        // super()
         if (mode == null) {
             throw new Error
         }
@@ -215,7 +225,7 @@ class DBTransaction extends EventTarget {
                         transaction.set(index.qualified, { key: [ extracted, key ] })
                     }
                     transaction.set(store.qualified, record)
-                    dispatchEvent(this, request, new Event('success'))
+                    dispatchEvent(this, webidl.wrapperForImpl(request), Event.create(interfaces, [ 'success' ], {}))
                 }
                 break
             case 'get': {
@@ -226,7 +236,7 @@ class DBTransaction extends EventTarget {
                             if (got != null) {
                                 request.result = Verbatim.deserialize(Verbatim.serialize(got.value))
                             }
-                            dispatchEvent(this, request, new Event('success'))
+                            dispatchEvent(this, webidl.wrapperForImpl(request), Event.create(interfaces, [ 'success' ], {}))
                         }
                         break
                     case 'index': {
@@ -328,7 +338,7 @@ class DBTransaction extends EventTarget {
             }
             this._schema.merge()
             this._state = 'finished'
-            dispatchEvent(null, this, new Event('complete'))
+            // dispatchEvent(null, this, new Event('complete'))
         }
     }
 }

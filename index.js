@@ -1,4 +1,4 @@
-const { DBRequest } = require('./request')
+const { DBRequest } = require('./_request')
 const { DBKeyRange } = require('./keyrange')
 const { TransactionInactiveError, InvalidStateError } = require('./error')
 

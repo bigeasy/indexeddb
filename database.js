@@ -1,9 +1,10 @@
 const { DBObjectStore } = require('./store')
-const { DBRequest } = require('./request')
+const { DBRequest } = require('./_request')
 const { DBTransaction } = require('./transaction')
 const { extractify } = require('./extractor')
 const { InvalidAccessError, ConstraintError, TransactionInactiveError, InvalidStateError, NotFoundError } = require('./error')
-const { EventTarget, getEventAttributeValue, setEventAttributeValue } = require('event-target-shim')
+const { EventTarget } = require('./interfaces')
+const { createEventAccessor } = require('./living/helpers/create-event-accessor')
 
 const { DOMStringList } = require('./stringlist')
 

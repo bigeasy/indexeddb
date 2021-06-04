@@ -14,6 +14,7 @@ require('proof')(2, async okay => {
         };
 
         open_rq.onsuccess = function(e) {
+            console.log('CALLED!!!')
             var rq = db.transaction("store")
                        .objectStore("store")
                        .get(record.key);

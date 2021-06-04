@@ -1,6 +1,7 @@
 const assert = require('assert')
 
-const { setErrorHandler } = require('event-target-shim')
+const Event = require('./living/generated/Event')
+const EventTarget = require('./living/generated/EventTarget')
 
 const kTarget = Symbol('TARGET')
 
@@ -8,32 +9,25 @@ const kTarget = Symbol('TARGET')
 // allow me to reset a user's handler if one exists. Wouldn't it be nice if
 // `event-target-shim` returned an existing error handler if one exists?
 function dispatchEvent (tx, eventTarget, event) {
+    try {
     assert(arguments.length == 3)
     const caught = []
-    setErrorHandler(error => caught.push(error))
     if (tx != null) {
         tx._state = 'active'
     }
-    Object.defineProperty(event, 'target', {
-        get () {
-            return this[kTarget]
-        },
-        set (value) {
-            this[kTarget] = value
-        },
-        enumerable: true,
-        configurable: true
-    })
-    event.target = eventTarget
-    eventTarget.dispatchEvent(event)
+    const eventImpl = Event.convert(event)
+    EventTarget.convert(eventTarget)._dispatch(Event.convert(event), false, true)
     if (tx != null && tx._state == 'active') {
         tx._state = 'inactive'
     }
-    setErrorHandler()
-    if (caught.length != 0) {
-        console.log(caught[0].stack)
+    if (eventImpl._legacyOutputDidListenersThrowFlag) {
+        console.log('LEGACY OUTPUT DID LISTENERS THROW')
+        throw new Error
     }
     return caught
+    } catch (error) {
+        console.log(error.stack)
+    }
 }
 
 exports.dispatchEvent = dispatchEvent

@@ -1,9 +1,7 @@
-const { DBRequest } = require('./request')
 const { DBKeyRange } = require('./keyrange')
 const { DBCursor, DBCursorWithValue } = require('./cursor')
 const { DBIndex } = require('./index')
 const { DOMStringList } = require('./stringlist')
-const { Event } = require('event-target-shim')
 const { TransactionInactiveError, NotFoundError, InvalidStateError, DataError, ReadOnlyError } = require('./error')
 const { extractify } = require('./extractor')
 const { vivify } = require('./setter')
@@ -12,6 +10,11 @@ const { valuify } = require('./value')
 const Verbatim = require('verbatim')
 
 const assert = require('assert')
+
+const IDBRequest = require('./living/generated/IDBRequest')
+const interfaces = require('./interfaces')
+
+const webidl = require('./living/generated/utils')
 
 // Not sure if IndexedDB API expects the same object store returned from every
 // transaction, no idea how that would work, so this isn't an object that
@@ -80,9 +83,9 @@ class DBObjectStore {
         } else {
             key = valuify(key)
         }
-        const request = new DBRequest
+        const request = IDBRequest.createImpl(interfaces)
         this._transaction._queue.push({ method: 'set', request, store: this._store, key, value, overwrite })
-        return request
+        return webidl.wrapperForImpl(request)
     }
 
     put (value, key = null) {
@@ -104,9 +107,9 @@ class DBObjectStore {
     }
 
     get (key) {
-        const request = new DBRequest
+        const request = IDBRequest.createImpl(interfaces)
         this._transaction._queue.push({ method: 'get', type: 'store', request, store: this._store, key })
-        return request
+        return webidl.wrapperForImpl(request)
     }
 
     getKey (query) {

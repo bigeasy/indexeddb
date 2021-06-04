@@ -1,6 +1,6 @@
 module.exports = async function (okay, name) {
     const { Future } = require('perhaps')
-    const { Event } = require('event-target-shim')
+    const { Event } = require('../interfaces')
     const fs = require('fs').promises
     const assert = require('assert')
     const compare = require('../compare')
@@ -28,7 +28,7 @@ module.exports = async function (okay, name) {
     }
     globalize('wpt', 'location')
     globalize({ title: 'wpt', location: 'wpt' }, 'document')
-    const { DBOpenDBRequest, DBRequest } = require('../request')
+    const { DBOpenDBRequest, DBRequest } = require('../_request')
     const { DBDatabase } = require('../database')
     globalize(DBDatabase, 'IDBDatabase')
     const { DBTransaction } = require('../transaction')
