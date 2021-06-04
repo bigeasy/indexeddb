@@ -38,6 +38,8 @@ IDBCursor.install(exports, [ 'Window' ])
 IDBCursorWithValue.install(exports, [ 'Window' ])
 DOMStringList.install(exports, [ 'Window' ])
 
+require('./IDBKeyRange-static').patch(exports)
+
 exports.create = function (destructible, directory) {
     return IDBFactory.create(exports, [], { destructible, directory })
 }

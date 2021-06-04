@@ -194,8 +194,8 @@ class Opener {
                 db._transaction = transaction
                 db._transactions.add(transaction)
                 request.error = null
-                const vce = IDBVersionChangeEvent.create(globalObject, [ 'upgradeneeded', { newVersion: upgrade.version.target, oldVersion: upgrade.version.current } ], {})
-                dispatchEvent(transaction, webidl.wrapperForImpl(request), vce)
+                const vce = IDBVersionChangeEvent.createImpl(globalObject, [ 'upgradeneeded', { newVersion: upgrade.version.target, oldVersion: upgrade.version.current } ], {})
+                dispatchEvent(transaction, request, vce)
                 await transaction._run(upgrade, [])
                 // **TODO** What to do if the database is closed before we can
                 // indicate success?
@@ -266,7 +266,7 @@ class Connector {
     _checkVersion ({ request, version }) {
         if (version == null || this._opener.memento.version == version) {
             request.error = null
-            dispatchEvent(null, webidl.wrapperForImpl(request), Event.create(this._globalObject, [ 'success' ], {}))
+            dispatchEvent(null, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
         } else {
             request.result._closing = true
             request.error = new VersionError

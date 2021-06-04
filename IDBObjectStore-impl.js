@@ -8,6 +8,7 @@ const Verbatim = require('verbatim')
 const assert = require('assert')
 
 const IDBRequest = require('./living/generated/IDBRequest')
+const IDBIndex = require('./living/generated/IDBIndex')
 
 const webidl = require('./living/generated/utils')
 
@@ -159,7 +160,12 @@ class IDBObjectStoreImpl {
         if (index == null) {
             throw new NotFoundError
         }
-        return new DBIndex(this._transaction, this._schema, this._store, index)
+        return IDBIndex.create(this._globalObject, [], {
+            transaction: this._transaction,
+            schema: this._schema,
+            store: this._store,
+            index: index
+        })
     }
 
     createIndex (name, keyPath, { unique = false, multiEntry = false } = {}) {
@@ -181,7 +187,12 @@ class IDBObjectStoreImpl {
         }
         const index = this._schema.createIndex(this._store.name, name, keyPath, multiEntry, unique)
         this._transaction._queue.push({ method: 'create', type: 'index', store: this._store, index })
-        return new DBIndex(this._transaction, this._schema, this._store, index)
+        return IDBIndex.create(this._globalObject, [], {
+            transaction: this._transaction,
+            schema: this._schema,
+            store: this._store,
+            index: index
+        })
     }
 
     deleteIndex (name) {

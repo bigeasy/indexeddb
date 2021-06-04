@@ -1,10 +1,9 @@
-//const { DBRequest } = require('./_request')
-//const { DBKeyRange } = require('./keyrange')
-//const { TransactionInactiveError, InvalidStateError } = require('./error')
+const IDBRequest = require('./living/generated/IDBRequest')
 
-class DBIndex {
+class IDBIndexImpl {
     // TODO Make loop a property of transaction.
-    constructor (transaction, schema, store, index) {
+    constructor (globalObject, [], { transaction, schema, store, index }) {
+        this._globalObject = globalObject
         this._transaction = transaction
         this._schema = schema
         this._store = store
@@ -28,15 +27,15 @@ class DBIndex {
     }
 
     get (query) {
-        const request = new DBRequest
+        const request = IDBRequest.createImpl(this._globalObject, [], {})
         if (this._schema.isDeleted(this._index)) {
             throw new InvalidStateError
         }
         if (this._transaction._state != 'active') {
             throw new TransactionInactiveError
         }
-        if (!(query instanceof DBKeyRange)) {
-            query = DBKeyRange.only(query)
+        if (!(query instanceof this._globalObject.IDBKeyRange)) {
+            query = this._globalObject.IDBKeyRange.only(query)
         }
         this._transaction._queue.push({ method: 'get', type: 'index', key: false, store: this._store, index: this._index, query, request })
         return request
@@ -78,4 +77,4 @@ class DBIndex {
     }
 }
 
-exports.DBIndex = DBIndex
+module.exports = { implementation: IDBIndexImpl }

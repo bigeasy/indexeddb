@@ -226,7 +226,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                         transaction.set(index.qualified, { key: [ extracted, key ] })
                     }
                     transaction.set(store.qualified, record)
-                    dispatchEvent(this, webidl.wrapperForImpl(request), Event.create(this._globalObject, [ 'success' ], {}))
+                    dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
                 }
                 break
             case 'get': {
@@ -237,7 +237,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                             if (got != null) {
                                 request.result = Verbatim.deserialize(Verbatim.serialize(got.value))
                             }
-                            dispatchEvent(this, webidl.wrapperForImpl(request), Event.create(this._globalObject, [ 'success' ], {}))
+                            dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
                         }
                         break
                     case 'index': {
