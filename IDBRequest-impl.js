@@ -6,7 +6,6 @@ class IDBRequestImpl extends EventTargetImpl {
     constructor (globalObject, args, privateData) {
         super(globalObject, args, privateData)
 
-        this.result = null
         this.error = null
         this.source = null
         this.transaction = null

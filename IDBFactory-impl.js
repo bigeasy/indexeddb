@@ -75,10 +75,10 @@ class Opener {
         this._handles = []
     }
 
-    async close (event) {
+    async close (globalObject, event) {
         for (const connection of this._handles) {
             if (! connection._closing) {
-                dispatchEvent(null, connection, new Event('versionchange'))
+                dispatchEvent(null, connection, Event.createImpl(globalObject, [ 'versionchange' ], {}))
             }
         }
         // **TODO** No, it's a closing flag you're looking for.
@@ -86,7 +86,7 @@ class Opener {
             console.log('>', db._closing)
         }
         if (this._handles.some(connection => ! connection._closing)) {
-            dispatchEvent(null, event.request, new Event('blocked'))
+            dispatchEvent(null, connection, Event.createImpl(globalObject, [ 'blocked' ], {}))
         }
         for (const connection of this._handles) {
             await connection._closed.promise
@@ -140,9 +140,15 @@ class Opener {
         }
     }
 
-    connect (schema, name, { request }) {
+    connect (globalObject, schema, name, { request }) {
+        const db = IDBDatabase.createImpl(globalObject, [], {
+            name,
+            schema: new Schema(schema),
+            transactor: this._transactor,
+            version: this._version
+        })
         console.log('--- CONNECT EXISTING ---')
-        const db = request.result = new DBDatabase(name, new Schema(schema), this._transactor, this._version)
+        request.result = webidl.wrapperForImpl(db)
         this._handles.push(db)
     }
 
@@ -268,11 +274,12 @@ class Connector {
             request.error = null
             dispatchEvent(null, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
         } else {
-            request.result._closing = true
+            const db = webidl.implForWrapper(request.result)
+            db._closing = true
             request.error = new VersionError
-            this._opener._maybeClose(request.result)
+            this._opener._maybeClose(db)
             request.result = null
-            dispatchEvent(null, request, new Event('error'))
+            dispatchEvent(null, request, Event.createImpl(this._globalObject, [ 'error' ], {}))
         }
     }
 
@@ -301,7 +308,7 @@ class Connector {
             case 'open': {
                     if (this._opener.destructible.destroyed || (event.version != null && this._opener.memento.version < event.version)) {
                         if (! this._opener.destructible.destroyed) {
-                            await this._opener.close(event)
+                            await this._opener.close(this._globalObject, event)
                         }
                         this._version = event.version || 1
                         this._opener = await Opener.open(this._globalObject, this.destructible.ephemeral('opener'), schema, this._directory, this._name, this._version, event)
@@ -311,14 +318,15 @@ class Connector {
                             this._checkVersion(event)
                         }
                     } else {
-                        this._opener.connect(schema, this._name, event)
+                        this._opener.connect(this._globalObject, schema, this._name, event)
                         this._checkVersion(event)
                     }
                 }
                 break
             case 'delete': {
+                    const { request } = event
                     if (! this._opener.destructible.destroyed) {
-                        await this._opener.close(event)
+                        await this._opener.close(this._globalObject, event)
                     }
                     await rmrf(process.version, fs, path.join(this._directory, this._name))
                     const id = schema.name[this._name]
@@ -327,12 +335,11 @@ class Connector {
                         delete schema.extractor[id]
                         delete schema.name[this._name]
                     }
-                    event.request.source = null
-                    event.request.error = null
-                    event.request.readyState = 'done'
-                    console.log('i am here')
-                    // dispatchEvent(null, event.request, new DBVersionChangeEvent('success', { oldVersion: this._version }))
-                    console.log('i am there')
+                    request.source = null
+                    request.error = null
+                    delete request.result
+                    request.readyState = 'done'
+                    dispatchEvent(null, event.request, IDBVersionChangeEvent.createImpl(this._globalObject, [ 'success', { oldVersion: this._version, newVersion: null } ], {}))
                 }
                 break
             }

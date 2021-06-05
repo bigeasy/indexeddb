@@ -52,15 +52,15 @@ class IDBIndexImpl {
     }
 
     getKey (query) {
-        const request = new DBRequest
+        const request = IDBRequest.createImpl(this._globalObject, [], {})
         if (this._schema.isDeleted(this._index)) {
             throw new InvalidStateError
         }
         if (this._transaction._state != 'active') {
             throw new TransactionInactiveError
         }
-        if (!(query instanceof DBKeyRange)) {
-            query = DBKeyRange.only(query)
+        if (!(query instanceof this._globalObject.IDBKeyRange)) {
+            query = webidl.implForWrapper(this._globalObject.IDBKeyRange.only(query))
         }
         this._transaction._queue.push({ method: 'get', type: 'index', key: true, store: this._store, index: this._index, query, request })
         return request

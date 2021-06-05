@@ -21,11 +21,6 @@ module.exports = async function (okay, name) {
             okay.leak(name)
         }
     }
-    if (process.versions.node.split('.')[0] < 15) {
-        globalize(Event, 'Event')
-    } else {
-        global.Event = Event
-    }
     globalize('wpt', 'location')
     globalize({ title: 'wpt', location: 'wpt' }, 'document')
     //const { IDBDatabase } = require('../database')
@@ -40,7 +35,16 @@ module.exports = async function (okay, name) {
     globalize(DBKeyRange, 'IDBKeyRange')
     */
     const destructible = new Destructible('harness')
-    const indexedDB = require('..').create(destructible, directory)
+    const globalObject = require('..')
+    const indexedDB = globalObject.create(destructible, directory)
+    globalize(globalObject.IDBVersionChangeEvent)
+    globalize(globalObject.IDBKeyRange)
+    globalize(globalObject.IDBOpenDBRequest)
+    if (process.versions.node.split('.')[0] < 15) {
+        globalize(globalObject.Event)
+    } else {
+        global.Event = globalObject.Event
+    }
     globalize(indexedDB, 'indexedDB')
     globalize({ indexedDB }, 'window')
     // Copy and paste from WPT.

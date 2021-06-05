@@ -80,7 +80,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                 const { request } = event
                 delete request.result
                 request.error = new AbortError
-                dispatchEvent(null, request, new Event('error'))
+                dispatchEvent(null, request, Event.createImpl(this._globalObject, [ 'error' ], {}))
             }
         }
         dispatchEvent(null, this, Event.createImpl(this._globalObject, [ 'abort', { cancelable: true } ], {}))
@@ -272,7 +272,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                                     request.result++
                                 }
                             }
-                            dispatchEvent(this, request, new Event('success'))
+                            dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
                         }
                         break
                     }

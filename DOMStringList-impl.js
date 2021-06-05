@@ -1,15 +1,25 @@
-class DOMStringListImpl extends Array {
+const { supportsPropertyIndex } = require('./living/generated/utils')
+
+class DOMStringListImpl {
     constructor (globalObject, args, { array = [] }) {
-        this.push.apply(this, array)
+        this._array = array
+    }
+
+    get length () {
+        return this._array.length
     }
 
     contains (string) {
-        return ~this.indexOf(string)
+        return ~this._array.indexOf(string)
     }
 
     item (i) {
-        return this[i]
+        return this._array[i]
+    }
+
+    [supportsPropertyIndex]() {
+        return true
     }
 }
 
-module.exports = { implemenation: DOMStringListImpl }
+module.exports = { implementation: DOMStringListImpl }

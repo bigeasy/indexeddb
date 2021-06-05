@@ -11,6 +11,7 @@ const IDBRequest = require('./living/generated/IDBRequest')
 const IDBIndex = require('./living/generated/IDBIndex')
 const IDBKeyRange = require('./living/generated/IDBKeyRange')
 const IDBCursorWithValue = require('./living/generated/IDBCursorWithValue')
+const DOMStringList = require('./living/generated/DOMStringList')
 
 const webidl = require('./living/generated/utils')
 
@@ -43,9 +44,7 @@ class IDBObjectStoreImpl {
     }
 
     get indexNames () {
-        const list =  new DOMStringList()
-        list.push.apply(list, this._schema.getIndexNames(this._store.name))
-        return list
+        return DOMStringList.create(this._globalObject, [], { array: this._schema.getIndexNames(this._store.name) })
     }
 
     _addOrPut (value, key, overwrite) {
@@ -129,9 +128,9 @@ class IDBObjectStoreImpl {
             throw new InvalidStateError
         }
         if (query == null) {
-            query = new DBKeyRange(null, null)
+            query = IDBKeyRange.createImpl(this._globalObject, [ null, null ], {})
         }
-        const request = new DBRequest
+        const request = IDBRequest.createImpl(this._globalObject, [], {})
         this._transaction._queue.push({ method: 'count', request, store: this._store, query })
         return request
     }

@@ -28,6 +28,7 @@ require('proof')(13, async okay => {
             db.onversionchange = function() { db.close(); };
 
             var open_rq2 = createdb(open2_t, db.name, 10);
+            console.log('here')
             open_rq2.onupgradeneeded = function(e) {
                 var db2 = e.target.result;
                 assert_true(e instanceof IDBVersionChangeEvent, "e instanceof IDBVersionChangeEvent");

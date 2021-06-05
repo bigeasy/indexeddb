@@ -10,6 +10,7 @@ const Schema = require('./schema')
 
 const { setupForSimpleEventAccessors } = require('./living/helpers/create-event-accessor')
 
+const DOMStringList = require('./living/generated/DOMStringList')
 const IDBObjectStore = require('./living/generated/IDBObjectStore.js')
 const IDBTransaction = require('./living/generated/IDBTransaction.js')
 
@@ -32,9 +33,7 @@ class IDBDatabaseImpl extends EventTargetImpl  {
     }
 
     get objectStoreNames () {
-        const list =  new DOMStringList()
-        list.push.apply(list, this._schema.getObjectStoreNames())
-        return list
+        return DOMStringList.create(this._globalObject, [], { array: this._schema.getObjectStoreNames() })
     }
 
     transaction (names, mode = 'readonly') {
