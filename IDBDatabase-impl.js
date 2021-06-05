@@ -2,8 +2,6 @@ const { extractify } = require('./extractor')
 const { InvalidAccessError, ConstraintError, TransactionInactiveError, InvalidStateError, NotFoundError } = require('./error')
 const { createEventAccessor } = require('./living/helpers/create-event-accessor')
 
-const { DOMStringList } = require('./stringlist')
-
 const { Future } = require('perhaps')
 
 const Queue = require('avenue')

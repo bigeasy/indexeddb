@@ -158,7 +158,7 @@ class Opener {
         const db = IDBDatabase.createImpl(globalObject, [], { name, schema, transactor: opener._transactor })
         request.result = webidl.wrapperForImpl(db)
         opener._handles.push(db)
-        let current
+        let current, transaction
         try {
             let upgraded = false
             opener.memento = await Memento.open({
@@ -169,7 +169,7 @@ class Opener {
                 comparators: { indexeddb: comparator }
             }, async upgrade => {
                 current = upgrade.version.current
-                db._version = upgrade.version.target
+                db.version = upgrade.version.target
                 if (upgrade.version.current == 0) {
                     await upgrade.store('schema', { 'id': Number })
                 }
@@ -189,7 +189,7 @@ class Opener {
                 const paired = new Queue().shifter().paired
                 request.readyState = 'done'
                 console.log('-?-', this._globalObject)
-                const transaction = IDBTransaction.createImpl(globalObject, [], { schema, db, mode: 'versionchange', previousVersion: upgrade.version.current })
+                transaction = IDBTransaction.createImpl(globalObject, [], { schema, database: db, mode: 'versionchange', previousVersion: upgrade.version.current })
                 request.transaction = webidl.wrapperForImpl(transaction)
                 db._transaction = transaction
                 db._transactions.add(transaction)
@@ -222,19 +222,19 @@ class Opener {
                 })
             }
             opener._maybeClose(db)
-            db._version = opener.memento.version
+            db.version = opener.memento.version
             request.readyState = 'done'
             return opener
         } catch (error) {
             rescue(error, [{ symbol: Memento.Error.ROLLBACK }])
-            db._transactions.delete(request.transaction)
+            db._transactions.delete(transaction)
             db._version = current
             db._closing = true
             opener._maybeClose(db)
             request.result = undefined
             request.transaction = null
             request.error = new AbortError
-            dispatchEvent(null, request, new Event('error', { bubbles: true, cancelable: true }))
+            dispatchEvent(null, request, Event.createImpl(globalObject, [ 'error', { bubbles: true, cancelable: true } ], {}))
             opener._transactor.queue.push({ method: 'close', extra: { db } })
             return { destructible: new Destructible('errored').destroy() }
         }

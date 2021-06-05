@@ -15,7 +15,7 @@ const { vivify } = require('./setter')
 const { valuify } = require('./value')
 const { Queue } = require('avenue')
 
-const { createEventAccessor } = require('./living/helpers/create-event-accessor')
+const { setupForSimpleEventAccessors } = require('./living/helpers/create-event-accessor')
 
 const EventTarget = require('./living/generated/EventTarget')
 const Event = require('./living/generated/Event')
@@ -41,22 +41,6 @@ class IDBTransactionImpl extends EventTargetImpl {
         this._queue = []
         this._mode = mode
         this._previousVersion = previousVersion
-    }
-
-    get onabort () {
-        return getEventAttributeValue(this, 'abort')
-    }
-
-    set onabort (value) {
-        setEventAttributeValue(this, 'abort', value)
-    }
-
-    get oncomplete () {
-        return getEventAttributeValue(this, 'complete')
-    }
-
-    set oncomplete (value) {
-        setEventAttributeValue(this, 'complete', value)
     }
 
     get objectStoreNames () {
@@ -85,7 +69,7 @@ class IDBTransactionImpl extends EventTargetImpl {
         this._state = 'finished'
         this._schema.abort()
         if (this._mode == 'versionchange') {
-            this._database._version = this._previousVersion
+            this._database.version = this._previousVersion
         }
         // Mark any stores created by this transaction as deleted, then queue
         // them for actual destruction.
@@ -99,7 +83,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                 dispatchEvent(null, request, new Event('error'))
             }
         }
-        dispatchEvent(null, this, new Event('abort', { cancelable: true }))
+        dispatchEvent(null, this, Event.createImpl(this._globalObject, [ 'abort', { cancelable: true } ], {}))
     }
 
     async _item ({ request, cursor }) {
@@ -116,7 +100,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                 }
             } else {
                 cursor._value = next.value
-                dispatchEvent(this, request, new Event('success'))
+                dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
                 break
             }
         }
@@ -249,7 +233,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                                 const got = await transaction.get(store.qualified, [ indexGot[0].key[1] ])
                                 request.result = Verbatim.deserialize(Verbatim.serialize(key ? got.key : got.value))
                             }
-                            dispatchEvent(this, request, new Event('success'))
+                            dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
                         }
                         break
                     }
@@ -339,9 +323,11 @@ class IDBTransactionImpl extends EventTargetImpl {
             }
             this._schema.merge()
             this._state = 'finished'
-            // dispatchEvent(null, this, new Event('complete'))
+            dispatchEvent(null, this, Event.createImpl(this._globalObject, [ 'complete' ], {}))
         }
     }
 }
+
+setupForSimpleEventAccessors(IDBTransactionImpl.prototype, [ 'complete', 'abort' ]);
 
 module.exports = { implementation: IDBTransactionImpl }

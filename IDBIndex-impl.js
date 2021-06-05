@@ -1,5 +1,7 @@
 const IDBRequest = require('./living/generated/IDBRequest')
 
+const webidl = require('./living/generated/utils')
+
 class IDBIndexImpl {
     // TODO Make loop a property of transaction.
     constructor (globalObject, [], { transaction, schema, store, index }) {
@@ -35,9 +37,17 @@ class IDBIndexImpl {
             throw new TransactionInactiveError
         }
         if (!(query instanceof this._globalObject.IDBKeyRange)) {
-            query = this._globalObject.IDBKeyRange.only(query)
+            query = webidl.implForWrapper(this._globalObject.IDBKeyRange.only(query))
         }
-        this._transaction._queue.push({ method: 'get', type: 'index', key: false, store: this._store, index: this._index, query, request })
+        this._transaction._queue.push({
+            method: 'get',
+            type: 'index',
+            key: false,
+            store: this._store,
+            index: this._index,
+            query: query,
+            request: request
+        })
         return request
     }
 

@@ -9,6 +9,8 @@ const assert = require('assert')
 
 const IDBRequest = require('./living/generated/IDBRequest')
 const IDBIndex = require('./living/generated/IDBIndex')
+const IDBKeyRange = require('./living/generated/IDBKeyRange')
+const IDBCursorWithValue = require('./living/generated/IDBCursorWithValue')
 
 const webidl = require('./living/generated/utils')
 
@@ -136,13 +138,17 @@ class IDBObjectStoreImpl {
 
     openCursor (query, direction = 'next') {
         if (query == null) {
-            query = new DBKeyRange(null, null)
+            query = IDBKeyRange.createImpl(this._globalObject, [ null, null ], {})
         }
-        const request = new DBRequest
-        const cursor = new DBCursorWithValue(this._transaction, request, query)
-        request.result = cursor
-        this._transaction._queue.push({ method: 'openCursor', request, store: this._store, cursor: cursor, direction })
-        return request
+        const request = IDBRequest.createImpl(this._globalObject, [], {})
+        const cursor = IDBCursorWithValue.createImpl(this._globalObject, [], {
+            transaction: this._transaction,
+            request: request,
+            query: query
+        })
+        request.result = webidl.wrapperForImpl(cursor)
+        this._transaction._queue.push({ method: 'openCursor', request, store: this._store, cursor, direction })
+        return webidl.wrapperForImpl(request)
     }
 
     openKeyCursor (query, direction = 'next') {
