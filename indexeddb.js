@@ -22,6 +22,9 @@ const IDBIndex = require('./living/generated/IDBIndex')
 const IDBCursor = require('./living/generated/IDBCursor')
 const IDBCursorWithValue = require('./living/generated/IDBCursorWithValue')
 const DOMStringList = require('./living/generated/DOMStringList')
+const WrapperDOMException = require("domexception/webidl2js-wrapper")
+
+exports.Error = Error
 
 EventTarget.install(exports, [ 'Window' ])
 Event.install(exports, [ 'Window' ])
@@ -37,6 +40,7 @@ IDBIndex.install(exports, [ 'Window' ])
 IDBCursor.install(exports, [ 'Window' ])
 IDBCursorWithValue.install(exports, [ 'Window' ])
 DOMStringList.install(exports, [ 'Window' ])
+WrapperDOMException.install(exports)
 
 require('./IDBKeyRange-static').patch(exports)
 

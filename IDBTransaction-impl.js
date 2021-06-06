@@ -3,7 +3,6 @@ const assert = require('assert')
 const compare = require('./compare')
 
 const rescue = require('rescue')
-const { InvalidStateError, AbortError, DataError } = require('./error')
 const { Future } = require('perhaps')
 const { dispatchEvent } = require('./dispatch')
 

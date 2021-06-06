@@ -1,4 +1,3 @@
-const { TransactionInactiveError, NotFoundError, InvalidStateError, DataError, ReadOnlyError } = require('./error')
 const { extractify } = require('./extractor')
 const { vivify } = require('./setter')
 const { valuify } = require('./value')
@@ -80,7 +79,7 @@ class IDBObjectStoreImpl {
                 }
             }
         } else {
-            key = valuify(key)
+            key = valuify(this._globalObject, key)
         }
         const request = IDBRequest.createImpl(this._globalObject)
         this._transaction._queue.push({ method: 'set', request, store: this._store, key, value, overwrite })

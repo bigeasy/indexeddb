@@ -16,7 +16,7 @@ const { Queue } = require('avenue')
 const Destructible = require('destructible')
 const Memento = require('memento')
 
-const comparator = require('./compare')
+const Compare = require('./compare')
 
 const Transactor = require('./transactor')
 
@@ -32,8 +32,6 @@ const IDBTransaction = require('./living/generated/IDBTransaction')
 
 const { createEventAccessor } = require('./living/helpers/create-event-accessor')
 const { dispatchEvent } = require('./dispatch')
-
-const { VersionError, AbortError } = require('./error')
 
 const webidl = require('./living/generated/utils')
 
@@ -152,7 +150,7 @@ class Opener {
         this._handles.push(db)
     }
 
-    static async open (globalObject, destructible, root, directory, name, version, { request }) {
+    static async open (globalObject, comparator, destructible, root, directory, name, version, { request }) {
         console.log('--- OPEN EXISTING ---', root)
         // **TODO** `version` should be a read-only property of the
         // Memento object.
@@ -252,6 +250,7 @@ class Connector {
         const schema = { name: {}, store: {}, max: 0, index: {}, extractor: {} }
         this._opener = { destructible: new Destructible('opener').destroy() }
         this.destructible = factory.deferrable.ephemeral($ => $(), `indexeddb.${name}`)
+        this._comparator = factory.cmp
         this._globalObject = factory._globalObject
         factory.deferrable.increment()
         this.destructible.destruct(() => factory.deferrable.decrement())
@@ -311,7 +310,7 @@ class Connector {
                             await this._opener.close(this._globalObject, event)
                         }
                         this._version = event.version || 1
-                        this._opener = await Opener.open(this._globalObject, this.destructible.ephemeral('opener'), schema, this._directory, this._name, this._version, event)
+                        this._opener = await Opener.open(this._globalObject, this._comparator, this.destructible.ephemeral('opener'), schema, this._directory, this._name, this._version, event)
                         this._opener.destructible.promise.then(() => this._sleep.resolve())
                         // **TODO** Spaghetti.
                         if (this._opener.memento != null) {
@@ -376,6 +375,8 @@ class IDBFactoryImpl {
         this._connectors = {}
 
         this._turnstile = new Turnstile(this.deferrable.durable('turnstile'))
+
+        this.cmp = Compare.create(globalObject)
     }
 
     // IDBFactory.
@@ -419,8 +420,6 @@ class IDBFactoryImpl {
         this._vivify(name).push({ method: 'delete', request })
         return webidl.wrapperForImpl(request)
     }
-
-    cmp = comparator
 }
 
 module.exports = { implementation: IDBFactoryImpl }

@@ -1,11 +1,9 @@
-const { DataError } = require('./error')
-
 // https://w3c.github.io/IndexedDB/#convert-a-value-to-a-input
-const valuify = exports.valuify = function (value) {
+const valuify = exports.valuify = function (globalObject, value) {
     switch (typeof value) {
     case 'number':
         if (isNaN(value)) {
-            throw new DataError
+            throw new globalObject.DOMException('message', 'DataError')
         }
         return value
     case 'string':
