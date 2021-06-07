@@ -93,7 +93,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                 cursor._outer.next = await cursor._outer.iterator.next()
                 if (cursor._outer.next.done) {
                     request.result = null
-                    dispatchEvent(this, request, new Event('success'))
+                    dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
                     break
                 } else {
                     cursor._inner = cursor._outer.next.value[Symbol.iterator]()
@@ -251,7 +251,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                     cursor._outer.next = await cursor._outer.iterator.next()
                     if (cursor._outer.next.done) {
                         request.result = null
-                        dispatchEvent(this, request, new Event('success'))
+                        dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
                     } else {
                         cursor._inner = cursor._outer.next.value[Symbol.iterator]()
                         await this._item(event)
@@ -289,7 +289,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                         }
                     }
                     // TODO Clear an index.
-                    dispatchEvent(this, request, new Event('success'))
+                    dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
                 }
                 break
             case 'destroy': {

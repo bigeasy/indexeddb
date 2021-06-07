@@ -40,6 +40,8 @@ module.exports = async function (okay, name) {
     globalize(globalObject.IDBKeyRange)
     globalize(globalObject.IDBOpenDBRequest)
     globalize(globalObject.IDBRequest)
+    globalize(globalObject.IDBTransaction)
+    globalize(globalObject.IDBDatabase)
     const comparator = require('../compare')
     const compare = function (left, right) {
         return comparator(globalObject, left, right)

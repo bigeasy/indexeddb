@@ -1,4 +1,4 @@
-require('proof')(6, okay => {
+require('proof')(5, okay => {
     const Event = require('../living/generated/Event')
     const EventTarget = require('../living/generated/EventTarget')
 
@@ -7,8 +7,6 @@ require('proof')(6, okay => {
 
     const object = {}
 
-    const interfaces = require('../interfaces')
-
     EventTarget.install(object, [ 'Window' ])
     Event.install(object, [ 'Window' ])
     IDBRequest.install(object, [ 'Window' ])
@@ -16,7 +14,6 @@ require('proof')(6, okay => {
 
     const request = IDBRequest.create(object, [], {})
     okay(request.readyState, 'pending', 'readyState')
-    okay(request.result, null, 'result')
 
     const event = Event.create(object, [ 'success' ], {})
 

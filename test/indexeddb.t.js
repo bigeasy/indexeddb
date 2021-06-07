@@ -9,7 +9,10 @@ require('proof')(2, async okay => {
     await fs.rmdir(directory, { recursive: true })
     await fs.mkdir(directory, { recursive: true })
 
-    const indexedDB = require('..').create({ directory })
+    const Destructible = require('destructible')
+    const destructible = new Destructible('indexedb')
+
+    const indexedDB = require('..').create(destructible, directory)
 
     const chairs = `
         Thomas Neal 11/19/1912 11/16/1915 ON

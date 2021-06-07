@@ -75,7 +75,7 @@ class IDBObjectStoreImpl {
                     vivify(value, this._store.keyPath, key)
                 }
             } else {
-                key = valuify(key)
+                key = valuify(this._globalObject, key)
                 if (key >= this._store.autoIncrement) {
                     this._store.autoIncrement = key + 1
                 }
@@ -101,7 +101,7 @@ class IDBObjectStoreImpl {
     }
 
     clear () {
-        const request = new DBRequest
+        const request = IDBRequest.createImpl(this._globalObject)
         this._transaction._queue.push({ method: 'clear', request, store: this._store })
         return request
     }

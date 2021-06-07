@@ -1,5 +1,5 @@
 class IDBCursorImpl {
-    constructor (transaction, request, query) {
+    constructor (globaObject, [], { transaction, request, query }) {
         this._request = request
         this._transaction = transaction
         this._query = query
