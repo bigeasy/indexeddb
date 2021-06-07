@@ -13,6 +13,8 @@ const DOMStringList = require('./living/generated/DOMStringList')
 const IDBObjectStore = require('./living/generated/IDBObjectStore.js')
 const IDBTransaction = require('./living/generated/IDBTransaction.js')
 
+const DOMException = require('domexception/lib/DOMException')
+
 const EventTargetImpl = require('./living/idl/EventTarget-impl.js').implementation
 
 const webidl = require('./living/generated/utils.js')
@@ -37,10 +39,10 @@ class IDBDatabaseImpl extends EventTargetImpl  {
 
     transaction (names, mode = 'readonly') {
         if (this._transaction != null) {
-            throw new InvalidStateError
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
         if (this._closing) {
-            throw new InvalidStateError
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
         if (typeof names == 'string') {
             names = [ names ]
@@ -48,11 +50,11 @@ class IDBDatabaseImpl extends EventTargetImpl  {
         for (const name of names) {
             debugger
             if (! this._schema.getObjectStore(name)) {
-                throw new NotFoundError
+                throw DOMException.create(this._globalObject, [ 'TODO: message', 'NotFoundError' ], {})
             }
         }
         if (names.length == 0) {
-            throw new InvalidAccessError
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidAccessError' ], {})
         }
         if (mode != 'readonly' && mode != 'readwrite') {
             throw new TypeError

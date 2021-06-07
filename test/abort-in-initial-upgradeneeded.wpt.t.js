@@ -18,7 +18,6 @@ require('proof')(7, async okay => {
         }
 
         open_rq.onerror = function(e) {
-            console.log('i am error')
             assert_equals(open_rq, e.target);
             assert_equals(e.target.result, undefined);
             assert_equals(e.target.error.name, "AbortError");

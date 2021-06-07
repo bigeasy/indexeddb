@@ -1,9 +1,11 @@
+const DOMException = require('domexception/lib/DOMException')
+
 // https://w3c.github.io/IndexedDB/#convert-a-value-to-a-input
 const valuify = exports.valuify = function (globalObject, value) {
     switch (typeof value) {
     case 'number':
         if (isNaN(value)) {
-            throw new globalObject.DOMException('message', 'DataError')
+            throw DOMException.create(globalObject, [ 'TODO: message', 'DataError' ], {})
         }
         return value
     case 'string':
@@ -21,13 +23,14 @@ const valuify = exports.valuify = function (globalObject, value) {
         } else if (Array.isArray(value)) {
             const converted = []
             for (let i = 0, I = value.length; i < I; i++) {
-                converted[i] = valuify(value[i])
+                converted[i] = valuify(globalObject, value[i])
             }
             return converted
         } else {
-            throw new DataError
+            throw DOMException.create(globalObject, [ 'TODO: message', 'DataError' ], {})
         }
     default:
-        throw new DataError
+        console.log('>>>', globalObject)
+        throw DOMException.create(globalObject, [ 'TODO: message', 'DataError' ], {})
     }
 }

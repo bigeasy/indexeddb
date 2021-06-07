@@ -1,11 +1,16 @@
 require('proof')(20, okay => {
-    const { DataError } = require('../error')
-    const compare = require('../compare')
+    const comparator = require('../compare')
+    const WrapperDOMException = require("domexception/webidl2js-wrapper")
+    const globalObject = {}
+    globalObject.Error = Error
+    WrapperDOMException.install(globalObject)
+    const compare = (left, right) => comparator(globalObject, left, right)
     const test = []
     try {
         compare(1, {})
     } catch (error) {
-        test.push(error instanceof DataError)
+        console.log(error.stack)
+        test.push(error instanceof globalObject.DOMException)
     }
     okay(test, [ true ], 'type error')
     okay(compare([], 1) > 0, 'array to number')

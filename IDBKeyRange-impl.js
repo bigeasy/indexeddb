@@ -4,6 +4,7 @@ const { valuify } = require('./value')
 
 class IDBKeyRange {
     constructor (globalObject, [ lower, upper, lowerOpen, upperOpen ]) {
+        this._globalObject = globalObject
         this._lower = lower
         this._upper = upper
         this._lowerOpen = lowerOpen
@@ -27,11 +28,11 @@ class IDBKeyRange {
     }
 
     includes (key) {
-        const value = valuify(key)
+        const value = valuify(this._globalObject, key)
         return (
-            this._lower === undefined || compare(value, this._lower) >= (this._lowerOpen ? 1 : 0)
+            this._lower === undefined || compare(this._globalObject, value, this._lower) >= (this._lowerOpen ? 1 : 0)
         ) && (
-            this._upper === undefined || compare(value, this._upper) <= (this._upperOpen ? -1 : 0)
+            this._upper === undefined || compare(this._globalObject, value, this._upper) <= (this._upperOpen ? -1 : 0)
         )
     }
 }

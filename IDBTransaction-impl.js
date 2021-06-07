@@ -7,7 +7,6 @@ const { Future } = require('perhaps')
 const { dispatchEvent } = require('./dispatch')
 
 const Verbatim = require('verbatim')
-const DOMException = require('domexception')
 
 const { extractify } = require('./extractor')
 const { vivify } = require('./setter')
@@ -22,6 +21,8 @@ const IDBRequest = require('./living/generated/IDBRequest')
 const IDBOpenDBRequest = require('./living/generated/IDBOpenDBRequest')
 const IDBVersionChangeEvent = require('./living/generated/IDBVersionChangeEvent')
 const IDBObjectStore = require('./living/generated/IDBObjectStore')
+
+const DOMException = require('domexception/lib/DOMException')
 
 const EventTargetImpl = require('./living/idl/EventTarget-impl').implementation
 
@@ -59,7 +60,7 @@ class IDBTransactionImpl extends EventTargetImpl {
 
     objectStore (name) {
         if (this._state == 'finished') {
-            throw new InvalidStateError
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
         return IDBObjectStore.create(this._globalObject, [], { transaction: this, schema: this._schema, name })
     }
@@ -78,7 +79,7 @@ class IDBTransactionImpl extends EventTargetImpl {
             if ('request' in event) {
                 const { request } = event
                 delete request.result
-                request.error = new AbortError
+                request.error = DOMException.create(this._globalObject, [ 'TODO: message', 'AbortError' ], {})
                 dispatchEvent(null, request, Event.createImpl(this._globalObject, [ 'error' ], {}))
             }
         }
@@ -145,7 +146,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                                             previous = item
                                             continue
                                         }
-                                        if (compare(previous.key[0], item.key[0]) == 0) {
+                                        if (compare(this._globalObject, previous.key[0], item.key[0]) == 0) {
                                             this.abort()
                                             break OUTER
                                         }
@@ -171,8 +172,8 @@ class IDBTransactionImpl extends EventTargetImpl {
                     if (! overwrite) {
                         const got = await transaction.get(store.qualified, [ key ])
                         if (got != null) {
-                            const event = new Event('error', { bubbles: true, cancelable: true })
-                            const error = new DOMException('Unique key constraint violation.', 'ConstraintError')
+                            const event = Event.createImpl(this._globalObject, [ 'error', { bubbles: true, cancelable: true } ], {})
+                            const error = DOMException.create(this._globalObject, [ 'Unique key constraint violation.', 'ConstraintError' ], {})
                             request.error = error
                             const caught = dispatchEvent(this, request, event)
                             console.log('???', caught)
@@ -188,18 +189,20 @@ class IDBTransactionImpl extends EventTargetImpl {
                         }
                         let extracted
                         try {
-                            extracted = valuify(this._schema.getExtractor(index.id)(record.value))
+                            extracted = valuify(this._globalObject, this._schema.getExtractor(index.id)(record.value))
                         } catch (error) {
-                            rescue(error, [ DataError ])
+                            // **TODO** Why doesn't `{ name: 'DataError' }` work. Step through
+                            // it with `test/idbobjectstore_add14.wpt.t.js`.
+                            rescue(error, [ this._globalObject.DOMException ])
                             continue
                         }
                         if (index.unique) {
                             const got = await transaction.cursor(index.qualified, [[ extracted ]])
-                                                         .terminate(item => compare(item.key[0], extracted) != 0)
+                                                         .terminate(item => compare(this._globalObject, item.key[0], extracted) != 0)
                                                          .array()
                             if (got.length != 0) {
-                                const event = new Event('error', { bubbles: true, cancelable: true })
-                                const error = new DOMException('Unique key constraint violation.', 'ConstraintError')
+                                const event = Event.createImpl(this._globalObject, [ 'error', { bubbles: true, cancelable: true } ], {})
+                                const error = DOMException.create(this._globalObject, [ 'Unique key constraint violation.', 'ConstraintError' ], {})
                                 request.error = error
                                 const caught = dispatchEvent(this, request, event)
                                 console.log('???', caught)

@@ -3,7 +3,6 @@ module.exports = async function (okay, name) {
     const Destructible = require('destructible')
     const fs = require('fs').promises
     const assert = require('assert')
-    const compare = require('../compare')
     const path = require('path')
     const rmrf = require('../rmrf')
     const directory = path.join(__dirname, 'tmp', name)
@@ -40,6 +39,11 @@ module.exports = async function (okay, name) {
     globalize(globalObject.IDBVersionChangeEvent)
     globalize(globalObject.IDBKeyRange)
     globalize(globalObject.IDBOpenDBRequest)
+    globalize(globalObject.IDBRequest)
+    const comparator = require('../compare')
+    const compare = function (left, right) {
+        return comparator(globalObject, left, right)
+    }
     if (process.versions.node.split('.')[0] < 15) {
         globalize(globalObject.Event)
     } else {

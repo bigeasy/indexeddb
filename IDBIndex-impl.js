@@ -1,4 +1,5 @@
 const IDBRequest = require('./living/generated/IDBRequest')
+const DOMException = require('domexception/lib/DOMException')
 
 const webidl = require('./living/generated/utils')
 
@@ -31,10 +32,10 @@ class IDBIndexImpl {
     get (query) {
         const request = IDBRequest.createImpl(this._globalObject, [], {})
         if (this._schema.isDeleted(this._index)) {
-            throw new InvalidStateError
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
         if (this._transaction._state != 'active') {
-            throw new TransactionInactiveError
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
         }
         if (!(query instanceof this._globalObject.IDBKeyRange)) {
             query = webidl.implForWrapper(this._globalObject.IDBKeyRange.only(query))
@@ -54,10 +55,10 @@ class IDBIndexImpl {
     getKey (query) {
         const request = IDBRequest.createImpl(this._globalObject, [], {})
         if (this._schema.isDeleted(this._index)) {
-            throw new InvalidStateError
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
         if (this._transaction._state != 'active') {
-            throw new TransactionInactiveError
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
         }
         if (!(query instanceof this._globalObject.IDBKeyRange)) {
             query = webidl.implForWrapper(this._globalObject.IDBKeyRange.only(query))

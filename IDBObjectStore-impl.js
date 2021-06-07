@@ -12,6 +12,8 @@ const IDBKeyRange = require('./living/generated/IDBKeyRange')
 const IDBCursorWithValue = require('./living/generated/IDBCursorWithValue')
 const DOMStringList = require('./living/generated/DOMStringList')
 
+const DOMException = require('domexception/lib/DOMException')
+
 const webidl = require('./living/generated/utils')
 
 // Not sure if IndexedDB API expects the same object store returned from every
@@ -48,19 +50,19 @@ class IDBObjectStoreImpl {
 
     _addOrPut (value, key, overwrite) {
         if (this._schema.isDeleted(this._store)) {
-            throw new InvalidStateError
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
         if (this._transaction._state != 'active') {
-            throw new TransactionInactiveError
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
         }
         if (this._transaction.mode == 'readonly') {
-            throw new ReadOnlyError
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'ReadOnlyError' ], {})
         }
         if (key != null && this._store.keyPath != null) {
-            throw new DataError
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'DataError' ], {})
         }
         if (key == null && this._store.autoIncrement == null && this._store.keyPath == null) {
-            throw new DataError
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'DataError' ], {})
         }
         value = Verbatim.deserialize(Verbatim.serialize(value))
         if (this._store.keyPath != null) {

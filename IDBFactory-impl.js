@@ -16,7 +16,7 @@ const { Queue } = require('avenue')
 const Destructible = require('destructible')
 const Memento = require('memento')
 
-const Compare = require('./compare')
+const comparator = require('./compare')
 
 const Transactor = require('./transactor')
 
@@ -29,6 +29,7 @@ const IDBOpenDBRequest = require('./living/generated/IDBOpenDBRequest')
 const IDBVersionChangeEvent = require('./living/generated/IDBVersionChangeEvent')
 const IDBDatabase = require('./living/generated/IDBDatabase')
 const IDBTransaction = require('./living/generated/IDBTransaction')
+const DOMException = require('domexception/lib/DOMException')
 
 const { createEventAccessor } = require('./living/helpers/create-event-accessor')
 const { dispatchEvent } = require('./dispatch')
@@ -209,7 +210,10 @@ class Opener {
                 // then sleep or something then our transact queue will close and we
                 // will call maybe close with an already closed db.
                 upgraded = true
+                debugger
             })
+            console.log('did finish')
+                debugger
             if (! upgraded) {
                 await opener.memento.snapshot(async snapshot => {
                     for await (const items of snapshot.cursor('schema').iterator()) {
@@ -237,7 +241,7 @@ class Opener {
             opener._maybeClose(db)
             request.result = undefined
             request.transaction = null
-            request.error = new AbortError
+            request.error = DOMException.create(globalObject, [ 'TODO: message', 'AbortError' ], {})
             dispatchEvent(null, request, Event.createImpl(globalObject, [ 'error', { bubbles: true, cancelable: true } ], {}))
             opener._transactor.queue.push({ method: 'close', extra: { db } })
             return { destructible: new Destructible('errored').destroy() }
@@ -275,7 +279,7 @@ class Connector {
         } else {
             const db = webidl.implForWrapper(request.result)
             db._closing = true
-            request.error = new VersionError
+            request.error = DOMException.create(this._globalObject, [ 'TODO: message', 'VersionError' ], {})
             this._opener._maybeClose(db)
             request.result = null
             dispatchEvent(null, request, Event.createImpl(this._globalObject, [ 'error' ], {}))
@@ -376,7 +380,7 @@ class IDBFactoryImpl {
 
         this._turnstile = new Turnstile(this.deferrable.durable('turnstile'))
 
-        this.cmp = Compare.create(globalObject)
+        this.cmp = function (left, right) { return comparator(globalObject, left, right) }
     }
 
     // IDBFactory.
