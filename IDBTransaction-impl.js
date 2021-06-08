@@ -55,6 +55,10 @@ class IDBTransactionImpl extends EventTargetImpl {
         return this._database
     }
 
+    _getTheParent() {
+        return this._database
+    }
+
     get error () {
     }
 
