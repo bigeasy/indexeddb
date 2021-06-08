@@ -36,30 +36,41 @@ const { dispatchEvent } = require('./dispatch')
 
 const webidl = require('./living/generated/utils')
 
-// An interim attempt to bridge the W3C Event based interface of IndexedDB with
-// the `async`/`await` interface of Memento. Assuming that eventually this works
-// reliably with no errors eminating from Memento, we do not want to impose a
-// promise resolution on the casual user. When a database shuts down in
-// IndexedDB, when all transactions on all connections complete, we want to
-// close the underlying Memento database. We do not want the user to have to
-// explicitly invoke `Destructible.destroy()` to cancel the queues.
+// We must implement a bridge between the W3C Event based interface of IndexedDB
+// with the `async`/`await` interface of Memento. Ideally we might be able to
+// map Memento environmental errors to the DOMException errors specified in the
+// IndexedDB interface.
 
-// Ideally we find a path for all errors to exit through the IndexedDB
-// interface, and ideally those errors are only related to environmental issues;
-// full disks or exhusted memory. We will always have a reporting mechanism
-// available to get the more detailed Memento error. The IndexedDB specification
-// provides a specific set of errors for reporting. Those errors to not allow
-// for more detailed reporting, there is no way to attach a nested error or the
-// like.
+// At this point, I don't see a future where the user will simply
+// `require('indexeddb')` and go. The user will always have to specify a
+// directory in which to store the databases, I don't want to have a guess at
+// that. As long as we have to implement a bootstrap interface, we may as well
+// make the user aware of and responsible fore the detailed exceptions that come
+// from `Destructible` and report them with any issues they open. Starting to
+// imagine that maybe there is an error file somewhere, though, and warnings
+// issues to standard error. If we could find a way to map the expected
+// environmental errors to IndexedDB DOMExceptions, like maybe a full disk is
+// mapped to a `QuotaError`, then maybe the `Destructible` error is reserved
+// only for truly exceptional conditions.
 
-// To get this ability to wind down we use a single root Destructible. You can
-// await on its Promise, or register a catch handler, to get the Interrupt
-// exception. The destructible will be a property of our IDBFactory
-// implementation. IDBFactory is an interface, after all, so our implementation
-// can have its own properties in addition.
+// And yet, we do want to be able to close the Memento automatically according
+// to the IndexedDB spec. That is closing the Memento store when the last
+// connection closes.
 
-// Within we'll have a Database class that maintains the Memento database,
-// counts the connections and the transactions per connection.
+// To facilitate this we have a collection of classes in this IDBFactory
+// implementation.
+//
+// The IDBFactory itself manages a collection of Connector
+// objects which manage the connection loop for a specific IndexedDB name (and
+// origin.) The Connector will perform a database delete.
+
+// The Connector will use an Opener to manage the Memento instance itself
+// creating connections, that is opening with possible upgrading, or else
+// creating a connection from the already-open Memento connection.
+
+// Two are race conditions concern me, the Connector creation and deletion and
+// the Opener creation and deletion. We'll call then the Connector race and the
+// Opener race.
 
 //
 class Opener {
@@ -67,7 +78,6 @@ class Opener {
         this.destructible = destructible
         this.directory = directory
         this.name = name
-        this._instance = Opener.count++
         this._transactor = new Transactor
         this.destructible.durable('transactions', this._transact(schema))
         this.opening = null
@@ -81,9 +91,6 @@ class Opener {
             }
         }
         // **TODO** No, it's a closing flag you're looking for.
-        for (const db of this._handles) {
-            console.log('>', db._closing)
-        }
         if (this._handles.some(connection => ! connection._closing)) {
             dispatchEvent(null, connection, Event.createImpl(globalObject, [ 'blocked' ], {}))
         }
@@ -92,8 +99,14 @@ class Opener {
         }
     }
 
+    // Opener race, if there are no handles we self-destruct. Once we are
+    // destroyed our Connector will create a new Opener. However, how do we know
+    // that a handle is not inbound on some path that has already checked
+    // destroy and proceeded? Are there any asynchronous pauses between that
+    // check and creation of an IDBDatabase instance? See below.
+
+    //
     _maybeClose (db) {
-        console.log(db._closing, db._transactions.size)
         if (db._closing && db._transactions.size == 0) {
             const index = this._handles.indexOf(db)
             if (~index) {
@@ -108,8 +121,14 @@ class Opener {
         }
     }
 
-    static count = 0
+    // Opener race, you can see the invocations below that reduce the
+    // transaction set size and check for delete. These are going to happen in
+    // ephemeral strands so that self-destruction in `_maybeClose` can occur at
+    // any time. We really have no guards on this side of the race except to say
+    // that the operations from transaction set reduction through
+    // self-destruction are all synchronous.
 
+    //
     async _transact (schema) {
         let count = 0
         for await (const event of this._transactor.queue.shifter()) {
@@ -123,9 +142,7 @@ class Opener {
                         } else {
                             await this.memento.mutator(mutator => transaction._run(mutator, schema, names))
                         }
-                        console.log(db._transactions.size)
                         db._transactions.delete(transaction)
-                        console.log(db._transactions.size)
                         this._maybeClose(db)
                         this._transactor.complete(names)
                     })
@@ -139,6 +156,13 @@ class Opener {
         }
     }
 
+    // Opener race. Our connection to a Memento that is already open is
+    // synchronous and it will occur in the same tick in which the Connector
+    // checks the destroyed property of our destructor, so we will be able to
+    // push a handle into the handle set and prevent `_maybeClose` from
+    // self-destructing.
+
+    //
     connect (globalObject, schema, name, { request }) {
         const db = IDBDatabase.createImpl(globalObject, [], {
             name,
@@ -146,13 +170,24 @@ class Opener {
             transactor: this._transactor,
             version: this._version
         })
-        console.log('--- CONNECT EXISTING ---')
         request.result = webidl.wrapperForImpl(db)
         this._handles.push(db)
     }
 
+    // Opener race. If we open a new Opener, then we have determined that our
+    // previous Opener has destroyed itself or else the versions are off and we
+    // are going to force the previous Opener to close with `'versionchange'`
+    // notifications so we can upgrade the database. We handle the upgrade
+    // transaction differently than the read and read/write transactions. We
+    // will run the upgrade transaction as part of this open function and we
+    // will call `_maybeClose` also as part of this function. So, this
+    // particular transaction will block the Connector's open/close loop so it
+    // will not perform any tests against our `Destructible`'s `destroyed`
+    // property, so we will be using the single-file open/close loop to guard
+    // against the Opener race.
+
+    //
     static async open (globalObject, comparator, destructible, root, directory, name, version, { request }) {
-        console.log('--- OPEN EXISTING ---', root)
         // **TODO** `version` should be a read-only property of the
         // Memento object.
         const opener = new Opener(destructible, root, directory, name)
@@ -193,7 +228,6 @@ class Opener {
                 schema.reset()
                 const paired = new Queue().shifter().paired
                 request.readyState = 'done'
-                console.log('-?-', this._globalObject)
                 transaction = IDBTransaction.createImpl(globalObject, [], { schema, database: db, mode: 'versionchange', previousVersion: upgrade.version.current })
                 request.transaction = webidl.wrapperForImpl(transaction)
                 db._transaction = transaction
@@ -212,13 +246,11 @@ class Opener {
                 upgraded = true
                 debugger
             })
-            console.log('did finish')
                 debugger
             if (! upgraded) {
                 await opener.memento.snapshot(async snapshot => {
                     for await (const items of snapshot.cursor('schema').iterator()) {
                         for (const item of items) {
-                            console.log('>>>>', item)
                             root.store[item.id] = item
                             root.name[item.name] = item.id
                             if (item.keyPath != null) {
@@ -272,6 +304,12 @@ class Connector {
         this._sleep.resolve()
     }
 
+    // Opener race. Consider finding a way to shoehorn this up into the Opener.
+    // It is synchronous and it is in any case invoked as part of the Connector
+    // open/close loop/queue so the `_maybeClose` so there are two ways in which
+    // it is protected against an Opener race.
+
+    //
     _checkVersion ({ request, version }) {
         if (version == null || this._opener.memento.version == version) {
             request.error = null
@@ -286,11 +324,16 @@ class Connector {
         }
     }
 
-    // Looks like a job for Turnstile, but I don't seem to be able to bring
-    // myself to get Turnstile up and running for this one. The spec implies
-    // that these loops should run in parallel for a database. I had them all in
-    // one loop but I don't want to encounter problems with deadlock that I
-    // cannot foresee and will never encouter myself.
+    // This may appear to be a job for Turnstile, or maybe Avenue, but the
+    // details of shutdown are so fiddly it is easier to implement as a for loop
+    // with a sleeping future. When the Connector's Opener is destroyed, the
+    // Connector can break from this loop and then destroy itself.
+
+    // Connector creation race is resolved by deleting the connector from the
+    // IDBFactory's map immediately upon exiting the connect loop so that the
+    // factory open or delete methods will see the empty slot in the map and
+    // create a new connector. The breaking from the loop and deleting side and
+    // checking the map side are both synchronous.
 
     //
     async _connect (schema) {
@@ -385,6 +428,11 @@ class IDBFactoryImpl {
 
     // IDBFactory.
 
+    // The only entry point. We map it to a Connector which we create if it does
+    // not exist. The Connector manages connection loop. The connection loop
+    // will open or delete a database. Opening is done with an Opener that
+    // manages one or more connections to an underlying Memento store.
+
     // Since this is the only entry, we are going to have it perform a double
     // duty of starting our background processes by launching a nested factory
     // implementation.
@@ -416,13 +464,13 @@ class IDBFactoryImpl {
         }
         const request = IDBOpenDBRequest.createImpl(this._globalObject)
         this._vivify(name).push({ method: 'open', request, version })
-        return webidl.wrapperForImpl(request)
+        return request
     }
 
     deleteDatabase (name) {
         const request = IDBOpenDBRequest.createImpl(this._globalObject)
         this._vivify(name).push({ method: 'delete', request })
-        return webidl.wrapperForImpl(request)
+        return request
     }
 }
 
