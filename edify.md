@@ -60,3 +60,6 @@ myself. It adds a lot of code to declare an identifier before you use it when
 you can just type it as you need it. If privacy is so dear the language should
 (and has) add support for private members that can still be referenced merely by
 typing out an identifier name.
+
+Add a note about the `true` hack that got event bubbling working, or not
+working, that is suppressed when bubbles is false.

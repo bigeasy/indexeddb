@@ -83,7 +83,7 @@ class IDBObjectStoreImpl {
         } else {
             key = valuify(this._globalObject, key)
         }
-        const request = IDBRequest.createImpl(this._globalObject)
+        const request = IDBRequest.createImpl(this._globalObject, [], { parent: this._transaction })
         this._transaction._queue.push({ method: 'set', request, store: this._store, key, value, overwrite })
         return webidl.wrapperForImpl(request)
     }

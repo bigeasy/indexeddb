@@ -149,6 +149,7 @@ class EventTargetImpl {
         relatedTarget = retarget(eventImpl.relatedTarget, parent);
 
         if (
+          true || // TODO Hack to get bubbling to work correctly.
           (isNode(parent) && isShadowInclusiveAncestor(nodeRoot(targetImpl), parent)) ||
           idlUtils.wrapperForImpl(parent).constructor.name === "Window"
         ) {
@@ -208,9 +209,11 @@ class EventTargetImpl {
       for (let i = 0; i < eventImpl._path.length; i++) {
         const struct = eventImpl._path[i];
 
+        console.log('???', !! struct.target, eventImpl.bubbles)
         if (struct.target !== null) {
           eventImpl.eventPhase = EVENT_PHASE.AT_TARGET;
         } else {
+            console.log('i bubble', eventImpl.bubbles)
           if (!eventImpl.bubbles) {
             continue;
           }

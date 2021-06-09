@@ -221,7 +221,8 @@ class IDBTransactionImpl extends EventTargetImpl {
                         transaction.set(index.qualified, { key: [ extracted, key ] })
                     }
                     transaction.set(store.qualified, record)
-                    dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
+                    console.log("SUCCESSING")
+                    dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success', { bubbles: false, cancelable: false }], {}))
                 }
                 break
             case 'get': {
