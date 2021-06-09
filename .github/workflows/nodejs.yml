@@ -23,6 +23,8 @@ jobs:
       run: npm ls
     - name: npm install nyc, prove, codecov
       run:  npm install -g nyc prove codecov
+    - name: generate WebIDL
+      run: node util/webidl.js
     - name: npm test
       run: nyc npm test
       env:
