@@ -21,7 +21,7 @@ jobs:
       run: npm install --no-package-lock
     - name: npm ls
       run: npm ls
-    - name: npm install nyc, prove, codecov
+    - name: npm install nyc, prove@9.0.6, codecov
       run:  npm install -g nyc prove codecov
     - name: generate WebIDL
       run: node util/webidl.js
