@@ -107,6 +107,7 @@ class Opener {
 
     //
     _maybeClose (db) {
+        console.log('>', db._closing, db._transactions.size)
         if (db._closing && db._transactions.size == 0) {
             const index = this._handles.indexOf(db)
             if (~index) {

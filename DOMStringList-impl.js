@@ -1,4 +1,4 @@
-const { supportsPropertyIndex } = require('./living/generated/utils')
+const { supportedPropertyIndices, supportsPropertyIndex } = require('./living/generated/utils')
 
 class DOMStringListImpl {
     constructor (globalObject, args, { array = [] }) {
@@ -19,6 +19,10 @@ class DOMStringListImpl {
 
     [supportsPropertyIndex]() {
         return true
+    }
+
+    get [supportedPropertyIndices]() {
+        return this._array.map((value, index) => index)
     }
 }
 

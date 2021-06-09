@@ -22,6 +22,7 @@ const IDBOpenDBRequest = require('./living/generated/IDBOpenDBRequest')
 const IDBVersionChangeEvent = require('./living/generated/IDBVersionChangeEvent')
 const IDBObjectStore = require('./living/generated/IDBObjectStore')
 
+const DOMStringList = require('./living/generated/DOMStringList')
 const DOMException = require('domexception/lib/DOMException')
 
 const EventTargetImpl = require('./living/idl/EventTarget-impl').implementation
@@ -29,7 +30,7 @@ const EventTargetImpl = require('./living/idl/EventTarget-impl').implementation
 const webidl = require('./living/generated/utils')
 
 class IDBTransactionImpl extends EventTargetImpl {
-    constructor (globalObject, args, { schema, database, mode, previousVersion }) {
+    constructor (globalObject, args, { schema, database, mode, names = [], previousVersion = null }) {
         super(globalObject, [], {})
         if (mode == null) {
             throw new Error
@@ -40,10 +41,13 @@ class IDBTransactionImpl extends EventTargetImpl {
         this._database = database
         this._queue = []
         this._mode = mode
+        this._names = names
         this._previousVersion = previousVersion
     }
 
     get objectStoreNames () {
+        const array = this._names.length == 0 ? this._schema.getObjectStoreNames().sort() : this._names.sort()
+        return DOMStringList.create(this._globalObject, [], { array })
     }
 
     get mode () {
@@ -176,6 +180,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                     if (! overwrite) {
                         const got = await transaction.get(store.qualified, [ key ])
                         if (got != null) {
+                            this.abort()
                             const event = Event.createImpl(this._globalObject, [ 'error', { bubbles: true, cancelable: true } ], {})
                             const error = DOMException.create(this._globalObject, [ 'Unique key constraint violation.', 'ConstraintError' ], {})
                             request.error = error

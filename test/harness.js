@@ -33,7 +33,7 @@ module.exports = async function (okay, name) {
     const { DBKeyRange } = require('../keyrange')
     globalize(DBKeyRange, 'IDBKeyRange')
     */
-    const destructible = new Destructible('harness')
+    const destructible = new Destructible(5000, 'harness')
     const globalObject = require('..')
     const indexedDB = globalObject.create(destructible, directory)
     globalize(globalObject.IDBVersionChangeEvent)
@@ -304,8 +304,18 @@ module.exports = async function (okay, name) {
         assert_equals(compare(actual, expected), 0, message)
     }
     globalize(assert_key_equals)
+    function toArray (list) {
+        if (list instanceof globalObject.DOMStringList) {
+            const copy = []
+            for (let i = 0; i < list.length; i++) {
+                copy.push(list.item(i))
+            }
+            return copy
+        }
+        return list
+    }
     function assert_array_equals (actual, expected, message) {
-        assert_equals(actual, expected, message)
+        assert_equals(toArray(actual), toArray(expected), message)
     }
     globalize(assert_array_equals)
     function assert_readonly (object, property, message) {
@@ -555,16 +565,18 @@ module.exports = async function (okay, name) {
         while (futures.length != 0) {
             await futures.shift().promise
         }
+        console.log('waited')
         while (janitors.length != 0) {
             janitors.shift()()
         }
         await destructible.destroy().promise
     }
     globalize(harness)
+    let nameCount = 0
     function indexeddb_test(upgrade_func, open_func, description, options) {
       async_test(function(t) {
         options = Object.assign({upgrade_will_abort: false}, options);
-        var dbname = location + '-' + t.name;
+        var dbname = location + '-' + t.name + '-' + (++nameCount);
         var del = indexedDB.deleteDatabase(dbname);
         del.onerror = t.unreached_func('deleteDatabase should succeed');
         var open = indexedDB.open(dbname, 1);

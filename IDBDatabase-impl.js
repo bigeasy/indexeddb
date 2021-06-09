@@ -34,7 +34,7 @@ class IDBDatabaseImpl extends EventTargetImpl  {
     }
 
     get objectStoreNames () {
-        return DOMStringList.create(this._globalObject, [], { array: this._schema.getObjectStoreNames() })
+        return DOMStringList.create(this._globalObject, [], { array: this._schema.getObjectStoreNames().sort() })
     }
 
     transaction (names, mode = 'readonly') {
@@ -47,6 +47,7 @@ class IDBDatabaseImpl extends EventTargetImpl  {
         if (typeof names == 'string') {
             names = [ names ]
         }
+        names = names.filter((name, index) => names.indexOf(name) == index)
         for (const name of names) {
             debugger
             if (! this._schema.getObjectStore(name)) {
@@ -59,7 +60,7 @@ class IDBDatabaseImpl extends EventTargetImpl  {
         if (mode != 'readonly' && mode != 'readwrite') {
             throw new TypeError
         }
-        const transaction = IDBTransaction.createImpl(this._globalObject, [], { schema: this._schema, database: this._database, mode })
+        const transaction = IDBTransaction.createImpl(this._globalObject, [], { schema: this._schema, names, database: this, mode })
         this._transactions.add(transaction)
         this._transactor.transaction({ db: this, transaction }, names, mode == 'readonly')
         return webidl.wrapperForImpl(transaction)
