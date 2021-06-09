@@ -91,7 +91,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                 dispatchEvent(null, request, Event.createImpl(this._globalObject, [ 'error' ], {}))
             }
         }
-        dispatchEvent(null, this, Event.createImpl(this._globalObject, [ 'abort', { cancelable: true } ], {}))
+        dispatchEvent(null, this, Event.createImpl(this._globalObject, [ 'abort', { bubbles: true, cancelable: true } ], {}))
     }
 
     async _item ({ request, cursor }) {
@@ -221,7 +221,6 @@ class IDBTransactionImpl extends EventTargetImpl {
                         transaction.set(index.qualified, { key: [ extracted, key ] })
                     }
                     transaction.set(store.qualified, record)
-                    console.log("SUCCESSING")
                     dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success', { bubbles: false, cancelable: false }], {}))
                 }
                 break
