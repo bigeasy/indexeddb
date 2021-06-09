@@ -41,8 +41,19 @@
                             "webidl2js":                    "16.2.0"
     },
     "main":                 "indexeddb",
+    "nyc":
+    {
+    },
     "scripts":
     {
                             "test": "proof test/*.t.js"
+    }
+    "nyc":
+    {
+                            "exclude": [
+                                "test/**",
+                                "living/**",
+                                "utils.js"
+                            ]
     }
 }
