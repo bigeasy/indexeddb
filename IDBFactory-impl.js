@@ -1,29 +1,40 @@
+// Node.js API.
 const assert = require('assert')
-
 const fs = require('fs').promises
 const path = require('path')
 
-const rmrf = require('./rmrf')
+// Do nothing.
+const noop = require('nop')
 
+// Catch exceptions by type or properties.
 const rescue = require('rescue')
 
+// In-memory model of IndexedDB schema.
 const Schema = require('./schema')
 
-const { extractify } = require('./extractor')
-
+// A future wrapper around a Promise.
 const { Future } = require('perhaps')
-const { Queue } = require('avenue')
+
+// Controlled demoltion of `async`/`await` stacks.
 const Destructible = require('destructible')
+
+// An `async`/`await` indexed, concurrent, transactional, persistent database.
 const Memento = require('memento')
 
+// IndexedDB key comparison implemenation.
 const comparator = require('./compare')
 
+// IndexedDB transaction scheduler implemenation.
 const Transactor = require('./transactor')
 
+// An evented, throttled work queue.
 const Turnstile = require('turnstile')
 
+// DOM interfaces swiped from JSDOM.
 const EventTarget = require('./living/generated/EventTarget')
 const Event = require('./living/generated/Event')
+
+// IndexedDB interfaces.
 const IDBRequest = require('./living/generated/IDBRequest')
 const IDBOpenDBRequest = require('./living/generated/IDBOpenDBRequest')
 const IDBVersionChangeEvent = require('./living/generated/IDBVersionChangeEvent')
@@ -31,10 +42,20 @@ const IDBDatabase = require('./living/generated/IDBDatabase')
 const IDBTransaction = require('./living/generated/IDBTransaction')
 const DOMException = require('domexception/lib/DOMException')
 
-const { createEventAccessor } = require('./living/helpers/create-event-accessor')
-const { dispatchEvent } = require('./dispatch')
-
+// WebIDL helpers.
 const webidl = require('./living/generated/utils')
+
+// Shim around recursive delete deprecation.
+const rmrf = require('./rmrf')
+
+// Create event accessors.
+const { createEventAccessor } = require('./living/helpers/create-event-accessor')
+
+// Extract keys from record objects.
+const { extractify } = require('./extractor')
+
+// Dispatch an event adjusted a transactions active state.
+const { dispatchEvent } = require('./dispatch')
 
 // We must implement a bridge between the W3C Event based interface of IndexedDB
 // with the `async`/`await` interface of Memento. Ideally we might be able to
@@ -74,25 +95,26 @@ const webidl = require('./living/generated/utils')
 
 //
 class Opener {
-    constructor (destructible, schema, directory, name, previous) {
+    constructor (destructible, connector) {
         this.destructible = destructible
-        this.directory = directory
-        this.name = name
+        this._connector = connector
         this._transactor = new Transactor
-        this.destructible.durable('transactions', this._transact(schema))
-        this.opening = null
         this._handles = []
+        this.destructible.durable('transactions', this._transact())
     }
 
-    async close (globalObject, event) {
+    // Close database for version change or delete.
+
+    //
+    async close (event) {
         for (const connection of this._handles) {
             if (! connection._closing) {
-                dispatchEvent(null, connection, Event.createImpl(globalObject, [ 'versionchange' ], {}))
+                dispatchEvent(null, connection, Event.createImpl(this._connector._factory._globalObject, [ 'versionchange' ], {}))
             }
         }
         // **TODO** No, it's a closing flag you're looking for.
         if (this._handles.some(connection => ! connection._closing)) {
-            dispatchEvent(null, connection, Event.createImpl(globalObject, [ 'blocked' ], {}))
+            dispatchEvent(null, connection, Event.createImpl(this._connector._factory._globalObject, [ 'blocked' ], {}))
         }
         for (const connection of this._handles) {
             await connection._closed.promise
@@ -107,7 +129,6 @@ class Opener {
 
     //
     _maybeClose (db) {
-        console.log('>', db._closing, db._transactions.size)
         if (db._closing && db._transactions.size == 0) {
             const index = this._handles.indexOf(db)
             if (~index) {
@@ -130,22 +151,21 @@ class Opener {
     // self-destruction are all synchronous.
 
     //
-    async _transact (schema) {
+    async _transact () {
         let count = 0
         for await (const event of this._transactor.queue.shifter()) {
             switch (event.method) {
             case 'transact': {
-                    const { names, extra: { db, transaction } } = event
+                    const { extra: { db, transaction } } = event
                     this.destructible.ephemeral(`transaction.${count++}`, async () => {
-                        // **TODO** How is this mutating????
                         if (transaction.mode == 'readonly') {
-                            await this.memento.snapshot(snapshot => transaction._run(snapshot, schema, names))
+                            await this.memento.snapshot(snapshot => transaction._run(snapshot))
                         } else {
-                            await this.memento.mutator(mutator => transaction._run(mutator, schema, names))
+                            await this.memento.mutator(mutator => transaction._run(mutator))
                         }
                         db._transactions.delete(transaction)
                         this._maybeClose(db)
-                        this._transactor.complete(names)
+                        this._transactor.complete(transaction._names)
                     })
                 }
             case 'close': {
@@ -164,12 +184,12 @@ class Opener {
     // self-destructing.
 
     //
-    connect (globalObject, schema, name, { request }) {
-        const db = IDBDatabase.createImpl(globalObject, [], {
-            name,
-            schema: new Schema(schema),
+    connect (schema, { request }) {
+        const db = IDBDatabase.createImpl(this._connector._factory._globalObject, [], {
+            name: this._connector._name,
+            schema: schema,
             transactor: this._transactor,
-            version: this._version
+            version: this._connector._version
         })
         request.result = webidl.wrapperForImpl(db)
         this._handles.push(db)
@@ -188,26 +208,30 @@ class Opener {
     // against the Opener race.
 
     //
-    static async open (globalObject, comparator, destructible, root, directory, name, version, { request }) {
+    static async open (destructible, connector, schema, { request }) {
         // **TODO** `version` should be a read-only property of the
         // Memento object.
-        const opener = new Opener(destructible, root, directory, name)
-        await fs.mkdir(path.join(directory, name), { recursive: true })
-        const paired = new Queue().shifter().paired
-        const schema = new Schema(root)
-        opener._version = version
-        const db = IDBDatabase.createImpl(globalObject, [], { name, schema, transactor: opener._transactor })
+        const opener = new Opener(destructible, connector)
+        await fs.mkdir(path.join(connector._factory._directory, connector._name), { recursive: true })
+        const db = IDBDatabase.createImpl(connector._factory._globalObject, [], {
+            name: connector._name,
+            schema: schema,
+            transactor: opener._transactor
+        })
         request.result = webidl.wrapperForImpl(db)
         opener._handles.push(db)
         let current, transaction
         try {
             let upgraded = false
+            // TODO Maybe Memento should have a version.current,
+            // version.previous? Snapshot and Mutator return a result from the
+            // user function, how would upgrade do same?
             opener.memento = await Memento.open({
                 destructible: destructible.durable('memento'),
                 turnstile: this._turnstile,
-                version: version,
-                directory: path.join(directory, name),
-                comparators: { indexeddb: comparator }
+                version: connector._version,
+                directory: path.join(connector._factory._directory, connector._name),
+                comparators: { indexeddb: connector._factory.cmp }
             }, async upgrade => {
                 current = upgrade.version.current
                 db.version = upgrade.version.target
@@ -215,27 +239,32 @@ class Opener {
                     await upgrade.store('schema', { 'id': Number })
                 }
                 const max = (await upgrade.cursor('schema').array()).pop()
-                schema.max = max ? max.id + 1 : 0
+                schema._root.max = max ? max.id + 1 : 0
                 // **TODO** Really need to do a join.
                 for await (const items of upgrade.cursor('schema').iterator()) {
                     for (const item of items) {
-                        root.store[item.id] = item
-                        root.name[item.name] = item.id
+                        schema._root.store[item.id] = item
+                        schema._root.name[item.name] = item.id
                         if (item.keyPath != null) {
-                            root.extractor[item.id] = extractify(item.keyPath)
+                            schema._root.extractor[item.id] = extractify(item.keyPath)
                         }
                     }
                 }
                 schema.reset()
-                const paired = new Queue().shifter().paired
                 request.readyState = 'done'
-                transaction = IDBTransaction.createImpl(globalObject, [], { schema, database: db, mode: 'versionchange', previousVersion: upgrade.version.current })
+                transaction = IDBTransaction.createImpl(connector._factory._globalObject, [], {
+                    schema: schema,
+                    database: db,
+                    mode: 'versionchange',
+                    previousVersion: upgrade.version.current
+                })
                 request.transaction = webidl.wrapperForImpl(transaction)
                 db._transaction = transaction
                 db._transactions.add(transaction)
                 request.error = null
-                const vce = IDBVersionChangeEvent.createImpl(globalObject, [ 'upgradeneeded', { newVersion: upgrade.version.target, oldVersion: upgrade.version.current } ], {})
-                dispatchEvent(transaction, request, vce)
+                dispatchEvent(transaction, request, IDBVersionChangeEvent.createImpl(connector._factory._globalObject, [
+                    'upgradeneeded', { newVersion: upgrade.version.target, oldVersion: upgrade.version.current }
+                ], {}))
                 await transaction._run(upgrade, [])
                 // **TODO** What to do if the database is closed before we can
                 // indicate success?
@@ -245,17 +274,15 @@ class Opener {
                 // then sleep or something then our transact queue will close and we
                 // will call maybe close with an already closed db.
                 upgraded = true
-                debugger
             })
-                debugger
             if (! upgraded) {
                 await opener.memento.snapshot(async snapshot => {
                     for await (const items of snapshot.cursor('schema').iterator()) {
                         for (const item of items) {
-                            root.store[item.id] = item
-                            root.name[item.name] = item.id
+                            schema._root.store[item.id] = item
+                            schema._root.name[item.name] = item.id
                             if (item.keyPath != null) {
-                                root.extractor[item.id] = extractify(item.keyPath)
+                                schema._root.extractor[item.id] = extractify(item.keyPath)
                             }
                         }
                     }
@@ -274,31 +301,46 @@ class Opener {
             opener._maybeClose(db)
             request.result = undefined
             request.transaction = null
-            request.error = DOMException.create(globalObject, [ 'TODO: message', 'AbortError' ], {})
-            dispatchEvent(null, request, Event.createImpl(globalObject, [ 'error', { bubbles: true, cancelable: true } ], {}))
+            request.error = DOMException.create(connector._factory._globalObject, [ 'TODO: message', 'AbortError' ], {})
+            dispatchEvent(null, request, Event.createImpl(connector._factory._globalObject, [
+                'error', { bubbles: true, cancelable: true }
+            ], {}))
             opener._transactor.queue.push({ method: 'close', extra: { db } })
             return { destructible: new Destructible('errored').destroy() }
         }
     }
 }
 
+// Manages the connection loop for a database origin and name.
+
+//
 class Connector {
-    constructor (factory, name) {
-        const schema = { name: {}, store: {}, max: 0, index: {}, extractor: {} }
-        this._opener = { destructible: new Destructible('opener').destroy() }
-        this.destructible = factory.deferrable.ephemeral($ => $(), `indexeddb.${name}`)
-        this._comparator = factory.cmp
-        this._globalObject = factory._globalObject
-        factory.deferrable.increment()
-        this.destructible.destruct(() => factory.deferrable.decrement())
-        this._directory = factory._directory
+    // Create a connector for the given name, use factory properties as needed.
+
+    //
+    constructor (destructible, factory, name) {
+        // Destructible for the current connection loop.
+        this.destructible = destructible
+        // Factory and name.
+        this._factory = factory
         this._name = name
-        this._map = factory._connectors
+        // Dummy previous opener, already destroyed.
+        this._opener = { destructible: new Destructible('opener').destroy() }
+        // Connection event loop and and notification signal.
         this._events = []
         this._sleep = Future.resolve()
-        this.destructible.durable('connections', this._connect(schema))
+        // Hold factory open until this connection is destroyed.
+        factory.deferrable.increment()
+        this.destructible.destruct(() => factory.deferrable.decrement())
+        // Start a connection loop.
+        this.destructible.durable('connections', this._connect({
+            name: {}, store: {}, max: 0, index: {}, extractor: {}
+        }))
     }
 
+    // Push an open or delete event onto connection queue.
+
+    //
     push (event) {
         assert(! this.destructible.destroyed)
         this._events.push(event)
@@ -314,14 +356,14 @@ class Connector {
     _checkVersion ({ request, version }) {
         if (version == null || this._opener.memento.version == version) {
             request.error = null
-            dispatchEvent(null, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
+            dispatchEvent(null, request, Event.createImpl(this._factory._globalObject, [ 'success' ], {}))
         } else {
             const db = webidl.implForWrapper(request.result)
             db._closing = true
-            request.error = DOMException.create(this._globalObject, [ 'TODO: message', 'VersionError' ], {})
+            request.error = DOMException.create(this._factory._globalObject, [ 'TODO: message', 'VersionError' ], {})
             this._opener._maybeClose(db)
             request.result = null
-            dispatchEvent(null, request, Event.createImpl(this._globalObject, [ 'error' ], {}))
+            dispatchEvent(null, request, Event.createImpl(this._factory._globalObject, [ 'error' ], {}))
         }
     }
 
@@ -355,17 +397,18 @@ class Connector {
             case 'open': {
                     if (this._opener.destructible.destroyed || (event.version != null && this._opener.memento.version < event.version)) {
                         if (! this._opener.destructible.destroyed) {
-                            await this._opener.close(this._globalObject, event)
+                            await this._opener.close(event)
                         }
                         this._version = event.version || 1
-                        this._opener = await Opener.open(this._globalObject, this._comparator, this.destructible.ephemeral('opener'), schema, this._directory, this._name, this._version, event)
+                        await this._opener.destructible.promise.catch(noop)
+                        this._opener = await Opener.open(this.destructible.ephemeral('opener'), this, new Schema(schema), event)
                         this._opener.destructible.promise.then(() => this._sleep.resolve())
                         // **TODO** Spaghetti.
                         if (this._opener.memento != null) {
                             this._checkVersion(event)
                         }
                     } else {
-                        this._opener.connect(this._globalObject, schema, this._name, event)
+                        this._opener.connect(new Schema(schema), event)
                         this._checkVersion(event)
                     }
                 }
@@ -373,9 +416,9 @@ class Connector {
             case 'delete': {
                     const { request } = event
                     if (! this._opener.destructible.destroyed) {
-                        await this._opener.close(this._globalObject, event)
+                        await this._opener.close(this._factory._globalObject, event)
                     }
-                    await rmrf(process.version, fs, path.join(this._directory, this._name))
+                    await rmrf(process.version, fs, path.join(this._factory._directory, this._name))
                     const id = schema.name[this._name]
                     if (id != null) {
                         delete schema.store[id]
@@ -386,12 +429,14 @@ class Connector {
                     request.error = null
                     delete request.result
                     request.readyState = 'done'
-                    dispatchEvent(null, event.request, IDBVersionChangeEvent.createImpl(this._globalObject, [ 'success', { oldVersion: this._version, newVersion: null } ], {}))
+                    dispatchEvent(null, event.request, IDBVersionChangeEvent.createImpl(this._factory._globalObject, [ 'success', {
+                        oldVersion: this._version, newVersion: null
+                    } ], {}))
                 }
                 break
             }
         }
-        delete this._map[this._name]
+        delete this._factory._connectors[this._name]
         this.destructible.destroy()
     }
 }
@@ -413,12 +458,6 @@ class IDBFactoryImpl {
         // close and delete are processed in order or an origin and name is
         // maintained, but the operations for different origin and name pairs do
         // not occur in parallel.
-
-        // The single connection queue for all origin and name pairs.
-        this._queue = new Queue
-
-        // Initialize the set of databases.
-        this._queue.push({ method: 'initialize' })
 
         this._connectors = {}
 
@@ -443,7 +482,7 @@ class IDBFactoryImpl {
 
     _vivify (name) {
         if (!(name in this._connectors)) {
-            this._connectors[name] = new Connector(this, name)
+            this._connectors[name] = new Connector(this.deferrable.ephemeral($ => $(), `indexeddb.${name}`), this, name)
         }
         return this._connectors[name]
     }

@@ -119,7 +119,7 @@ class IDBTransactionImpl extends EventTargetImpl {
     // most of the real work is here.
 
     //
-    async _run (transaction, names) {
+    async _run (transaction) {
         await new Promise(resolve => setImmediate(resolve))
         while (this._queue.length != 0) {
             const event = this._queue.shift()

@@ -13,6 +13,7 @@ class Schema {
     }
 
     constructor (root) {
+        // TODO Expose `root`.
         this._root = root
         this.reset()
     }

@@ -209,11 +209,9 @@ class EventTargetImpl {
       for (let i = 0; i < eventImpl._path.length; i++) {
         const struct = eventImpl._path[i];
 
-        console.log('???', !! struct.target, eventImpl.bubbles)
         if (struct.target !== null) {
           eventImpl.eventPhase = EVENT_PHASE.AT_TARGET;
         } else {
-            console.log('i bubble', eventImpl.bubbles)
           if (!eventImpl.bubbles) {
             continue;
           }
@@ -340,7 +338,6 @@ function innerInvokeEventListeners(eventImpl, listeners, phase, itemInShadowTree
     try {
       listener.callback.call(eventImpl.currentTarget, eventImpl);
     } catch (e) {
-        console.log(e.stack)
       if (window) {
         reportException(window, e);
       }
