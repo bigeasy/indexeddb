@@ -105,7 +105,8 @@ class Schema {
     }
 
     getIndexNames (storeName) {
-        return Object.keys(this.getObjectStore(storeName).index)
+        const store = this.getObjectStore(storeName)
+        return store ? Object.keys(store.index).sort() : []
     }
 
     getExtractor (id) {

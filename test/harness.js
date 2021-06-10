@@ -1096,5 +1096,105 @@ module.exports = async function (okay, name) {
     function timeoutPromise(ms) {
       return new Promise(resolve => { setTimeout(resolve, ms); });
     }
+    // Migrates an IndexedDB database whose name is unique for the test case.
+    //
+    // newVersion must be greater than the database's current version.
+    //
+    // migrationCallback will be called during a versionchange transaction and will
+    // given the created database, the versionchange transaction, and the database
+    // open request.
+    //
+    // Returns a promise. If the versionchange transaction goes through, the promise
+    // resolves to an IndexedDB database that should be closed by the caller. If the
+    // versionchange transaction is aborted, the promise resolves to an error.
+    function migrateDatabase(testCase, newVersion, migrationCallback) {
+      return migrateNamedDatabase(
+          testCase, databaseName(testCase), newVersion, migrationCallback);
+    }
+    globalize(migrateDatabase)
+
+    // Migrates an IndexedDB database.
+    //
+    // newVersion must be greater than the database's current version.
+    //
+    // migrationCallback will be called during a versionchange transaction and will
+    // given the created database, the versionchange transaction, and the database
+    // open request.
+    //
+    // Returns a promise. If the versionchange transaction goes through, the promise
+    // resolves to an IndexedDB database that should be closed by the caller. If the
+    // versionchange transaction is aborted, the promise resolves to an error.
+    function migrateNamedDatabase(
+        testCase, databaseName, newVersion, migrationCallback) {
+      // We cannot use eventWatcher.wait_for('upgradeneeded') here, because
+      // the versionchange transaction auto-commits before the Promise's then
+      // callback gets called.
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(databaseName, newVersion);
+        request.onupgradeneeded = testCase.step_func(event => {
+          const database = event.target.result;
+          const transaction = event.target.transaction;
+          let shouldBeAborted = false;
+          let requestEventPromise = null;
+
+          // We wrap IDBTransaction.abort so we can set up the correct event
+          // listeners and expectations if the test chooses to abort the
+          // versionchange transaction.
+          const transactionAbort = transaction.abort.bind(transaction);
+          transaction.abort = () => {
+            transaction._willBeAborted();
+            transactionAbort();
+          }
+          transaction._willBeAborted = () => {
+            requestEventPromise = new Promise((resolve, reject) => {
+              request.onerror = event => {
+                event.preventDefault();
+                resolve(event.target.error);
+              };
+              request.onsuccess = () => reject(new Error(
+                  'indexedDB.open should not succeed for an aborted ' +
+                  'versionchange transaction'));
+            });
+            shouldBeAborted = true;
+          }
+
+          // If migration callback returns a promise, we'll wait for it to resolve.
+          // This simplifies some tests.
+          const callbackResult = migrationCallback(database, transaction, request);
+          if (!shouldBeAborted) {
+            request.onerror = null;
+            request.onsuccess = null;
+            requestEventPromise = promiseForRequest(testCase, request);
+          }
+
+          // requestEventPromise needs to be the last promise in the chain, because
+          // we want the event that it resolves to.
+          resolve(Promise.resolve(callbackResult).then(() => requestEventPromise));
+        });
+        request.onerror = event => reject(event.target.error);
+        request.onsuccess = () => {
+          const database = request.result;
+          testCase.add_cleanup(() => { database.close(); });
+          reject(new Error(
+              'indexedDB.open should not succeed without creating a ' +
+              'versionchange transaction'));
+        };
+      }).then(databaseOrError => {
+        if (databaseOrError instanceof IDBDatabase)
+          testCase.add_cleanup(() => { databaseOrError.close(); });
+        return databaseOrError;
+      });
+    }
+
+    // Creates a 'not_books' object store used to test renaming into existing or
+    // deleted store names.
+    function createNotBooksStore(testCase, database) {
+      const store = database.createObjectStore('not_books');
+      store.createIndex('not_by_author', 'author');
+      store.createIndex('not_by_title', 'title', { unique: true });
+      return store;
+    }
+    globalize(createNotBooksStore)
+
     return futures
 }
