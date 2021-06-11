@@ -87,7 +87,8 @@ class IDBTransactionImpl extends EventTargetImpl {
             if ('request' in event) {
                 const { request } = event
                 delete request.result
-                request.error = DOMException.create(this._globalObject, [ 'TODO: message', 'AbortError' ], {})
+                request.readyState = 'done'
+                request._error = DOMException.create(this._globalObject, [ 'TODO: message', 'AbortError' ], {})
                 dispatchEvent(null, request, Event.createImpl(this._globalObject, [ 'error' ], {}))
             }
         }
@@ -101,6 +102,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                 cursor._outer.next = await cursor._outer.iterator.next()
                 if (cursor._outer.next.done) {
                     request.result = null
+                    request.readyState = 'done'
                     dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
                     break
                 } else {
@@ -108,6 +110,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                 }
             } else {
                 cursor._value = next.value
+                request.readyState = 'done'
                 dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
                 break
             }
@@ -183,7 +186,8 @@ class IDBTransactionImpl extends EventTargetImpl {
                             this.abort()
                             const event = Event.createImpl(this._globalObject, [ 'error', { bubbles: true, cancelable: true } ], {})
                             const error = DOMException.create(this._globalObject, [ 'Unique key constraint violation.', 'ConstraintError' ], {})
-                            request.error = error
+                            request.readyState = 'done'
+                            request._error = error
                             const caught = dispatchEvent(this, request, event)
                             console.log('???', caught)
                             break SWITCH
@@ -212,7 +216,8 @@ class IDBTransactionImpl extends EventTargetImpl {
                             if (got.length != 0) {
                                 const event = Event.createImpl(this._globalObject, [ 'error', { bubbles: true, cancelable: true } ], {})
                                 const error = DOMException.create(this._globalObject, [ 'Unique key constraint violation.', 'ConstraintError' ], {})
-                                request.error = error
+                                request.readyState = 'done'
+                                request._error = error
                                 const caught = dispatchEvent(this, request, event)
                                 console.log('???', caught)
                                 break SWITCH
@@ -221,6 +226,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                         transaction.set(index.qualified, { key: [ extracted, key ] })
                     }
                     transaction.set(store.qualified, record)
+                    request.readyState = 'done'
                     dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success', { bubbles: false, cancelable: false }], {}))
                 }
                 break

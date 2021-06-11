@@ -261,7 +261,6 @@ class Opener {
                 request.transaction = webidl.wrapperForImpl(transaction)
                 db._transaction = transaction
                 db._transactions.add(transaction)
-                request.error = null
                 dispatchEvent(transaction, request, IDBVersionChangeEvent.createImpl(connector._factory._globalObject, [
                     'upgradeneeded', { newVersion: upgrade.version.target, oldVersion: upgrade.version.current }
                 ], {}))
@@ -301,7 +300,8 @@ class Opener {
             opener._maybeClose(db)
             request.result = undefined
             request.transaction = null
-            request.error = DOMException.create(connector._factory._globalObject, [ 'TODO: message', 'AbortError' ], {})
+            request.readyState = 'done'
+            request._error = DOMException.create(connector._factory._globalObject, [ 'TODO: message', 'AbortError' ], {})
             dispatchEvent(null, request, Event.createImpl(connector._factory._globalObject, [
                 'error', { bubbles: true, cancelable: true }
             ], {}))
@@ -354,13 +354,13 @@ class Connector {
 
     //
     _checkVersion ({ request, version }) {
+        request.readyState = 'done'
         if (version == null || this._opener.memento.version == version) {
-            request.error = null
             dispatchEvent(null, request, Event.createImpl(this._factory._globalObject, [ 'success' ], {}))
         } else {
             const db = webidl.implForWrapper(request.result)
             db._closing = true
-            request.error = DOMException.create(this._factory._globalObject, [ 'TODO: message', 'VersionError' ], {})
+            request._error = DOMException.create(this._factory._globalObject, [ 'TODO: message', 'VersionError' ], {})
             this._opener._maybeClose(db)
             request.result = null
             dispatchEvent(null, request, Event.createImpl(this._factory._globalObject, [ 'error' ], {}))
@@ -426,7 +426,6 @@ class Connector {
                         delete schema.name[this._name]
                     }
                     request.source = null
-                    request.error = null
                     delete request.result
                     request.readyState = 'done'
                     dispatchEvent(null, event.request, IDBVersionChangeEvent.createImpl(this._factory._globalObject, [ 'success', {

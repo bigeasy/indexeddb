@@ -21,6 +21,7 @@ module.exports = async function (okay, name) {
         }
     }
     globalize('wpt', 'location')
+    globalize({ location: { pathname: 'wpt' } }, 'self')
     globalize({ title: 'wpt', location: 'wpt' }, 'document')
     //const { IDBDatabase } = require('../database')
     /*
