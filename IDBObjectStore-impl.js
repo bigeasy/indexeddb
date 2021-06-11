@@ -101,7 +101,7 @@ class IDBObjectStoreImpl {
     }
 
     clear () {
-        const request = IDBRequest.createImpl(this._globalObject)
+        const request = IDBRequest.createImpl(this._globalObject, [], { parent: this._transaction })
         this._transaction._queue.push({ method: 'clear', request, store: this._store })
         return request
     }
@@ -113,7 +113,7 @@ class IDBObjectStoreImpl {
         if (this._transaction._state != 'active') {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
         }
-        const request = IDBRequest.createImpl(this._globalObject)
+        const request = IDBRequest.createImpl(this._globalObject, {}, { parent: this._transaction })
         this._transaction._queue.push({ method: 'get', type: 'store', request, store: this._store, key })
         return webidl.wrapperForImpl(request)
     }
@@ -140,7 +140,7 @@ class IDBObjectStoreImpl {
         if (query == null) {
             query = IDBKeyRange.createImpl(this._globalObject, [ null, null ], {})
         }
-        const request = IDBRequest.createImpl(this._globalObject, [], {})
+        const request = IDBRequest.createImpl(this._globalObject, [], { parent: this._transaction })
         this._transaction._queue.push({ method: 'count', request, store: this._store, query })
         return request
     }
@@ -149,7 +149,7 @@ class IDBObjectStoreImpl {
         if (query == null) {
             query = IDBKeyRange.createImpl(this._globalObject, [ null, null ], {})
         }
-        const request = IDBRequest.createImpl(this._globalObject, [], {})
+        const request = IDBRequest.createImpl(this._globalObject, [], { parent: this._transaction })
         const cursor = IDBCursorWithValue.createImpl(this._globalObject, [], {
             transaction: this._transaction,
             request: request,

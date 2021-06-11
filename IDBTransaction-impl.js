@@ -82,14 +82,9 @@ class IDBTransactionImpl extends EventTargetImpl {
         // Mark any stores created by this transaction as deleted, then queue
         // them for actual destruction.
         //
-        while (this._queue.length != 0) {
-            const event = this._queue.shift()
-            if ('request' in event) {
-                const { request } = event
-                delete request.result
-                request.readyState = 'done'
-                request._error = DOMException.create(this._globalObject, [ 'TODO: message', 'AbortError' ], {})
-                dispatchEvent(null, request, Event.createImpl(this._globalObject, [ 'error' ], {}))
+        if (false) while (this._queue.length != 0) {
+            const { request } = this._queue.shift()
+            if (request != null) {
             }
         }
         dispatchEvent(null, this, Event.createImpl(this._globalObject, [ 'abort', { bubbles: true, cancelable: true } ], {}))
@@ -126,6 +121,16 @@ class IDBTransactionImpl extends EventTargetImpl {
         await new Promise(resolve => setImmediate(resolve))
         while (this._queue.length != 0) {
             const event = this._queue.shift()
+            if (this._state == 'finished') {
+                const { request } = event
+                if (request != null) {
+                    delete request.result
+                    request.readyState = 'done'
+                    request._error = DOMException.create(this._globalObject, [ 'TODO: message', 'AbortError' ], {})
+                    dispatchEvent(null, request, Event.createImpl(this._globalObject, [ 'error', { bubbles: true, cancelable: true } ], {}))
+                }
+                continue
+            }
             SWITCH: switch (event.method) {
             // Don't worry about rollback of the update to the schema object. We
             // are not going to use this object if the upgrade fails.
