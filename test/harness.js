@@ -347,6 +347,7 @@ module.exports = async function (okay, name) {
     function assert_throws_dom(type, func, description) {
         try {
             func.call(null)
+            okay(false, 'failed to throw ' + description)
         } catch (error) {
             if (error instanceof assert.AssertionError) {
                 throw error
@@ -418,13 +419,13 @@ module.exports = async function (okay, name) {
                 codeNames[codes[key]] = key
             }
 
-            okay({
+            assert_equals({
                 name: error.name,
                 code: error.code
             }, {
                 name: type,
                 code: codes[type],
-            }, `${scope.name} - assertion ${scope.count++}`)
+            }, description)
 
             if (typeof type == 'number') {
                 throw new Error
@@ -492,7 +493,6 @@ module.exports = async function (okay, name) {
                                    "Unhandled rejection with value: ${value}", {value:value});
                         }))
                     .then(function() {
-                        console.log('I AM DONE!!!!')
                         test.done();
                     });
                 });
@@ -554,6 +554,7 @@ module.exports = async function (okay, name) {
     }
     globalize(createdb)
     async function harness (f) {
+        destructible.promise.catch(error => console.log(error.stack))
         add_completion_callback(function () {
             for (const test of tests) {
                 if (test.db) {
@@ -566,7 +567,6 @@ module.exports = async function (okay, name) {
         while (futures.length != 0) {
             await futures.shift().promise
         }
-        console.log('waited')
         while (janitors.length != 0) {
             janitors.shift()()
         }
@@ -713,8 +713,6 @@ module.exports = async function (okay, name) {
                 if (timeoutPromise) {
                     timeoutPromise().then(timeout);
                 }
-
-                console.log('setting waitingFor')
 
                 waitingFor = {
                     types: types,
@@ -891,7 +889,6 @@ module.exports = async function (okay, name) {
     // close the database.
     function createNamedDatabase(testCase, databaseName, setupCallback) {
       const request = indexedDB.deleteDatabase(databaseName);
-      console.log('creating named database')
       return promiseForRequest(testCase, request).then(() => {
         testCase.add_cleanup(() => { indexedDB.deleteDatabase(databaseName); });
         return migrateNamedDatabase(testCase, databaseName, 1, setupCallback)

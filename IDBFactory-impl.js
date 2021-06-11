@@ -244,7 +244,12 @@ class Opener {
                 for await (const items of upgrade.cursor('schema').iterator()) {
                     for (const item of items) {
                         schema._root.store[item.id] = item
-                        schema._root.name[item.name] = item.id
+                        switch (item.type) {
+                        case 'store':
+                            schema._root.name[item.name] = item.id
+                            break
+                        case 'index':
+                        }
                         if (item.keyPath != null) {
                             schema._root.extractor[item.id] = extractify(item.keyPath)
                         }
@@ -294,6 +299,7 @@ class Opener {
             return opener
         } catch (error) {
             rescue(error, [{ symbol: Memento.Error.ROLLBACK }])
+            console.log('will abort error')
             db._transactions.delete(transaction)
             db._version = current
             db._closing = true

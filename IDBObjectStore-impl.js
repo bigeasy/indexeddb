@@ -107,6 +107,12 @@ class IDBObjectStoreImpl {
     }
 
     get (key) {
+        if (this._schema.isDeleted(this._store)) {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
+        }
+        if (this._transaction._state != 'active') {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
+        }
         const request = IDBRequest.createImpl(this._globalObject)
         this._transaction._queue.push({ method: 'get', type: 'store', request, store: this._store, key })
         return webidl.wrapperForImpl(request)
@@ -126,7 +132,10 @@ class IDBObjectStoreImpl {
 
     count (query) {
         if (this._schema.isDeleted(this._store)) {
-            throw new InvalidStateError
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
+        }
+        if (this._transaction._state != 'active') {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
         }
         if (query == null) {
             query = IDBKeyRange.createImpl(this._globalObject, [ null, null ], {})
