@@ -139,6 +139,8 @@ class IDBObjectStoreImpl {
         }
         if (query == null) {
             query = IDBKeyRange.createImpl(this._globalObject, [ null, null ], {})
+        } else if (! IDBKeyRange.is(query)) {
+            query = this._globalObject.IDBKeyRange.lowerBound(query)
         }
         const request = IDBRequest.createImpl(this._globalObject, [], { parent: this._transaction })
         this._transaction._queue.push({ method: 'count', request, store: this._store, query })

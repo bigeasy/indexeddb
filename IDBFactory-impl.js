@@ -100,7 +100,6 @@ class Opener {
         this._connector = connector
         this._transactor = new Transactor
         this._handles = []
-        this.destructible.durable('transactions', this._transact())
     }
 
     // Close database for version change or delete.
@@ -151,9 +150,9 @@ class Opener {
     // self-destruction are all synchronous.
 
     //
-    async _transact () {
+    async _transact (shifter) {
         let count = 0
-        for await (const event of this._transactor.queue.shifter()) {
+        for await (const event of shifter) {
             switch (event.method) {
             case 'transact': {
                     const { extra: { db, transaction } } = event
@@ -220,6 +219,7 @@ class Opener {
         })
         request.result = webidl.wrapperForImpl(db)
         opener._handles.push(db)
+        const shifter = opener._transactor.queue.shifter()
         let current, transaction
         try {
             let upgraded = false
@@ -279,6 +279,7 @@ class Opener {
                 // will call maybe close with an already closed db.
                 upgraded = true
             })
+            destructible.durable('transactions', opener._transact(shifter))
             if (! upgraded) {
                 await opener.memento.snapshot(async snapshot => {
                     for await (const items of snapshot.cursor('schema').iterator()) {

@@ -39,6 +39,7 @@ class IDBDatabaseImpl extends EventTargetImpl  {
 
     transaction (names, mode = 'readonly') {
         if (this._transaction != null) {
+            console.log('has upgrade transatction')
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
         if (this._closing) {
@@ -49,7 +50,6 @@ class IDBDatabaseImpl extends EventTargetImpl  {
         }
         names = names.filter((name, index) => names.indexOf(name) == index)
         for (const name of names) {
-            debugger
             if (! this._schema.getObjectStore(name)) {
                 throw DOMException.create(this._globalObject, [ 'TODO: message', 'NotFoundError' ], {})
             }
