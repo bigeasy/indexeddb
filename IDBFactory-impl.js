@@ -105,10 +105,12 @@ class Opener {
     // Close database for version change or delete.
 
     //
-    async close (event) {
+    async close (event, version) {
         for (const connection of this._handles) {
             if (! connection._closing) {
-                dispatchEvent(null, connection, Event.createImpl(this._connector._factory._globalObject, [ 'versionchange' ], {}))
+                dispatchEvent(null, connection, IDBVersionChangeEvent.createImpl(this._connector._factory._globalObject, [
+                    'versionchange', { oldVersion: this._connector._version, newVersion: version }
+                ], {}))
             }
         }
         // **TODO** No, it's a closing flag you're looking for.
@@ -407,7 +409,7 @@ class Connector {
             case 'open': {
                     if (this._opener.destructible.destroyed || (event.version != null && this._opener.memento.version < event.version)) {
                         if (! this._opener.destructible.destroyed) {
-                            await this._opener.close(event)
+                            await this._opener.close(event, event.version)
                         }
                         this._version = event.version || 1
                         await this._opener.destructible.promise.catch(noop)
@@ -426,7 +428,7 @@ class Connector {
             case 'delete': {
                     const { request } = event
                     if (! this._opener.destructible.destroyed) {
-                        await this._opener.close(this._factory._globalObject, event)
+                        await this._opener.close(this._factory._globalObject, event, null)
                     }
                     await rmrf(process.version, fs, path.join(this._factory._directory, this._name))
                     const id = schema.name[this._name]

@@ -290,7 +290,6 @@ class IDBTransactionImpl extends EventTargetImpl {
                     switch (store.type) {
                     case 'store': {
                             request.result = 0
-                            console.log('>>', query.lower)
                             let cursor = query.lower == null ? transaction.cursor(store.qualified) : transaction.cursor(store.qualified, [ query.lower ])
                             cursor = query.upper == null ? cursor : cursor.terminate(item => ! query.includes(item.key))
                             for await (const items of cursor.iterator()) {
