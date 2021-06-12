@@ -156,6 +156,9 @@ class Opener {
             switch (event.method) {
             case 'transact': {
                     const { extra: { db, transaction } } = event
+                    if (transaction._state == 'active') {
+                        transaction._state = 'inactive'
+                    }
                     this.destructible.ephemeral(`transaction.${count++}`, async () => {
                         if (transaction.mode == 'readonly') {
                             await this.memento.snapshot(snapshot => transaction._run(snapshot))

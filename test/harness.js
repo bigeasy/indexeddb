@@ -1193,6 +1193,47 @@ module.exports = async function (okay, name) {
       return store;
     }
     globalize(createNotBooksStore)
+    // Keeps the passed transaction alive indefinitely (by making requests
+    // against the named store). Returns a function that asserts that the
+    // transaction has not already completed and then ends the request loop so that
+    // the transaction may autocommit and complete.
+    function keep_alive(tx, store_name) {
+      let completed = false;
+      tx.addEventListener('complete', () => { completed = true; });
+
+      let keepSpinning = true;
+
+      function spin() {
+        if (!keepSpinning)
+          return;
+        tx.objectStore(store_name).get(0).onsuccess = spin;
+      }
+      spin();
+
+      return () => {
+        assert_false(completed, 'Transaction completed while kept alive');
+        keepSpinning = false;
+      };
+    }
+    globalize(keep_alive)
+    // Checks to see if the passed transaction is active (by making
+    // requests against the named store).
+    function is_transaction_active(tx, store_name) {
+      try {
+        const request = tx.objectStore(store_name).get(0);
+        request.onerror = e => {
+          e.preventDefault();
+          e.stopPropagation();
+        };
+        return true;
+      } catch (ex) {
+        assert_equals(ex.name, 'TransactionInactiveError',
+                      'Active check should either not throw anything, or throw ' +
+                      'TransactionInactiveError');
+        return false;
+      }
+    }
+    globalize(is_transaction_active)
 
     return futures
 }
