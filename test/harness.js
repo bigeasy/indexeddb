@@ -1235,5 +1235,15 @@ module.exports = async function (okay, name) {
     }
     globalize(is_transaction_active)
 
+    // Promise that resolves when an IDBTransaction completes.
+    //
+    // The promise resolves with undefined if IDBTransaction receives the "complete"
+    // event, and rejects with an error for any other event.
+    function promiseForTransaction(testCase, request) {
+      const eventWatcher = transactionWatcher(testCase, request);
+      return eventWatcher.wait_for('complete').then(() => {});
+    }
+    globalize(promiseForTransaction)
+
     return futures
 }

@@ -30,11 +30,12 @@ const EventTargetImpl = require('./living/idl/EventTarget-impl').implementation
 const webidl = require('./living/generated/utils')
 
 class IDBTransactionImpl extends EventTargetImpl {
-    constructor (globalObject, args, { schema, database, mode, names = [], previousVersion = null }) {
+    constructor (globalObject, args, { schema, database, mode, names = [], previousVersion = null, durability }) {
         super(globalObject, [], {})
         if (mode == null) {
             throw new Error
         }
+        this.durability = durability
         this._globalObject = globalObject
         this._schema = schema
         this._state = 'active'

@@ -31,24 +31,28 @@ require('arguable')(module, async arguable => {
     const cheerio = require('cheerio')
     const test = arguable.argv[0]
     const source = await fs.readFile(test, 'utf8')
-    const $ = cheerio.load(source)
     const $_ = require('programmatic')
     const includes = [], blocks = []
-    $('script').each(function () {
-        const src = this.attribs.src
-        if (src == null) {
-            blocks.push($_($(this).html()))
-        } else {
-            includes.push(src)
-        }
-    })
+    if (test.match(/\.any\.js$/)) {
+        blocks.push(source)
+    } else {
+        const $ = cheerio.load(source)
+        $('script').each(function () {
+            const src = this.attribs.src
+            if (src == null) {
+                blocks.push($_($(this).html()))
+            } else {
+                includes.push(src)
+            }
+        })
+    }
     const dir = path.dirname(test)
     const sources = []
     for (const block of blocks) {
         sources.push(block)
     }
     const count = (sources.join('\n').match(/(?:assert_throws_dom|assert_equals|assert_true|assert_false|assert_array_equals|assert_key_equals|assert_readonly|assert_throws_js)/g) || []).length
-    const name = path.basename(test).replace(/.html?$/, '')
+    const name = path.basename(test).replace(/(?:.html?|.any.js)$/, '')
     console.log(path.resolve(__dirname, `${name}.wpt.t.js`))
     await fs.writeFile(path.resolve(__dirname, `${name}.wpt.t.js`), $_(`
         require('proof')(${count}, async okay => {

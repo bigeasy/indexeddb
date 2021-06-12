@@ -37,7 +37,7 @@ class IDBDatabaseImpl extends EventTargetImpl  {
         return DOMStringList.create(this._globalObject, [], { array: this._schema.getObjectStoreNames().sort() })
     }
 
-    transaction (names, mode = 'readonly') {
+    transaction (names, mode, options) {
         if (this._transaction != null) {
             console.log('has upgrade transatction')
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
@@ -60,7 +60,7 @@ class IDBDatabaseImpl extends EventTargetImpl  {
         if (mode != 'readonly' && mode != 'readwrite') {
             throw new TypeError
         }
-        const transaction = IDBTransaction.createImpl(this._globalObject, [], { schema: this._schema, names, database: this, mode })
+        const transaction = IDBTransaction.createImpl(this._globalObject, [], { schema: this._schema, names, database: this, mode, durability: options.durability })
         this._transactions.add(transaction)
         this._transactor.transaction({ db: this, transaction }, names, mode == 'readonly')
         return webidl.wrapperForImpl(transaction)

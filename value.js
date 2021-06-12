@@ -30,7 +30,6 @@ const valuify = exports.valuify = function (globalObject, value) {
             throw DOMException.create(globalObject, [ 'TODO: message', 'DataError' ], {})
         }
     default:
-        console.log('>>>', globalObject)
         throw DOMException.create(globalObject, [ 'TODO: message', 'DataError' ], {})
     }
 }
