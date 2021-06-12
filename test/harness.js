@@ -234,6 +234,17 @@ module.exports = async function (okay, name) {
                 return step.apply(self, [ f, self ].concat(vargs))
             }
         }
+        step_func_done (f, self) {
+            if (arguments.length == 1) {
+                self = this
+            }
+            return function (...vargs) {
+                if (f) {
+                    this.step.apply(self, [ f, self ].concat(vargs))
+                }
+                this.done()
+            }.bind(this)
+        }
         add_cleanup (f) {
             this._janitors.push(f)
         }
@@ -1244,6 +1255,18 @@ module.exports = async function (okay, name) {
       return eventWatcher.wait_for('complete').then(() => {});
     }
     globalize(promiseForTransaction)
+
+
+    // Returns a new function. After it is called |count| times, |func|
+    // will be called.
+    function barrier_func(count, func) {
+      let n = 0;
+      return () => {
+        if (++n === count)
+          func();
+      };
+    }
+    globalize(barrier_func)
 
     return futures
 }

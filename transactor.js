@@ -36,7 +36,7 @@ class Transactor {
                     const queue = this._queues[iterator.name]
                     queue.waiting.shift()
                     if (queue.running == null) {
-                        queue.running = wait
+                        queue.running = { count: 1, readOnly: wait.readOnly }
                     } else {
                         queue.running.count++
                     }
@@ -62,8 +62,12 @@ class Transactor {
     complete (names) {
         for (const name of names) {
             const queue = this._queues[name]
-            if (--queue.running.count == 0) {
+            queue.running.count--
+            if (queue.running.count == 0) {
                 queue.running = null
+                if (queue.waiting.length == 0) {
+                    delete this._queues[name]
+                }
             }
         }
         this._startTransactions()

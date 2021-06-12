@@ -170,6 +170,7 @@ class Opener {
                         }
                         db._transactions.delete(transaction)
                         this._maybeClose(db)
+                        console.log('complete', transaction._names)
                         this._transactor.complete(transaction._names)
                     })
                 }
