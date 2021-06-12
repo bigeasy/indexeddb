@@ -106,19 +106,20 @@ class Opener {
 
     //
     async close (event, version) {
-        for (const connection of this._handles) {
-            if (! connection._closing) {
-                dispatchEvent(null, connection, IDBVersionChangeEvent.createImpl(this._connector._factory._globalObject, [
+        for (const db of this._handles) {
+            if (! db._closing) {
+                dispatchEvent(null, db, IDBVersionChangeEvent.createImpl(this._connector._factory._globalObject, [
                     'versionchange', { oldVersion: this._connector._version, newVersion: version }
                 ], {}))
             }
         }
-        // **TODO** No, it's a closing flag you're looking for.
-        if (this._handles.some(connection => ! connection._closing)) {
-            dispatchEvent(null, connection, Event.createImpl(this._connector._factory._globalObject, [ 'blocked' ], {}))
+        if (this._handles.some(db => ! db._closing)) {
+            dispatchEvent(null, event.request, Event.createImpl(this._connector._factory._globalObject, [
+                'blocked', { oldVersion: this._connector._version, newVersion: version }
+            ], {}))
         }
-        for (const connection of this._handles) {
-            await connection._closed.promise
+        for (const db of this._handles) {
+            await db._closed.promise
         }
     }
 
