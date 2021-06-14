@@ -72,10 +72,13 @@ class IDBDatabaseImpl extends EventTargetImpl  {
             throw new TypeError
         }
         if (this._transaction == null) {
-            throw new InvalidStateError
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
+        }
+        if (this._transaction._state == 'finished') {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
         if (this._transaction._state != 'active') {
-            throw new TransactionInactiveError
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
         }
         if (this._schema.getObjectStore(name) != null) {
             throw new ConstraintError
@@ -90,10 +93,13 @@ class IDBDatabaseImpl extends EventTargetImpl  {
             throw new TypeError
         }
         if (this._transaction == null) {
-            throw new InvalidStateError
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
+        }
+        if (this._transaction._state == 'finished') {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
         if (this._transaction._state != 'active') {
-            throw new TransactionInactiveError
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
         }
         const store = this._schema.getObjectStore(name)
         if (store == null) {
