@@ -281,6 +281,7 @@ class Opener {
                 // indicate success?
                 db._transactions.delete(transaction)
                 db._transaction = null
+                console.log('did null')
                 // **TODO** This creates a race. If we close as the last action and
                 // then sleep or something then our transact queue will close and we
                 // will call maybe close with an already closed db.
@@ -307,8 +308,8 @@ class Opener {
             return opener
         } catch (error) {
             rescue(error, [{ symbol: Memento.Error.ROLLBACK }])
-            console.log('will abort error')
             db._transactions.delete(transaction)
+            db._transaction = null
             db._version = current
             db._closing = true
             opener._maybeClose(db)
@@ -415,14 +416,14 @@ class Connector {
                         }
                         this._version = event.version || 1
                         await this._opener.destructible.promise.catch(noop)
-                        this._opener = await Opener.open(this.destructible.ephemeral('opener'), this, new Schema(schema), event)
+                        this._opener = await Opener.open(this.destructible.ephemeral('opener'), this, new Schema(this._globalObject, schema), event)
                         this._opener.destructible.promise.then(() => this._sleep.resolve())
                         // **TODO** Spaghetti.
                         if (this._opener.memento != null) {
                             this._checkVersion(event)
                         }
                     } else {
-                        this._opener.connect(new Schema(schema), event)
+                        this._opener.connect(new Schema(this._globalObject, schema), event)
                         this._checkVersion(event)
                     }
                 }

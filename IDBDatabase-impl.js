@@ -74,14 +74,18 @@ class IDBDatabaseImpl extends EventTargetImpl  {
         if (this._transaction == null) {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
-        if (this._transaction._state == 'finished') {
-            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
-        }
         if (this._transaction._state != 'active') {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
         }
+        if (this._transaction._state == 'finished') {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
+        }
+        if (keyPath != null) {
+            // **TODO** Duplicated, pass in generated extractor.
+            extractify(this._globalObject, keyPath)
+        }
         if (this._schema.getObjectStore(name) != null) {
-            throw new ConstraintError
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'ConstraintError' ], {})
         }
         const store = this._schema.createObjectStore(name, keyPath, autoIncrement)
         this._transaction._queue.push({ method: 'create', type: 'store', store: store })

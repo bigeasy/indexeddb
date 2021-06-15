@@ -1,4 +1,12 @@
-function extractify (path) {
+const DOMException = require('domexception/lib/DOMException')
+const identifier = new RegExp(`^${require('./identifier.json')}$`)
+
+function extractify (globalObject, path) {
+    if (path == null) {
+        console.log(new Error().stack)
+        process.exit(1)
+    }
+    console.log('.... called')
     function extractor (path) {
         if (path == '') {
             return function (object) {
@@ -6,6 +14,11 @@ function extractify (path) {
             }
         }
         const parts = path.split('.')
+        for (const part of parts) {
+            if (! identifier.test(part)) {
+                throw DOMException.create(globalObject, [ 'TODO: message', 'SyntaxError' ], {})
+            }
+        }
         // TODO Assert valid JavaScript identifier.
         return function (object) {
             let i = 0

@@ -341,6 +341,8 @@ class IDBTransactionImpl extends EventTargetImpl {
         }
         if (this._state == 'finished') {
             this._schema.reset()
+            // **TODO** I unset this here and in IDBFactory, so spaghetti.
+            this._database._transaction = null
             if (transaction.rollback) {
                 transaction.rollback()
             }

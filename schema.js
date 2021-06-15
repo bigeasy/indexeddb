@@ -12,7 +12,8 @@ class Schema {
         }
     }
 
-    constructor (root) {
+    constructor (globalObject, root) {
+        this._globalObject = globalObject
         // TODO Expose `root`.
         this._root = root
         this.reset()
@@ -33,7 +34,7 @@ class Schema {
         }
         this._pending.name[name] = id
         this._pending.extractor[id] = keyPath != null
-            ? extractify(keyPath)
+            ? extractify(this._globalObject, keyPath)
             : null
         return store
     }
@@ -83,7 +84,7 @@ class Schema {
             unique: unique
         }
         store.index[indexName] = indexId
-        this._pending.extractor[indexId] = extractify(keyPath)
+        this._pending.extractor[indexId] = extractify(this._globalObject, keyPath)
         return index
     }
 
