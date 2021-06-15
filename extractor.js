@@ -6,7 +6,6 @@ function extractify (globalObject, path) {
         console.log(new Error().stack)
         process.exit(1)
     }
-    console.log('.... called')
     function extractor (path) {
         if (path == '') {
             return function (object) {

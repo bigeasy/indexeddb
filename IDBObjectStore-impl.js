@@ -34,6 +34,8 @@ class IDBObjectStoreImpl {
         this._transaction = transaction
         this._schema = schema
         this._store = this._schema.getObjectStore(name)
+        this.keyPath = this._store.keyPath
+        this.autoIncrement = this._store.autoIncrement != null
     }
 
     get transaction () {

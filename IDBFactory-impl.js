@@ -170,7 +170,6 @@ class Opener {
                         }
                         db._transactions.delete(transaction)
                         this._maybeClose(db)
-                        console.log('complete', transaction._names)
                         this._transactor.complete(transaction._names)
                     })
                 }
@@ -258,7 +257,7 @@ class Opener {
                         case 'index':
                         }
                         if (item.keyPath != null) {
-                            schema._root.extractor[item.id] = extractify(item.keyPath)
+                            schema._root.extractor[item.id] = extractify(connector._factory._globalObject, item.keyPath)
                         }
                     }
                 }
@@ -281,7 +280,6 @@ class Opener {
                 // indicate success?
                 db._transactions.delete(transaction)
                 db._transaction = null
-                console.log('did null')
                 // **TODO** This creates a race. If we close as the last action and
                 // then sleep or something then our transact queue will close and we
                 // will call maybe close with an already closed db.
@@ -295,7 +293,7 @@ class Opener {
                             schema._root.store[item.id] = item
                             schema._root.name[item.name] = item.id
                             if (item.keyPath != null) {
-                                schema._root.extractor[item.id] = extractify(item.keyPath)
+                                schema._root.extractor[item.id] = extractify(connector._factory._globalObject, item.keyPath)
                             }
                         }
                     }
@@ -431,7 +429,7 @@ class Connector {
             case 'delete': {
                     const { request } = event
                     if (! this._opener.destructible.destroyed) {
-                        await this._opener.close(this._factory._globalObject, event, null)
+                        await this._opener.close(event, null)
                     }
                     await rmrf(process.version, fs, path.join(this._factory._directory, this._name))
                     const id = schema.name[this._name]

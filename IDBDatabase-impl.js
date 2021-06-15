@@ -77,9 +77,6 @@ class IDBDatabaseImpl extends EventTargetImpl  {
         if (this._transaction._state != 'active') {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
         }
-        if (this._transaction._state == 'finished') {
-            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
-        }
         if (keyPath != null) {
             // **TODO** Duplicated, pass in generated extractor.
             extractify(this._globalObject, keyPath)
@@ -97,9 +94,6 @@ class IDBDatabaseImpl extends EventTargetImpl  {
             throw new TypeError
         }
         if (this._transaction == null) {
-            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
-        }
-        if (this._transaction._state == 'finished') {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
         if (this._transaction._state != 'active') {
