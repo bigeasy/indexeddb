@@ -157,7 +157,7 @@ class IDBObjectStoreImpl {
             request: request,
             query: query
         })
-        request.result = webidl.wrapperForImpl(cursor)
+        request._result = webidl.wrapperForImpl(cursor)
         this._transaction._queue.push({ method: 'openCursor', request, store: this._store, cursor, direction })
         return webidl.wrapperForImpl(request)
     }

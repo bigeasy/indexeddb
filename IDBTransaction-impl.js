@@ -97,7 +97,7 @@ class IDBTransactionImpl extends EventTargetImpl {
             if (next.done) {
                 cursor._outer.next = await cursor._outer.iterator.next()
                 if (cursor._outer.next.done) {
-                    request.result = null
+                    request._result = null
                     request.readyState = 'done'
                     dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
                     break
@@ -125,7 +125,7 @@ class IDBTransactionImpl extends EventTargetImpl {
             if (this._state == 'finished') {
                 const { request } = event
                 if (request != null) {
-                    delete request.result
+                    delete request._result
                     request.readyState = 'done'
                     request._error = DOMException.create(this._globalObject, [ 'TODO: message', 'AbortError' ], {})
                     dispatchEvent(null, request, Event.createImpl(this._globalObject, [ 'error', { bubbles: true, cancelable: true } ], {}))
@@ -199,7 +199,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                             break SWITCH
                         }
                     }
-                    request.result = key
+                    request._result = key
                     const record = { key, value }
                     for (const indexName in store.index) {
                         const index = this._schema.getIndex(store.name, indexName)
@@ -242,7 +242,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                             const { store, key, request } = event
                             const got = await transaction.get(store.qualified, [ key ])
                             if (got != null) {
-                                request.result = Verbatim.deserialize(Verbatim.serialize(got.value))
+                                request._result = Verbatim.deserialize(Verbatim.serialize(got.value))
                             }
                             request.readyState = 'done'
                             dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
@@ -255,7 +255,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                                                               .array()
                             if (indexGot.length != 0) {
                                 const got = await transaction.get(store.qualified, [ indexGot[0].key[1] ])
-                                request.result = Verbatim.deserialize(Verbatim.serialize(key ? got.key : got.value))
+                                request._result = Verbatim.deserialize(Verbatim.serialize(key ? got.key : got.value))
                             }
                             request.readyState = 'done'
                             dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
@@ -273,7 +273,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                     cursor._outer = { iterator: builder.iterator()[Symbol.asyncIterator](), next: null }
                     cursor._outer.next = await cursor._outer.iterator.next()
                     if (cursor._outer.next.done) {
-                        request.result = null
+                        request._result = null
                         request.readyState = 'done'
                         dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
                     } else {
@@ -290,12 +290,12 @@ class IDBTransactionImpl extends EventTargetImpl {
                     const { store, request, query } = event
                     switch (store.type) {
                     case 'store': {
-                            request.result = 0
+                            request._result = 0
                             let cursor = query.lower == null ? transaction.cursor(store.qualified) : transaction.cursor(store.qualified, [ query.lower ])
                             cursor = query.upper == null ? cursor : cursor.terminate(item => ! query.includes(item.key))
                             for await (const items of cursor.iterator()) {
                                 for (const item of items) {
-                                    request.result++
+                                    request._result++
                                 }
                             }
                             request.readyState = 'done'

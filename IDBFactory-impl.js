@@ -197,7 +197,7 @@ class Opener {
             transactor: this._transactor,
             version: this._connector._version
         })
-        request.result = webidl.wrapperForImpl(db)
+        request._result = webidl.wrapperForImpl(db)
         this._handles.push(db)
     }
 
@@ -224,7 +224,7 @@ class Opener {
             schema: schema,
             transactor: opener._transactor
         })
-        request.result = webidl.wrapperForImpl(db)
+        request._result = webidl.wrapperForImpl(db)
         opener._handles.push(db)
         const shifter = opener._transactor.queue.shifter()
         let current, transaction
@@ -312,7 +312,7 @@ class Opener {
             db._version = current
             db._closing = true
             opener._maybeClose(db)
-            request.result = undefined
+            request._result = undefined
             request.transaction = null
             request.readyState = 'done'
             request._error = DOMException.create(connector._factory._globalObject, [ 'TODO: message', 'AbortError' ], {})
@@ -372,11 +372,11 @@ class Connector {
         if (version == null || this._opener.memento.version == version) {
             dispatchEvent(null, request, Event.createImpl(this._factory._globalObject, [ 'success' ], {}))
         } else {
-            const db = webidl.implForWrapper(request.result)
+            const db = webidl.implForWrapper(request._result)
             db._closing = true
             request._error = DOMException.create(this._factory._globalObject, [ 'TODO: message', 'VersionError' ], {})
             this._opener._maybeClose(db)
-            request.result = null
+            request._result = null
             dispatchEvent(null, request, Event.createImpl(this._factory._globalObject, [ 'error' ], {}))
         }
     }
@@ -440,7 +440,7 @@ class Connector {
                         delete schema.name[this._name]
                     }
                     request.source = null
-                    delete request.result
+                    delete request._result
                     request.readyState = 'done'
                     dispatchEvent(null, event.request, IDBVersionChangeEvent.createImpl(this._factory._globalObject, [ 'success', {
                         oldVersion: this._version, newVersion: null

@@ -29,6 +29,13 @@ class IDBRequestImpl extends EventTargetImpl {
         return this._error
     }
 
+    get result () {
+        if (this.readyState != 'done') {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
+        }
+        return this._result
+    }
+
     // Events will propagate from the request to the transaction that originated
     // the request to the database object.
     //
