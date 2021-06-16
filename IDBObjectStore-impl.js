@@ -170,14 +170,14 @@ class IDBObjectStoreImpl {
 
     index (name) {
         if (this._schema.isDeleted(this._store)) {
-            throw new InvalidStateError
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
         if (this._transaction._state == 'finished') {
-            throw new InvalidStateError
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
         const index = this._schema.getIndex(this._store.name, name)
         if (index == null) {
-            throw new NotFoundError
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'NotFoundError' ], {})
         }
         return IDBIndex.create(this._globalObject, [], {
             transaction: this._transaction,

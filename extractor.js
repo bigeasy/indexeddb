@@ -1,10 +1,9 @@
 const DOMException = require('domexception/lib/DOMException')
 const identifier = new RegExp(`^${require('./identifier.json')}$`)
 
-function extractify (globalObject, path) {
-    if (path == null) {
-        console.log(new Error().stack)
-        process.exit(1)
+function extractify (globalObject, path, autoIncrement) {
+    if (path === '' && autoIncrement) {
+        throw DOMException.create(globalObject, [ 'TODO: message', 'InvalidAccessError' ], {})
     }
     function extractor (path) {
         if (path == '') {
@@ -31,6 +30,12 @@ function extractify (globalObject, path) {
         return extractor(path)
     }
     if (Array.isArray(path)) {
+        if (path.length == 0) {
+            throw DOMException.create(globalObject, [ 'TODO: message', 'SyntaxError' ], {})
+        }
+        if (autoIncrement) {
+            throw DOMException.create(globalObject, [ 'TODO: message', 'InvalidAccessError' ], {})
+        }
         const fields = []
         for (const field of path) {
             fields.push(extractor(field))
@@ -39,7 +44,7 @@ function extractify (globalObject, path) {
             return fields.map(field => field(object))
         }
     }
-    throw new Error
+    throw DOMException.create(globalObject, [ 'TODO: message', 'SyntaxError' ], {})
 }
 
 exports.extractify = extractify

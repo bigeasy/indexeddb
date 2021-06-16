@@ -79,7 +79,7 @@ class IDBDatabaseImpl extends EventTargetImpl  {
         }
         if (keyPath != null) {
             // **TODO** Duplicated, pass in generated extractor.
-            extractify(this._globalObject, keyPath)
+            extractify(this._globalObject, keyPath, autoIncrement)
         }
         if (this._schema.getObjectStore(name) != null) {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'ConstraintError' ], {})
@@ -101,7 +101,7 @@ class IDBDatabaseImpl extends EventTargetImpl  {
         }
         const store = this._schema.getObjectStore(name)
         if (store == null) {
-            throw new NotFoundError
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'NotFoundError' ], {})
         }
         this._schema.deleteObjectStore(name)
         this._transaction._queue.push({ method: 'destroy', store: store })

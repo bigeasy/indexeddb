@@ -33,7 +33,7 @@ class Schema {
         }
         this._pending.name[name] = id
         this._pending.extractor[id] = keyPath != null
-            ? extractify(this._globalObject, keyPath)
+            ? extractify(this._globalObject, keyPath, autoIncrement)
             : null
         return store
     }
@@ -83,7 +83,7 @@ class Schema {
             unique: unique
         }
         store.index[indexName] = indexId
-        this._pending.extractor[indexId] = extractify(this._globalObject, keyPath)
+        this._pending.extractor[indexId] = extractify(this._globalObject, keyPath, false)
         return index
     }
 

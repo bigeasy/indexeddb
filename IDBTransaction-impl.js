@@ -152,7 +152,9 @@ class IDBTransactionImpl extends EventTargetImpl {
                             for await (const items of transaction.cursor(store.qualified).iterator()) {
                                 for (const item of items) {
                                     const extracted = extractor(item.value)
-                                    transaction.set(index.qualified, { key: [ extracted, item.key ] })
+                                    if (extracted != null) {
+                                        transaction.set(index.qualified, { key: [ extracted, item.key ] })
+                                    }
                                 }
                             }
                             if (index.unique) {
@@ -202,7 +204,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                     request._result = key
                     const record = { key, value }
                     for (const indexName in store.index) {
-                        const index = this._schema.getIndex(store.name, indexName)
+                        const index = this._schema._pending.store[store.index[indexName]]
                         if (! index.extant) {
                             continue
                         }
