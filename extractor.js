@@ -1,10 +1,7 @@
 const DOMException = require('domexception/lib/DOMException')
 const identifier = new RegExp(`^${require('./identifier.json')}$`)
 
-function extractify (globalObject, path, autoIncrement) {
-    if (path === '' && autoIncrement) {
-        throw DOMException.create(globalObject, [ 'TODO: message', 'InvalidAccessError' ], {})
-    }
+exports.create = function (path) {
     function extractor (path) {
         if (path == '') {
             return function (object) {
@@ -12,12 +9,6 @@ function extractify (globalObject, path, autoIncrement) {
             }
         }
         const parts = path.split('.')
-        for (const part of parts) {
-            if (! identifier.test(part)) {
-                throw DOMException.create(globalObject, [ 'TODO: message', 'SyntaxError' ], {})
-            }
-        }
-        // TODO Assert valid JavaScript identifier.
         return function (object) {
             let i = 0
             while (object != null && parts.length != i) {
@@ -28,14 +19,7 @@ function extractify (globalObject, path, autoIncrement) {
     }
     if (typeof path == 'string') {
         return extractor(path)
-    }
-    if (Array.isArray(path)) {
-        if (path.length == 0) {
-            throw DOMException.create(globalObject, [ 'TODO: message', 'SyntaxError' ], {})
-        }
-        if (autoIncrement) {
-            throw DOMException.create(globalObject, [ 'TODO: message', 'InvalidAccessError' ], {})
-        }
+    } else {
         const fields = []
         for (const field of path) {
             fields.push(extractor(field))
@@ -44,7 +28,32 @@ function extractify (globalObject, path, autoIncrement) {
             return fields.map(field => field(object))
         }
     }
-    throw DOMException.create(globalObject, [ 'TODO: message', 'SyntaxError' ], {})
 }
 
-exports.extractify = extractify
+exports.verify = function (globalObject, keyPath) {
+    function verify (path) {
+        if (typeof path != 'string') {
+            throw DOMException.create(globalObject, [ 'TODO: message ' + path, 'SyntaxError' ], {})
+        }
+        if (path == '') {
+            return false
+        }
+        const parts = path.split('.')
+        for (const part of parts) {
+            if (! identifier.test(part)) {
+                throw DOMException.create(globalObject, [ 'TODO: message ' + part, 'SyntaxError' ], {})
+            }
+        }
+        return true
+    }
+    if (Array.isArray(keyPath)) {
+        if (keyPath.length == 0) {
+            throw DOMException.create(globalObject, [ 'TODO: message', 'SyntaxError' ], {})
+        }
+        for (const path of keyPath) {
+            verify(path)
+        }
+        return false
+    }
+    return verify(keyPath)
+}

@@ -52,7 +52,7 @@ const rmrf = require('./rmrf')
 const { createEventAccessor } = require('./living/helpers/create-event-accessor')
 
 // Extract keys from record objects.
-const { extractify } = require('./extractor')
+const extractor = require('./extractor')
 
 // Dispatch an event adjusted a transactions active state.
 const { dispatchEvent } = require('./dispatch')
@@ -257,7 +257,7 @@ class Opener {
                         case 'index':
                         }
                         if (item.keyPath != null) {
-                            schema._root.extractor[item.id] = extractify(connector._factory._globalObject, item.keyPath)
+                            schema._root.extractor[item.id] = extractor.create(item.keyPath)
                         }
                     }
                 }
@@ -293,7 +293,7 @@ class Opener {
                             schema._root.store[item.id] = item
                             schema._root.name[item.name] = item.id
                             if (item.keyPath != null) {
-                                schema._root.extractor[item.id] = extractify(connector._factory._globalObject, item.keyPath)
+                                schema._root.extractor[item.id] = extractor.create(item.keyPath)
                             }
                         }
                     }
@@ -414,14 +414,14 @@ class Connector {
                         }
                         this._version = event.version || 1
                         await this._opener.destructible.promise.catch(noop)
-                        this._opener = await Opener.open(this.destructible.ephemeral('opener'), this, new Schema(this._globalObject, schema), event)
+                        this._opener = await Opener.open(this.destructible.ephemeral('opener'), this, new Schema(schema), event)
                         this._opener.destructible.promise.then(() => this._sleep.resolve())
                         // **TODO** Spaghetti.
                         if (this._opener.memento != null) {
                             this._checkVersion(event)
                         }
                     } else {
-                        this._opener.connect(new Schema(this._globalObject, schema), event)
+                        this._opener.connect(new Schema(schema), event)
                         this._checkVersion(event)
                     }
                 }

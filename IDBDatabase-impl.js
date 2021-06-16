@@ -1,4 +1,4 @@
-const { extractify } = require('./extractor')
+const extractor = require('./extractor')
 const { createEventAccessor } = require('./living/helpers/create-event-accessor')
 
 const { Future } = require('perhaps')
@@ -77,12 +77,12 @@ class IDBDatabaseImpl extends EventTargetImpl  {
         if (this._transaction._state != 'active') {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
         }
-        if (keyPath != null) {
-            // **TODO** Duplicated, pass in generated extractor.
-            extractify(this._globalObject, keyPath, autoIncrement)
-        }
+        const canAutoIncrement = keyPath == null || extractor.verify(this._globalObject, keyPath)
         if (this._schema.getObjectStore(name) != null) {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'ConstraintError' ], {})
+        }
+        if (autoIncrement && ! canAutoIncrement) {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidAccessError' ], {})
         }
         const store = this._schema.createObjectStore(name, keyPath, autoIncrement)
         this._transaction._queue.push({ method: 'create', type: 'store', store: store })

@@ -338,7 +338,6 @@ function innerInvokeEventListeners(eventImpl, listeners, phase, itemInShadowTree
     try {
       listener.callback.call(eventImpl.currentTarget, eventImpl);
     } catch (e) {
-        console.log(e.stack)
       if (window) {
         reportException(window, e);
       }

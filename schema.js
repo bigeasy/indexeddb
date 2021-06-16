@@ -1,6 +1,6 @@
 const assert = require('assert')
 
-const { extractify } = require('./extractor')
+const extractor = require('./extractor')
 
 class Schema {
     static root (max) {
@@ -12,8 +12,7 @@ class Schema {
         }
     }
 
-    constructor (globalObject, root) {
-        this._globalObject = globalObject
+    constructor (root) {
         // TODO Expose `root`.
         this._root = root
         this.reset()
@@ -32,9 +31,7 @@ class Schema {
             index: {}
         }
         this._pending.name[name] = id
-        this._pending.extractor[id] = keyPath != null
-            ? extractify(this._globalObject, keyPath, autoIncrement)
-            : null
+        this._pending.extractor[id] = keyPath != null ? extractor.create(keyPath) : null
         return store
     }
 
@@ -83,7 +80,7 @@ class Schema {
             unique: unique
         }
         store.index[indexName] = indexId
-        this._pending.extractor[indexId] = extractify(this._globalObject, keyPath, false)
+        this._pending.extractor[indexId] = extractor.create(keyPath)
         return index
     }
 

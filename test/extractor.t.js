@@ -1,11 +1,11 @@
 require('proof')(4, okay => {
-    const { extractify } = require('../extractor')
-    okay(extractify(null, 'key')({ key: 1 }), 1, 'single')
-    okay(extractify(null, '')([]), [], 'no path')
-    okay(extractify(null, [ 'key', 'value' ])({ key: 1, value: 2 }), [ 1, 2 ], 'array')
+    const extractor = require('../extractor')
+    okay(extractor.create('key')({ key: 1 }), 1, 'single')
+    okay(extractor.create('')([]), [], 'no path')
+    okay(extractor.create([ 'key', 'value' ])({ key: 1, value: 2 }), [ 1, 2 ], 'array')
     const errors = []
     try {
-        extractify(null, {})
+        extractor.create(null, {})
     } catch (e) {
         errors.push(true)
     }

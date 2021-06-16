@@ -2,8 +2,8 @@ require('proof')(26, okay => {
     const Schema = require('../schema')
     const root = Schema.root(0)
     {
-        const isolated = new Schema(null, root)
-        const pending = new Schema(null, root)
+        const isolated = new Schema(root)
+        const pending = new Schema(root)
         okay(pending.getObjectStore('store'), null, 'not found')
         okay(pending.createObjectStore('store', null, null).id, 1, 'create object store')
         okay(pending.getExtractor(1), null, 'no extractor')
@@ -17,7 +17,7 @@ require('proof')(26, okay => {
         pending.merge()
         okay(isolated.getIndex('store', 'index'), null, 'isolated index still not found')
         okay(typeof isolated.getExtractor(2), 'function', 'isolated can see extractor')
-        const subsequent = new Schema(null, root)
+        const subsequent = new Schema(root)
         okay(subsequent.getObjectStore('store').name, 'store', 'subsequent schema store found')
         okay(subsequent.getIndex('store', 'index').name, 'index', 'subsequent schema index found')
         okay(subsequent.createIndex('store', 'index2', 'value', true, true).id, 3, 'subsequent create index')
@@ -27,8 +27,8 @@ require('proof')(26, okay => {
         subsequent.merge()
     }
     {
-        const isolated = new Schema(null, root)
-        const pending = new Schema(null, root)
+        const isolated = new Schema(root)
+        const pending = new Schema(root)
         okay(!! pending.getObjectStore('store2'), 'has object store')
         pending.deleteObjectStore('store2')
         okay(! pending.getObjectStore('store2'), 'object store deleted')
@@ -38,7 +38,7 @@ require('proof')(26, okay => {
         okay(! pending.getIndex('store', 'index2'), 'has index deleted')
         okay(!! isolated.getIndex('store', 'index2'), 'isolated still has index')
         pending.merge()
-        const subsequent = new Schema(null, root)
+        const subsequent = new Schema(root)
         okay(! subsequent.getObjectStore('store2'), 'subsequent object store deleted')
         okay(! subsequent.getIndex('store', 'index2'), 'subsequent index deleted')
     }

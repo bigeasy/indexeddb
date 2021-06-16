@@ -8,7 +8,6 @@ const { dispatchEvent } = require('./dispatch')
 
 const Verbatim = require('verbatim')
 
-const { extractify } = require('./extractor')
 const { vivify } = require('./setter')
 const { valuify } = require('./value')
 const { Queue } = require('avenue')
