@@ -35,7 +35,7 @@
     "devDependencies":
     {
                             "arguable":                     "13.0.0-alpha.2",
-                            "cheerio":                      "1.0.0-rc.9",
+                            "cheerio":                      "1.0.0-rc.10",
                             "programmatic":                 "2.0.0-alpha.9",
                             "proof":                        "^9.0.3",
                             "rimraf":                       "3.0.2",
