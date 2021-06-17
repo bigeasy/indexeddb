@@ -99,7 +99,24 @@ class IDBObjectStoreImpl {
     }
 
     delete (query) {
-        throw new Error
+        if (this._schema.isDeleted(this._store)) {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
+        }
+        if (this._transaction._state != 'active') {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
+        }
+        if (this._transaction.mode == 'readonly') {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'ReadOnlyError' ], {})
+        }
+        if (! (query instanceof this._globalObject.IDBKeyRange)) {
+            query = this._globalObject.IDBKeyRange.only(query)
+        }
+        const request = IDBRequest.createImpl(this._globalObject, [], {
+            // **TODO** parent is always transaction, so...
+            parent: this._transaction, transaction: this._transaction
+        })
+        this._transaction._queue.push({ method: 'delete', store: this._store, request, query })
+        return request
     }
 
     clear () {
@@ -114,6 +131,9 @@ class IDBObjectStoreImpl {
         }
         if (this._transaction._state != 'active') {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
+        }
+        if (! (key instanceof this._globalObject.IDBKeyRange)) {
+            key = this._globalObject.IDBKeyRange.only(key)
         }
         const request = IDBRequest.createImpl(this._globalObject, {}, { parent: this._transaction })
         this._transaction._queue.push({ method: 'get', type: 'store', request, store: this._store, key })

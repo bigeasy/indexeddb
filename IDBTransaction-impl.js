@@ -241,7 +241,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                     switch (event.type) {
                     case 'store': {
                             const { store, key, request } = event
-                            const got = await transaction.get(store.qualified, [ key ])
+                            const got = await transaction.get(store.qualified, [ key.lower ])
                             if (got != null) {
                                 request._result = Verbatim.deserialize(Verbatim.serialize(got.value))
                             }
@@ -296,6 +296,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                             cursor = query.upper == null ? cursor : cursor.terminate(item => ! query.includes(item.key))
                             for await (const items of cursor.iterator()) {
                                 for (const item of items) {
+                            console.log('count', item.key)
                                     request._result++
                                 }
                             }
@@ -315,6 +316,19 @@ class IDBTransactionImpl extends EventTargetImpl {
                         }
                     }
                     // TODO Clear an index.
+                    request.readyState = 'done'
+                    dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
+                }
+                break
+            case 'delete': {
+                    const { store, request, query } = event
+                    let cursor = query.lower == null ? transaction.cursor(store.qualified) : transaction.cursor(store.qualified, [ query.lower ])
+                    cursor = query.upper == null ? cursor : cursor.terminate(item => ! query.includes(item.key))
+                    for await (const items of cursor.iterator()) {
+                        for (const item of items) {
+                            transaction.unset(store.qualified, [ item.key ])
+                        }
+                    }
                     request.readyState = 'done'
                     dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
                 }

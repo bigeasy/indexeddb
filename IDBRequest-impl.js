@@ -9,14 +9,14 @@ const { setupForSimpleEventAccessors } = require('./living/helpers/create-event-
 
 //
 class IDBRequestImpl extends EventTargetImpl {
-    constructor (globalObject, args, { parent }) {
+    constructor (globalObject, args, { parent, transaction = null }) {
         super(globalObject, args, {})
 
         this._globalObject = globalObject
         this._parent = parent || null
         this._error = null
         this.source = null
-        this.transaction = null
+        this.transaction = transaction
         this.readyState = 'pending'
     }
 

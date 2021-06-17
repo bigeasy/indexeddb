@@ -1,4 +1,4 @@
-require('proof')(20, okay => {
+require('proof')(23, okay => {
     const comparator = require('../compare')
     const WrapperDOMException = require("domexception/webidl2js-wrapper")
     const globalObject = {}
@@ -32,4 +32,7 @@ require('proof')(20, okay => {
     okay(compare(Uint8Array.of(1, 1).buffer, Uint8Array.of(1).buffer) > 0, 'binary longer than')
     okay(compare(new Date(1), new Date(1)) == 0, 'date equal')
     okay(compare(new Date(2), new Date(1)) > 0, 'date greater than')
+    okay(compare(1, 1) == 0, 'number equal')
+    okay(compare(0, 1) < 0, 'number less than')
+    okay(compare(1, 0) > 0, 'number greater than')
 })
