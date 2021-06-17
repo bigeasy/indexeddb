@@ -24,7 +24,7 @@
     {
                             "avenue":                       "0.6.13",
                             "domexception":                 "2.0.1",
-                            "memento":                      "^0.1.24",
+                            "memento":                      "^0.1.25",
                             "jsdom":                        "16.6.0",
                             "nop":                          "1.0.0",
                             "perhaps":                      "0.0.10",
