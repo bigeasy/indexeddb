@@ -120,6 +120,15 @@ class IDBObjectStoreImpl {
     }
 
     clear () {
+        if (this._schema.isDeleted(this._store)) {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
+        }
+        if (this._transaction._state != 'active') {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
+        }
+        if (this._transaction.mode == 'readonly') {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'ReadOnlyError' ], {})
+        }
         const request = IDBRequest.createImpl(this._globalObject, [], { parent: this._transaction })
         this._transaction._queue.push({ method: 'clear', request, store: this._store })
         return request
@@ -141,14 +150,41 @@ class IDBObjectStoreImpl {
     }
 
     getKey (query) {
+        if (this._schema.isDeleted(this._store)) {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
+        }
+        if (this._transaction._state != 'active') {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
+        }
+        if (! (key instanceof this._globalObject.IDBKeyRange)) {
+            key = this._globalObject.IDBKeyRange.only(key)
+        }
         throw new Error
     }
 
     getAll (query, count = null) {
+        if (this._schema.isDeleted(this._store)) {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
+        }
+        if (this._transaction._state != 'active') {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
+        }
+        if (! (key instanceof this._globalObject.IDBKeyRange)) {
+            key = this._globalObject.IDBKeyRange.only(key)
+        }
         throw new Error
     }
 
     getAllKeys (query, count = null) {
+        if (this._schema.isDeleted(this._store)) {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
+        }
+        if (this._transaction._state != 'active') {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
+        }
+        if (! (key instanceof this._globalObject.IDBKeyRange)) {
+            key = this._globalObject.IDBKeyRange.only(key)
+        }
         throw new Error
     }
 
@@ -170,6 +206,12 @@ class IDBObjectStoreImpl {
     }
 
     openCursor (query, direction = 'next') {
+        if (this._schema.isDeleted(this._store)) {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
+        }
+        if (this._transaction._state != 'active') {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
+        }
         if (query == null) {
             query = IDBKeyRange.createImpl(this._globalObject, [ null, null ], {})
         }
@@ -185,6 +227,15 @@ class IDBObjectStoreImpl {
     }
 
     openKeyCursor (query, direction = 'next') {
+        if (this._schema.isDeleted(this._store)) {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
+        }
+        if (this._transaction._state != 'active') {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
+        }
+        if (query == null) {
+            query = IDBKeyRange.createImpl(this._globalObject, [ null, null ], {})
+        }
         throw new Error
     }
 
@@ -236,17 +287,17 @@ class IDBObjectStoreImpl {
 
     deleteIndex (name) {
         if (this._transaction.mode != 'versionchange') {
-            throw new InvalidStateError
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
         if (this._schema.isDeleted(this._store)) {
-            throw new InvalidStateError
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
         if (this._transaction._state != 'active') {
-            throw new InvalidStateError
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
         }
         const index = this._schema.getIndex(this._store.name, name)
         if (index == null) {
-            throw new NotFoundError
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'NotFoundError' ], {})
         }
         this._schema.deleteIndex(this._store.name, index.name)
         this._transaction._queue.push({ method: 'destroy', store: this._store, index: index })

@@ -221,6 +221,7 @@ module.exports = async function (okay, name) {
             }
             this.phase = this.phases.STARTED
             try {
+                scope.name = this.name
                 return func.apply(self, vargs)
             } catch (error) {
                 throw error
@@ -267,9 +268,9 @@ module.exports = async function (okay, name) {
         const future = new Future
         futures.push(future)
         if (f != null) {
-            f(new Test(future))
+            f(new Test(future, scope.name))
         }
-        return new Test(future)
+        return new Test(future, scope.name)
     }
     globalize(async_test)
     function test (f, name) {
