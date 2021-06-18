@@ -15,7 +15,14 @@ class Schema {
     constructor (root) {
         // TODO Expose `root`.
         this._root = root
+        this._rollbacks = []
         this.reset()
+    }
+
+    rename (from, to) {
+        const id = this._pending.name[to] = this._pending.name[from]
+        delete this._pending.name[from]
+        this._pending.store[id].name.unshift(to)
     }
 
     createObjectStore (name, keyPath, autoIncrement) {
@@ -24,7 +31,7 @@ class Schema {
         const store = this._pending.store[id] = {
             type: 'store',
             id: id,
-            name: name,
+            name: [ name ],
             qualified: `store.${id}`,
             keyPath: keyPath,
             autoIncrement: autoIncrement ? 1 : null,
@@ -46,6 +53,9 @@ class Schema {
         if (store.rolledback) {
             return true
         }
+        if (! this._pending.store[store.id]) {
+            return true
+        }
         if (store.type == 'index') {
             return this._deleted.index.has(store.id) ||
                 this._deleted.store.has(store.storeId)
@@ -62,7 +72,16 @@ class Schema {
     }
 
     getObjectStoreNames () {
-        return Object.keys(this._pending.name)
+        console.log(this._pending.name)
+            return Object.keys(this._pending.name)
+        const objectStoreNames = []
+        for (const name in this._pending.name) {
+            const id = this._pending.name[name]
+            if (set.has(id) || this._added.has(id)) {
+                objectStoreNames.push(name)
+            }
+        }
+        return name
     }
 
     createIndex (storeName, indexName, keyPath, multiEntry, unique) {
@@ -73,7 +92,7 @@ class Schema {
             type: 'index',
             id: indexId,
             storeId: store.id,
-            name: indexName,
+            name: [ indexName ],
             qualified: `index.${indexId}`,
             keyPath: keyPath,
             multiEntry: multiEntry,
@@ -99,7 +118,7 @@ class Schema {
         if (id == null) {
             return null
         }
-        return this._pending.store[id] || this._copy.store[id]
+        return this._pending.store[id]
     }
 
     getIndexNames (storeName) {
@@ -117,16 +136,19 @@ class Schema {
             delete this._pending.store[id]
         }
         for (const id of this._deleted.store) {
-            const store = this._pending.store[id] || this._copy.store[id]
+            const store = this._pending.store[id]
             delete this._root.name[store.name]
             delete this._root.store[id]
             delete this._pending.store[id]
         }
         for (const name in this._pending.name) {
-            this._root.name[name] = this._pending.name[name]
+            this._root.name = JSON.parse(JSON.stringify(this._pending.name))
         }
         for (const id in this._pending.store) {
             this._root.store[id] = this._pending.store[id]
+            while (this._root.store[id].name.length != 1) {
+                this._root.store[id].name.pop()
+            }
         }
         for (const id in this._pending.extractor) {
             this._root.extractor[id] = this._pending.extractor[id]
@@ -135,10 +157,11 @@ class Schema {
     }
 
     abort () {
-        console.log('rollback')
-        for (const id of this._added) {
-            console.log('rollback', id)
-            this._pending.store[id].rolledback = true
+        for (const id in this._pending.store) {
+            this._pending.store[id].rolledback = this._added.has(+id)
+            if (id in this._root.store) {
+                this._pending.store[id].name = this._root.store[id].name
+            }
         }
         this.reset()
     }

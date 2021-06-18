@@ -357,6 +357,15 @@ module.exports = async function (okay, name) {
         }
     }
     globalize(assert_throws_js)
+    function assert_throws_exactly (exception, func, description, assertion_type) {
+        try {
+            func.call(null)
+            assert(false, 'did not throw')
+        } catch (error) {
+            assert_true(error === exception, description)
+        }
+    }
+    globalize(assert_throws_exactly)
     function assert_throws_dom(type, func, description) {
         try {
             func.call(null)
@@ -778,8 +787,9 @@ module.exports = async function (okay, name) {
       const eventWatcher = requestWatcher(testCase, request);
       return eventWatcher.wait_for('success').then(event => {
         return event.target.result
-    });
+      });
     }
+    globalize(promiseForRequest)
 
     // Promise that resolves when an IDBTransaction completes.
     //
@@ -991,6 +1001,7 @@ module.exports = async function (okay, name) {
           checkTitleIndexContents(testCase, titleIndex, errorMessage),
       ]);
     }
+    globalize(checkStoreIndexes)
 
     // Verifies that an object store's key generator is in the same state as the
     // key generator created for the books store in the test database's version 1.
@@ -1021,6 +1032,7 @@ module.exports = async function (okay, name) {
         assert_equals(result.title, BOOKS_RECORD_DATA[0].title, errorMessage);
       });
     }
+    globalize(checkStoreContents)
 
     // Verifies that index matches the 'by_author' index used to create the
     // by_author books store in the test database's version 1.

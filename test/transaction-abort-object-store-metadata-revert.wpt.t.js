@@ -1,5 +1,5 @@
 require('proof')(50, async okay => {
-    await require('./harness')(okay, 'transaction-abort-object-store-metadata-revert')
+    await require('./HARness')(okay, 'transaction-abort-object-store-metadata-revert')
     await harness(async function () {
         'use strict';
 
@@ -85,7 +85,7 @@ require('proof')(50, async okay => {
                 transaction.abort();
                 assert_throws_dom(
                     'TransactionInactiveError', () => store.get('query'),
-                    'IDBObjectStore.get should throw TransactionInactiveError, ' +
+                    'IDBObjectStore.get xxxx should throw TransactionInactiveError, ' +
                     'indicating that the store is no longer marked for deletion, ' +
                     'immediately after IDBTransaction.abort() returns');
                 assert_array_equals(

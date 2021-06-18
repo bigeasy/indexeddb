@@ -14,7 +14,7 @@ class IDBIndexImpl {
     }
 
     get name () {
-        return this._index.name
+        return this._index.name[0]
     }
 
     get keyPath () {

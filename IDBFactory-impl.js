@@ -249,10 +249,18 @@ class Opener {
                 // **TODO** Really need to do a join.
                 for await (const items of upgrade.cursor('schema').iterator()) {
                     for (const item of items) {
+                        if (item.autoIncrement != null) {
+                            // **TODO** Implement `limit`.
+                            const array = await upgrade.cursor(item.qualified).reverse().array()
+                            item.autoIncrement = array.length == 0 ? 1 : array.shift().key + 1
+                        }
                         schema._root.store[item.id] = item
                         switch (item.type) {
                         case 'store':
-                            schema._root.name[item.name] = item.id
+                            while (item.name.length != 1) {
+                                item.name.pop()
+                            }
+                            schema._root.name[item.name[0]] = item.id
                             break
                         case 'index':
                         }
@@ -290,8 +298,13 @@ class Opener {
                 await opener.memento.snapshot(async snapshot => {
                     for await (const items of snapshot.cursor('schema').iterator()) {
                         for (const item of items) {
+                            while (item.name.length != 1) {
+                                item.name.pop()
+                            }
                             schema._root.store[item.id] = item
-                            schema._root.name[item.name] = item.id
+                            if (item.type == 'store') {
+                                schema._root.name[item.name[0]] = item.id
+                            }
                             if (item.keyPath != null) {
                                 schema._root.extractor[item.id] = extractor.create(item.keyPath)
                             }

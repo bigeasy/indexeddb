@@ -1,4 +1,4 @@
-const { extractify } = require('./extractor')
+const extractor = require('./extractor')
 const { vivify } = require('./setter')
 const { valuify } = require('./value')
 
@@ -27,7 +27,7 @@ class IDBObjectStoreImpl {
     // object store, we push messages with a request object. The work is
     // performed by the loop object. The loop object is run after the locking is
     // performed.
-    constructor (globalObject, [], { transaction, schema, name }) {
+    constructor (globalObject, [], { transaction, schema, name, constructing = false }) {
         assert(schema, 'schema is null')
         this._globalObject = globalObject
         assert(typeof transaction == 'object')
@@ -36,14 +36,35 @@ class IDBObjectStoreImpl {
         this._store = this._schema.getObjectStore(name)
         this.keyPath = this._store.keyPath
         this.autoIncrement = this._store.autoIncrement != null
+        this._constructing = constructing
     }
 
     get transaction () {
         return webidl.wrapperForImpl(this._transaction)
     }
 
+    set name (to) {
+        if (this._schema.isDeleted(this._store)) {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
+        }
+        if (this._transaction.mode != 'versionchange') {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
+        }
+        if (this._transaction._state != 'active') {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
+        }
+        if (this._store.name != to) {
+            if (this._schema.getObjectStore(to) != null) {
+                throw DOMException.create(this._globalObject, [ 'TODO: message', 'ConstraintError' ], {})
+            }
+            const from = this._store.name[0]
+            this._schema.rename(from, to)
+            this._transaction._queue.push({ method: 'rename', type: 'store', store: this._store })
+        }
+    }
+
     get name () {
-        return this._store.name
+        return this._store.name[0]
     }
 
     get indexNames () {
@@ -135,6 +156,7 @@ class IDBObjectStoreImpl {
     }
 
     get (key) {
+        console.log('>>>', this._schema.isDeleted(this._store))
         if (this._schema.isDeleted(this._store)) {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
@@ -162,20 +184,23 @@ class IDBObjectStoreImpl {
         throw new Error
     }
 
-    getAll (query, count = null) {
+    getAll (query, count = 0) {
         if (this._schema.isDeleted(this._store)) {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
         if (this._transaction._state != 'active') {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
         }
-        if (! (key instanceof this._globalObject.IDBKeyRange)) {
-            key = this._globalObject.IDBKeyRange.only(key)
+        if (! (query instanceof this._globalObject.IDBKeyRange)) {
+            query = this._globalObject.IDBKeyRange.only(query)
         }
-        throw new Error
+        const request = IDBRequest.createImpl(this._globalObject, {}, { parent: this._transaction })
+        this._transaction._queue.push({ method: 'getAll', type: 'store', request, store: this._store, query })
+        return webidl.wrapperForImpl(request)
     }
 
     getAllKeys (query, count = null) {
+        console.log('called')
         if (this._schema.isDeleted(this._store)) {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
@@ -259,21 +284,22 @@ class IDBObjectStoreImpl {
     }
 
     createIndex (name, keyPath, { unique = false, multiEntry = false } = {}) {
-        if (this._transaction.mode != 'versionchange') {
-            throw new InvalidStateError
-        }
         if (this._schema.isDeleted(this._store)) {
-            throw new InvalidStateError
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
+        }
+        if (this._transaction.mode != 'versionchange') {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
         if (this._transaction._state != 'active') {
-            throw new InvalidStateError
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
         }
-        if (this._schema.getIndex(this._name, name) != null) {
-            throw new ConstraintError
+        if (this._store.index[name] != null) {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'ConstraintError' ], {})
         }
+        extractor.verify(this._globalObject, keyPath)
         // **TODO** If keyPath is not a valid key path, throw a "SyntaxError" DOMException.
         if (Array.isArray(keyPath) && multiEntry) {
-            throw new InvalidAccessError
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
         const index = this._schema.createIndex(this._store.name, name, keyPath, multiEntry, unique)
         this._transaction._queue.push({ method: 'create', type: 'index', store: this._store, index })
@@ -286,10 +312,10 @@ class IDBObjectStoreImpl {
     }
 
     deleteIndex (name) {
-        if (this._transaction.mode != 'versionchange') {
+        if (this._schema.isDeleted(this._store)) {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
-        if (this._schema.isDeleted(this._store)) {
+        if (this._transaction.mode != 'versionchange') {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
         if (this._transaction._state != 'active') {

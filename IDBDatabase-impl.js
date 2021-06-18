@@ -86,7 +86,7 @@ class IDBDatabaseImpl extends EventTargetImpl  {
         }
         const store = this._schema.createObjectStore(name, keyPath, autoIncrement)
         this._transaction._queue.push({ method: 'create', type: 'store', store: store })
-        return IDBObjectStore.create(this._globalObject, [], { transaction: this._transaction, schema: this._schema, name })
+        return IDBObjectStore.create(this._globalObject, [], { transaction: this._transaction, schema: this._schema, name, constructing: true })
     }
 
     deleteObjectStore (name) {

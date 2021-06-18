@@ -70,22 +70,22 @@ class IDBTransactionImpl extends EventTargetImpl {
         if (this._state == 'finished') {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
+        if (
+            this._names.length == 0
+                ? this._schema.getObjectStore(name) == null
+                : !~this._names.indexOf(name)
+        ) {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'NotFoundError' ], {})
+        }
         return IDBObjectStore.create(this._globalObject, [], { transaction: this, schema: this._schema, name })
     }
 
+    // **TODO** What happens in a double abort?
     abort () {
         this._state = 'finished'
         this._schema.abort()
         if (this._mode == 'versionchange') {
             this._database.version = this._previousVersion
-        }
-        // Mark any stores created by this transaction as deleted, then queue
-        // them for actual destruction.
-        //
-        if (false) while (this._queue.length != 0) {
-            const { request } = this._queue.shift()
-            if (request != null) {
-            }
         }
         dispatchEvent(null, this, Event.createImpl(this._globalObject, [ 'abort', { bubbles: true, cancelable: true } ], {}))
     }
@@ -296,7 +296,6 @@ class IDBTransactionImpl extends EventTargetImpl {
                             cursor = query.upper == null ? cursor : cursor.terminate(item => ! query.includes(item.key))
                             for await (const items of cursor.iterator()) {
                                 for (const item of items) {
-                            console.log('count', item.key)
                                     request._result++
                                 }
                             }
@@ -331,6 +330,11 @@ class IDBTransactionImpl extends EventTargetImpl {
                     }
                     request.readyState = 'done'
                     dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
+                }
+                break
+            case 'rename': {
+                    const { store } = event
+                    transaction.set('schema', store)
                 }
                 break
             case 'destroy': {
