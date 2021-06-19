@@ -250,8 +250,7 @@ class Opener {
                 for await (const items of upgrade.cursor('schema')) {
                     for (const item of items) {
                         if (item.autoIncrement != null) {
-                            // **TODO** Implement `limit`.
-                            const array = await upgrade.cursor(item.qualified).reverse().array()
+                            const array = await upgrade.cursor(item.qualified).reverse().limit(1).array()
                             item.autoIncrement = array.length == 0 ? 1 : array.shift().key + 1
                         }
                         schema._root.store[item.id] = item
@@ -298,6 +297,10 @@ class Opener {
                 await opener.memento.snapshot(async snapshot => {
                     for await (const items of snapshot.cursor('schema')) {
                         for (const item of items) {
+                            if (item.autoIncrement != null) {
+                                const array = await snapshot.cursor(item.qualified).reverse().limit(1).array()
+                                item.autoIncrement = array.length == 0 ? 1 : array.shift().key + 1
+                            }
                             while (item.name.length != 1) {
                                 item.name.pop()
                             }

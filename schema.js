@@ -72,16 +72,7 @@ class Schema {
     }
 
     getObjectStoreNames () {
-        console.log(this._pending.name)
-            return Object.keys(this._pending.name)
-        const objectStoreNames = []
-        for (const name in this._pending.name) {
-            const id = this._pending.name[name]
-            if (set.has(id) || this._added.has(id)) {
-                objectStoreNames.push(name)
-            }
-        }
-        return name
+        return Object.keys(this._pending.name)
     }
 
     createIndex (storeName, indexName, keyPath, multiEntry, unique) {

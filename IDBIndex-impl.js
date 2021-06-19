@@ -7,9 +7,6 @@ class IDBIndexImpl {
     // TODO Make loop a property of transaction.
     constructor (globalObject, [], { transaction, schema, store, index, objectStore }) {
         this._globalObject = globalObject
-        this._transaction = transaction
-        this._schema = schema
-        this._store = store
         this._index = index
         this.objectStore = objectStore
     }
@@ -32,20 +29,20 @@ class IDBIndexImpl {
 
     get (query) {
         const request = IDBRequest.createImpl(this._globalObject, [], {})
-        if (this._schema.isDeleted(this._index)) {
+        if (this.objectStore._schema.isDeleted(this._index)) {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
-        if (this._transaction._state != 'active') {
+        if (this.objectStore._transaction._state != 'active') {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
         }
         if (!(query instanceof this._globalObject.IDBKeyRange)) {
             query = webidl.implForWrapper(this._globalObject.IDBKeyRange.only(query))
         }
-        this._transaction._queue.push({
+        this.objectStore._transaction._queue.push({
             method: 'get',
             type: 'index',
             key: false,
-            store: this._store,
+            store: this.objectStore._store,
             index: this._index,
             query: query,
             request: request
@@ -55,16 +52,24 @@ class IDBIndexImpl {
 
     getKey (query) {
         const request = IDBRequest.createImpl(this._globalObject, [], {})
-        if (this._schema.isDeleted(this._index)) {
+        if (this.objectStore._schema.isDeleted(this._index)) {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
-        if (this._transaction._state != 'active') {
+        if (this.objectStore._transaction._state != 'active') {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
         }
         if (!(query instanceof this._globalObject.IDBKeyRange)) {
             query = webidl.implForWrapper(this._globalObject.IDBKeyRange.only(query))
         }
-        this._transaction._queue.push({ method: 'get', type: 'index', key: true, store: this._store, index: this._index, query, request })
+        this.objectStore._transaction._queue.push({
+            method: 'get',
+            type: 'index',
+            key: true,
+            store: this.objectStore._store,
+            index: this._index,
+            query,
+            request
+        })
         return request
     }
 

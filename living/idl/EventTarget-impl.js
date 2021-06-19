@@ -219,6 +219,7 @@ class EventTargetImpl {
           eventImpl.eventPhase = EVENT_PHASE.BUBBLING_PHASE;
         }
 
+//        console.log('bubble', struct.item, eventImpl.type, eventImpl.bubbles)
         invokeEventListeners(struct, eventImpl, "bubbling", legacyOutputDidListenersThrowFlag);
       }
     }

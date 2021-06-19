@@ -63,9 +63,6 @@ class IDBTransactionImpl extends EventTargetImpl {
         return this._database
     }
 
-    get error () {
-    }
-
     objectStore (name) {
         if (this._state == 'finished') {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
@@ -87,7 +84,7 @@ class IDBTransactionImpl extends EventTargetImpl {
         if (this._mode == 'versionchange') {
             this._database.version = this._previousVersion
         }
-        dispatchEvent(null, this, Event.createImpl(this._globalObject, [ 'abort', { bubbles: true, cancelable: true } ], {}))
+        this._aborted = true
     }
 
     async _item ({ request, cursor }) {
@@ -165,6 +162,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                                             continue
                                         }
                                         if (compare(this._globalObject, previous.key[0], item.key[0]) == 0) {
+                                            this.error = DOMException.create(this._globalObject, [ 'TODO: message', 'ConstraintError' ], {})
                                             this.abort()
                                             break OUTER
                                         }
@@ -195,7 +193,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                             const error = DOMException.create(this._globalObject, [ 'Unique key constraint violation.', 'ConstraintError' ], {})
                             request.readyState = 'done'
                             request._error = error
-                            const caught = dispatchEvent(this, request, event)
+                            const caught = dispatchEvent(null, request, event)
                             console.log('???', caught)
                             break SWITCH
                         }
@@ -383,6 +381,7 @@ class IDBTransactionImpl extends EventTargetImpl {
             this._schema.reset()
             // **TODO** I unset this here and in IDBFactory, so spaghetti.
             this._database._transaction = null
+            dispatchEvent(null, this, Event.createImpl(this._globalObject, [ 'abort', { bubbles: true, cancelable: true } ], {}))
             if (transaction.rollback) {
                 transaction.rollback()
             }
@@ -399,6 +398,6 @@ class IDBTransactionImpl extends EventTargetImpl {
     }
 }
 
-setupForSimpleEventAccessors(IDBTransactionImpl.prototype, [ 'complete', 'abort' ]);
+setupForSimpleEventAccessors(IDBTransactionImpl.prototype, [ 'complete', 'abort', 'error' ]);
 
 module.exports = { implementation: IDBTransactionImpl }

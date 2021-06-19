@@ -181,6 +181,9 @@ module.exports = async function (okay, name) {
         }
     }
     globalize(format_value)
+    function setup () {
+    }
+    globalize(setup)
     const tests = []
     let count = 0
     class Test {

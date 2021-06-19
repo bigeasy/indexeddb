@@ -59,7 +59,11 @@ class IDBObjectStoreImpl {
             }
             const from = this._store.name[0]
             this._schema.rename(from, to)
-            this._transaction._queue.push({ method: 'rename', type: 'store', store: this._store })
+            this._transaction._queue.push({
+                method: 'rename',
+                type: 'store',
+                store: JSON.parse(JSON.stringify(this._store))
+            })
         }
     }
 
@@ -107,7 +111,14 @@ class IDBObjectStoreImpl {
             key = valuify(this._globalObject, key)
         }
         const request = IDBRequest.createImpl(this._globalObject, [], { parent: this._transaction })
-        this._transaction._queue.push({ method: 'set', request, store: this._store, key, value, overwrite })
+        this._transaction._queue.push({
+            method: 'set',
+            request,
+            store: JSON.parse(JSON.stringify(this._store)),
+            key,
+            value,
+            overwrite
+        })
         return webidl.wrapperForImpl(request)
     }
 
@@ -136,7 +147,12 @@ class IDBObjectStoreImpl {
             // **TODO** parent is always transaction, so...
             parent: this._transaction, transaction: this._transaction
         })
-        this._transaction._queue.push({ method: 'delete', store: this._store, request, query })
+        this._transaction._queue.push({
+            method: 'delete',
+            store: JSON.parse(JSON.stringify(this._store)),
+            request,
+            query
+        })
         return request
     }
 
@@ -151,12 +167,15 @@ class IDBObjectStoreImpl {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'ReadOnlyError' ], {})
         }
         const request = IDBRequest.createImpl(this._globalObject, [], { parent: this._transaction })
-        this._transaction._queue.push({ method: 'clear', request, store: this._store })
+        this._transaction._queue.push({
+            method: 'clear',
+            request: request,
+            store: JSON.parse(JSON.stringify(this._store))
+        })
         return request
     }
 
     get (key) {
-        console.log('>>>', this._schema.isDeleted(this._store))
         if (this._schema.isDeleted(this._store)) {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
@@ -167,7 +186,13 @@ class IDBObjectStoreImpl {
             key = this._globalObject.IDBKeyRange.only(key)
         }
         const request = IDBRequest.createImpl(this._globalObject, {}, { parent: this._transaction })
-        this._transaction._queue.push({ method: 'get', type: 'store', request, store: this._store, key })
+        this._transaction._queue.push({
+            method: 'get',
+            type: 'store',
+            request: request,
+            store: JSON.parse(JSON.stringify(this._store)),
+            key: key
+        })
         return webidl.wrapperForImpl(request)
     }
 
@@ -195,12 +220,19 @@ class IDBObjectStoreImpl {
             query = this._globalObject.IDBKeyRange.only(query)
         }
         const request = IDBRequest.createImpl(this._globalObject, {}, { parent: this._transaction })
-        this._transaction._queue.push({ method: 'getAll', type: 'store', request, store: this._store, query, count, key: false })
+        this._transaction._queue.push({
+            method: 'getAll',
+            type: 'store',
+            request: request,
+            store: JSON.parse(JSON.stringify(this._store)),
+            query: query,
+            count: count,
+            key: false
+        })
         return request
     }
 
     getAllKeys (query, count = null) {
-        console.log('called')
         if (this._schema.isDeleted(this._store)) {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
@@ -226,7 +258,12 @@ class IDBObjectStoreImpl {
             query = this._globalObject.IDBKeyRange.lowerBound(query)
         }
         const request = IDBRequest.createImpl(this._globalObject, [], { parent: this._transaction })
-        this._transaction._queue.push({ method: 'count', request, store: this._store, query })
+        this._transaction._queue.push({
+            method: 'count',
+            request: request,
+            store: JSON.parse(JSON.stringify(this._store)),
+            query: query
+        })
         return request
     }
 
@@ -247,7 +284,13 @@ class IDBObjectStoreImpl {
             query: query
         })
         request._result = webidl.wrapperForImpl(cursor)
-        this._transaction._queue.push({ method: 'openCursor', request, store: this._store, cursor, direction })
+        this._transaction._queue.push({
+            method: 'openCursor',
+            request: request,
+            store: JSON.parse(JSON.stringify(this._store)),
+            cursor: cursor,
+            direction: direction
+        })
         return webidl.wrapperForImpl(request)
     }
 
@@ -278,7 +321,7 @@ class IDBObjectStoreImpl {
         return IDBIndex.create(this._globalObject, [], {
             transaction: this._transaction,
             schema: this._schema,
-            store: this._store,
+            store: JSON.parse(JSON.stringify(this._store)),
             index: index,
             objectStore: this
         })
@@ -303,14 +346,13 @@ class IDBObjectStoreImpl {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
         const index = this._schema.createIndex(this._store.name, name, keyPath, multiEntry, unique)
-        this._transaction._queue.push({ method: 'create', type: 'index', store: this._store, index })
-        return IDBIndex.create(this._globalObject, [], {
-            transaction: this._transaction,
-            schema: this._schema,
-            store: this._store,
-            index: index,
-            objectStore: this
+        this._transaction._queue.push({
+            method: 'create',
+            type: 'index',
+            store: JSON.parse(JSON.stringify(this._store)),
+            index: index
         })
+        return IDBIndex.create(this._globalObject, [], { objectStore: this, index: index })
     }
 
     deleteIndex (name) {
@@ -328,7 +370,11 @@ class IDBObjectStoreImpl {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'NotFoundError' ], {})
         }
         this._schema.deleteIndex(this._store.name, index.name)
-        this._transaction._queue.push({ method: 'destroy', store: this._store, index: index })
+        this._transaction._queue.push({
+            method: 'destroy',
+            store: JSON.parse(JSON.stringify(this._store)),
+            index: index
+        })
     }
 }
 
