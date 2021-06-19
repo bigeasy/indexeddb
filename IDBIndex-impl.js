@@ -5,12 +5,13 @@ const webidl = require('./living/generated/utils')
 
 class IDBIndexImpl {
     // TODO Make loop a property of transaction.
-    constructor (globalObject, [], { transaction, schema, store, index }) {
+    constructor (globalObject, [], { transaction, schema, store, index, objectStore }) {
         this._globalObject = globalObject
         this._transaction = transaction
         this._schema = schema
         this._store = store
         this._index = index
+        this.objectStore = objectStore
     }
 
     get name () {

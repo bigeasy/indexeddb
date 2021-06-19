@@ -191,12 +191,12 @@ class IDBObjectStoreImpl {
         if (this._transaction._state != 'active') {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
         }
-        if (! (query instanceof this._globalObject.IDBKeyRange)) {
+        if (query != null && ! (query instanceof this._globalObject.IDBKeyRange)) {
             query = this._globalObject.IDBKeyRange.only(query)
         }
         const request = IDBRequest.createImpl(this._globalObject, {}, { parent: this._transaction })
-        this._transaction._queue.push({ method: 'getAll', type: 'store', request, store: this._store, query })
-        return webidl.wrapperForImpl(request)
+        this._transaction._queue.push({ method: 'getAll', type: 'store', request, store: this._store, query, count, key: false })
+        return request
     }
 
     getAllKeys (query, count = null) {
@@ -279,7 +279,8 @@ class IDBObjectStoreImpl {
             transaction: this._transaction,
             schema: this._schema,
             store: this._store,
-            index: index
+            index: index,
+            objectStore: this
         })
     }
 
@@ -307,7 +308,8 @@ class IDBObjectStoreImpl {
             transaction: this._transaction,
             schema: this._schema,
             store: this._store,
-            index: index
+            index: index,
+            objectStore: this
         })
     }
 

@@ -265,6 +265,27 @@ class IDBTransactionImpl extends EventTargetImpl {
                     }
                 }
                 break
+            case 'getAll': {
+                    switch (event.type) {
+                    case 'store': {
+                            const { store, query, count, request, key } = event
+                            const cursor = transaction.cursor(store.qualified, query == null ? null : [ query.lower ])
+                            const terminated = query == null ? cursor : cursor.terminate(item => ! query.includes(item.key))
+                            const limited = count == null || count == 0 ? terminated : cursor.limit(count)
+                            const exclusive = query != null && query.lowerOpen ? limited.exclusive() : limited
+                            const array = await exclusive.array()
+                            if (key) {
+                                request._result = array.map(item => item.key)
+                            } else {
+                                request._result = array.map(item => item.value)
+                            }
+                            request.readyState = 'done'
+                            dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
+                        }
+                        break
+                    }
+                }
+                break
             case 'openCursor': {
                     const { store, request, cursor, direction } = event
                     let builder = transaction.cursor(store.qualified)
