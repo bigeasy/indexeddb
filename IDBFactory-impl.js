@@ -247,7 +247,7 @@ class Opener {
                 const max = (await upgrade.cursor('schema').array()).pop()
                 schema._root.max = max ? max.id + 1 : 0
                 // **TODO** Really need to do a join.
-                for await (const items of upgrade.cursor('schema').iterator()) {
+                for await (const items of upgrade.cursor('schema')) {
                     for (const item of items) {
                         if (item.autoIncrement != null) {
                             // **TODO** Implement `limit`.
@@ -296,7 +296,7 @@ class Opener {
             destructible.durable('transactions', opener._transact(shifter))
             if (! upgraded) {
                 await opener.memento.snapshot(async snapshot => {
-                    for await (const items of snapshot.cursor('schema').iterator()) {
+                    for await (const items of snapshot.cursor('schema')) {
                         for (const item of items) {
                             while (item.name.length != 1) {
                                 item.name.pop()

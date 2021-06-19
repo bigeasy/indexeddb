@@ -148,7 +148,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                             transaction.set('schema', store)
                             transaction.set('schema', index)
                             const extractor = this._schema.getExtractor(index.id)
-                            for await (const items of transaction.cursor(store.qualified).iterator()) {
+                            for await (const items of transaction.cursor(store.qualified)) {
                                 for (const item of items) {
                                     const extracted = extractor(item.value)
                                     if (extracted != null) {
@@ -158,7 +158,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                             }
                             if (index.unique) {
                                 let previous = null, count = 0
-                                OUTER: for await (const items of transaction.cursor(index.qualified).iterator()) {
+                                OUTER: for await (const items of transaction.cursor(index.qualified)) {
                                     for (const item of items) {
                                         if (count++ == 0) {
                                             previous = item
@@ -271,7 +271,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                     if (direction == 'prev') {
                         builder.reverse()
                     }
-                    cursor._outer = { iterator: builder.iterator()[Symbol.asyncIterator](), next: null }
+                    cursor._outer = { iterator: builder[Symbol.asyncIterator](), next: null }
                     cursor._outer.next = await cursor._outer.iterator.next()
                     if (cursor._outer.next.done) {
                         request._result = null
@@ -294,7 +294,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                             request._result = 0
                             let cursor = query.lower == null ? transaction.cursor(store.qualified) : transaction.cursor(store.qualified, [ query.lower ])
                             cursor = query.upper == null ? cursor : cursor.terminate(item => ! query.includes(item.key))
-                            for await (const items of cursor.iterator()) {
+                            for await (const items of cursor) {
                                 for (const item of items) {
                                     request._result++
                                 }
@@ -309,7 +309,7 @@ class IDBTransactionImpl extends EventTargetImpl {
             case 'clear': {
                     const { store, request } = event
                     // TODO Really do not need iterator do I?
-                    for await (const items of transaction.cursor(store.qualified).iterator()) {
+                    for await (const items of transaction.cursor(store.qualified)) {
                         for (const item of items) {
                             transaction.unset(store.qualified, [ item.key ])
                         }
@@ -323,7 +323,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                     const { store, request, query } = event
                     let cursor = query.lower == null ? transaction.cursor(store.qualified) : transaction.cursor(store.qualified, [ query.lower ])
                     cursor = query.upper == null ? cursor : cursor.terminate(item => ! query.includes(item.key))
-                    for await (const items of cursor.iterator()) {
+                    for await (const items of cursor) {
                         for (const item of items) {
                             transaction.unset(store.qualified, [ item.key ])
                         }
