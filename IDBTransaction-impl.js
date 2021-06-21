@@ -188,12 +188,14 @@ class IDBTransactionImpl extends EventTargetImpl {
                     if (! overwrite) {
                         const got = await transaction.get(store.qualified, [ key ])
                         if (got != null) {
-                            this.abort()
                             const event = Event.createImpl(this._globalObject, [ 'error', { bubbles: true, cancelable: true } ], {})
                             const error = DOMException.create(this._globalObject, [ 'Unique key constraint violation.', 'ConstraintError' ], {})
                             request.readyState = 'done'
                             request._error = error
                             const caught = dispatchEvent(null, request, event)
+                            if (!event._canceledFlag) {
+                                this.abort()
+                            }
                             console.log('???', caught)
                             break SWITCH
                         }
