@@ -108,13 +108,13 @@ class Opener {
     async close (event, version) {
         for (const db of this._handles) {
             if (! db._closing) {
-                dispatchEvent(null, db, IDBVersionChangeEvent.createImpl(this._connector._factory._globalObject, [
+                await dispatchEvent(null, db, IDBVersionChangeEvent.createImpl(this._connector._factory._globalObject, [
                     'versionchange', { oldVersion: this._connector._version, newVersion: version }
                 ], {}))
             }
         }
         if (this._handles.some(db => ! db._closing)) {
-            dispatchEvent(null, event.request, Event.createImpl(this._connector._factory._globalObject, [
+            await dispatchEvent(null, event.request, Event.createImpl(this._connector._factory._globalObject, [
                 'blocked', { oldVersion: this._connector._version, newVersion: version }
             ], {}))
         }
@@ -272,6 +272,7 @@ class Opener {
                 request.readyState = 'done'
                 transaction = IDBTransaction.createImpl(connector._factory._globalObject, [], {
                     schema: schema,
+                    request: request,
                     database: db,
                     mode: 'versionchange',
                     previousVersion: upgrade.version.current
@@ -279,7 +280,7 @@ class Opener {
                 request.transaction = webidl.wrapperForImpl(transaction)
                 db._transaction = transaction
                 db._transactions.add(transaction)
-                dispatchEvent(transaction, request, IDBVersionChangeEvent.createImpl(connector._factory._globalObject, [
+                await dispatchEvent(transaction, request, IDBVersionChangeEvent.createImpl(connector._factory._globalObject, [
                     'upgradeneeded', { newVersion: upgrade.version.target, oldVersion: upgrade.version.current }
                 ], {}))
                 await transaction._run(upgrade, [])
@@ -331,7 +332,7 @@ class Opener {
             request.transaction = null
             request.readyState = 'done'
             request._error = DOMException.create(connector._factory._globalObject, [ 'TODO: message', 'AbortError' ], {})
-            dispatchEvent(null, request, Event.createImpl(connector._factory._globalObject, [
+            await dispatchEvent(null, request, Event.createImpl(connector._factory._globalObject, [
                 'error', { bubbles: true, cancelable: true }
             ], {}))
             opener._transactor.queue.push({ method: 'close', extra: { db } })
@@ -382,17 +383,17 @@ class Connector {
     // it is protected against an Opener race.
 
     //
-    _checkVersion ({ request, version }) {
+    async _checkVersion ({ request, version }) {
         request.readyState = 'done'
         if (version == null || this._opener.memento.version == version) {
-            dispatchEvent(null, request, Event.createImpl(this._factory._globalObject, [ 'success' ], {}))
+            await dispatchEvent(null, request, Event.createImpl(this._factory._globalObject, [ 'success' ], {}))
         } else {
             const db = webidl.implForWrapper(request._result)
             db._closing = true
             request._error = DOMException.create(this._factory._globalObject, [ 'TODO: message', 'VersionError' ], {})
             this._opener._maybeClose(db)
             request._result = null
-            dispatchEvent(null, request, Event.createImpl(this._factory._globalObject, [ 'error' ], {}))
+            await dispatchEvent(null, request, Event.createImpl(this._factory._globalObject, [ 'error' ], {}))
         }
     }
 
@@ -434,11 +435,11 @@ class Connector {
                         this._opener.destructible.promise.then(() => this._sleep.resolve())
                         // **TODO** Spaghetti.
                         if (this._opener.memento != null) {
-                            this._checkVersion(event)
+                            await this._checkVersion(event)
                         }
                     } else {
                         this._opener.connect(new Schema(schema), event)
-                        this._checkVersion(event)
+                        await this._checkVersion(event)
                     }
                 }
                 break
@@ -457,7 +458,7 @@ class Connector {
                     request.source = null
                     delete request._result
                     request.readyState = 'done'
-                    dispatchEvent(null, event.request, IDBVersionChangeEvent.createImpl(this._factory._globalObject, [ 'success', {
+                    await dispatchEvent(null, event.request, IDBVersionChangeEvent.createImpl(this._factory._globalObject, [ 'success', {
                         oldVersion: this._version, newVersion: null
                     } ], {}))
                 }

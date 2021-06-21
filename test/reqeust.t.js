@@ -27,7 +27,7 @@ require('proof')(5, okay => {
 
     okay(test, [ 'called', 'called' ], 'called with recycled event')
 
-    EventTarget.convert(request)._dispatch(Event.convert(event), null, true)
+    EventTarget.convert(request)._dispatch(Event.convert(event), null, true, () => {})
     okay(test, [ 'called', 'called', 'called' ], 'called with did listeners error flag')
 
     const openRequest = IDBOpenDBRequest.create(object, [], {})

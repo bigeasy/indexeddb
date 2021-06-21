@@ -954,6 +954,8 @@ module.exports = async function (okay, name) {
       { title: 'Bedrock Nights', author: 'Barney', isbn: 345678 },
     ];
 
+    globalize(BOOKS_RECORD_DATA, 'BOOKS_RECORD_DATA')
+
     // Creates a 'books' object store whose contents closely resembles the first
     // example in the IndexedDB specification.
     const createBooksStore = (testCase, database) => {

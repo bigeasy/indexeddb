@@ -2,6 +2,8 @@ require('proof')(2, okay => {
     const Event = require('../living/generated/Event')
     const EventTarget = require('../living/generated/EventTarget')
 
+    const noop = require('nop')
+
     const object = {}
 
     EventTarget.install(object, [ 'Window' ])
@@ -21,6 +23,6 @@ require('proof')(2, okay => {
 
     const event = new object.Event('hello')
     okay(event.type, 'hello', 'event')
-    EventTarget.convert(targetable)._dispatch(Event.convert(event), false, true)
+    EventTarget.convert(targetable)._dispatch(Event.convert(event), false, true, noop)
     okay(Event.convert(event)._legacyOutputDidListenersThrowFlag, 'legacy output did listeners throw flag')
 })

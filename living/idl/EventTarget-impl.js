@@ -9,6 +9,9 @@ const {
   isShadowInclusiveAncestor, retarget
 } = require("../helpers/shadow-dom");
 
+const cadence = require('cadence')
+const noop = require('nop')
+
 const MouseEvent = require("../generated/MouseEvent");
 
 const EVENT_PHASE = {
@@ -91,7 +94,7 @@ class EventTargetImpl {
 
     eventImpl.isTrusted = false;
 
-    return this._dispatch(eventImpl);
+    return this._dispatch(eventImpl, false, false, false, noop);
   }
 
   // https://dom.spec.whatwg.org/#get-the-parent
@@ -101,7 +104,7 @@ class EventTargetImpl {
 
   // https://dom.spec.whatwg.org/#concept-event-dispatch
   // legacyOutputDidListenersThrowFlag optional parameter is not necessary here since it is only used by indexDB.
-  _dispatch(eventImpl, targetOverride, legacyOutputDidListenersThrowFlag) {
+  _dispatch = cadence(function (step, eventImpl, targetOverride, legacyOutputDidListenersThrowFlag, asynchronous) {
     let targetImpl = this;
     let clearTargets = false;
     let activationTarget = null;
@@ -111,142 +114,147 @@ class EventTargetImpl {
     targetOverride = targetOverride || targetImpl;
     let relatedTarget = retarget(eventImpl.relatedTarget, targetImpl);
 
-    if (targetImpl !== relatedTarget || targetImpl === eventImpl.relatedTarget) {
-      const touchTargets = [];
+    step(function () {
+        if (targetImpl !== relatedTarget || targetImpl === eventImpl.relatedTarget) {
+          const touchTargets = [];
 
-      appendToEventPath(eventImpl, targetImpl, targetOverride, relatedTarget, touchTargets, false);
+          appendToEventPath(eventImpl, targetImpl, targetOverride, relatedTarget, touchTargets, false);
 
-      const isActivationEvent = MouseEvent.isImpl(eventImpl) && eventImpl.type === "click";
+          const isActivationEvent = MouseEvent.isImpl(eventImpl) && eventImpl.type === "click";
 
-      if (isActivationEvent && targetImpl._hasActivationBehavior) {
-        activationTarget = targetImpl;
-      }
-
-      let slotInClosedTree = false;
-      let slotable = isSlotable(targetImpl) && targetImpl._assignedSlot ? targetImpl : null;
-      let parent = getEventTargetParent(targetImpl, eventImpl);
-
-      // Populate event path
-      // https://dom.spec.whatwg.org/#event-path
-      while (parent !== null) {
-        if (slotable !== null) {
-          if (parent.localName !== "slot") {
-            throw new Error(`JSDOM Internal Error: Expected parent to be a Slot`);
-          }
-
-          slotable = null;
-
-          const parentRoot = nodeRoot(parent);
-          if (isShadowRoot(parentRoot) && parentRoot.mode === "closed") {
-            slotInClosedTree = true;
-          }
-        }
-
-        if (isSlotable(parent) && parent._assignedSlot) {
-          slotable = parent;
-        }
-
-        relatedTarget = retarget(eventImpl.relatedTarget, parent);
-
-        if (
-          true || // TODO Hack to get bubbling to work correctly.
-          (isNode(parent) && isShadowInclusiveAncestor(nodeRoot(targetImpl), parent)) ||
-          idlUtils.wrapperForImpl(parent).constructor.name === "Window"
-        ) {
-          if (isActivationEvent && eventImpl.bubbles && activationTarget === null &&
-              parent._hasActivationBehavior) {
-            activationTarget = parent;
-          }
-
-          appendToEventPath(eventImpl, parent, null, relatedTarget, touchTargets, slotInClosedTree);
-        } else if (parent === relatedTarget) {
-          parent = null;
-        } else {
-          targetImpl = parent;
-
-          if (isActivationEvent && activationTarget === null && targetImpl._hasActivationBehavior) {
+          if (isActivationEvent && targetImpl._hasActivationBehavior) {
             activationTarget = targetImpl;
           }
 
-          appendToEventPath(eventImpl, parent, targetImpl, relatedTarget, touchTargets, slotInClosedTree);
-        }
+          let slotInClosedTree = false;
+          let slotable = isSlotable(targetImpl) && targetImpl._assignedSlot ? targetImpl : null;
+          let parent = getEventTargetParent(targetImpl, eventImpl);
 
-        if (parent !== null) {
-          parent = getEventTargetParent(parent, eventImpl);
-        }
+          // Populate event path
+          // https://dom.spec.whatwg.org/#event-path
+          while (parent !== null) {
+            if (slotable !== null) {
+              if (parent.localName !== "slot") {
+                throw new Error(`JSDOM Internal Error: Expected parent to be a Slot`);
+              }
 
-        slotInClosedTree = false;
-      }
+              slotable = null;
 
-      let clearTargetsStructIndex = -1;
-      for (let i = eventImpl._path.length - 1; i >= 0 && clearTargetsStructIndex === -1; i--) {
-        if (eventImpl._path[i].target !== null) {
-          clearTargetsStructIndex = i;
-        }
-      }
-      const clearTargetsStruct = eventImpl._path[clearTargetsStructIndex];
+              const parentRoot = nodeRoot(parent);
+              if (isShadowRoot(parentRoot) && parentRoot.mode === "closed") {
+                slotInClosedTree = true;
+              }
+            }
 
-      clearTargets =
-          (isNode(clearTargetsStruct.target) && isShadowRoot(nodeRoot(clearTargetsStruct.target))) ||
-          (isNode(clearTargetsStruct.relatedTarget) && isShadowRoot(nodeRoot(clearTargetsStruct.relatedTarget)));
+            if (isSlotable(parent) && parent._assignedSlot) {
+              slotable = parent;
+            }
 
-      if (activationTarget !== null && activationTarget._legacyPreActivationBehavior) {
-        activationTarget._legacyPreActivationBehavior();
-      }
+            relatedTarget = retarget(eventImpl.relatedTarget, parent);
 
-      for (let i = eventImpl._path.length - 1; i >= 0; --i) {
-        const struct = eventImpl._path[i];
+            if (
+              true || // TODO Hack to get bubbling to work correctly.
+              (isNode(parent) && isShadowInclusiveAncestor(nodeRoot(targetImpl), parent)) ||
+              idlUtils.wrapperForImpl(parent).constructor.name === "Window"
+            ) {
+              if (isActivationEvent && eventImpl.bubbles && activationTarget === null &&
+                  parent._hasActivationBehavior) {
+                activationTarget = parent;
+              }
 
-        if (struct.target !== null) {
-          eventImpl.eventPhase = EVENT_PHASE.AT_TARGET;
-        } else {
-          eventImpl.eventPhase = EVENT_PHASE.CAPTURING_PHASE;
-        }
+              appendToEventPath(eventImpl, parent, null, relatedTarget, touchTargets, slotInClosedTree);
+            } else if (parent === relatedTarget) {
+              parent = null;
+            } else {
+              targetImpl = parent;
 
-        invokeEventListeners(struct, eventImpl, "capturing", legacyOutputDidListenersThrowFlag);
-      }
+              if (isActivationEvent && activationTarget === null && targetImpl._hasActivationBehavior) {
+                activationTarget = targetImpl;
+              }
 
-      for (let i = 0; i < eventImpl._path.length; i++) {
-        const struct = eventImpl._path[i];
+              appendToEventPath(eventImpl, parent, targetImpl, relatedTarget, touchTargets, slotInClosedTree);
+            }
 
-        if (struct.target !== null) {
-          eventImpl.eventPhase = EVENT_PHASE.AT_TARGET;
-        } else {
-          if (!eventImpl.bubbles) {
-            continue;
+            if (parent !== null) {
+              parent = getEventTargetParent(parent, eventImpl);
+            }
+
+            slotInClosedTree = false;
           }
 
-          eventImpl.eventPhase = EVENT_PHASE.BUBBLING_PHASE;
+          let clearTargetsStructIndex = -1;
+          for (let i = eventImpl._path.length - 1; i >= 0 && clearTargetsStructIndex === -1; i--) {
+            if (eventImpl._path[i].target !== null) {
+              clearTargetsStructIndex = i;
+            }
+          }
+          const clearTargetsStruct = eventImpl._path[clearTargetsStructIndex];
+
+          clearTargets =
+              (isNode(clearTargetsStruct.target) && isShadowRoot(nodeRoot(clearTargetsStruct.target))) ||
+              (isNode(clearTargetsStruct.relatedTarget) && isShadowRoot(nodeRoot(clearTargetsStruct.relatedTarget)));
+
+          if (activationTarget !== null && activationTarget._legacyPreActivationBehavior) {
+            activationTarget._legacyPreActivationBehavior();
+          }
+
+            step(function () {
+                step.loop([ eventImpl._path.length - 1 ], function (i) {
+                    if (i < 0) {
+                        return [ step.break ]
+                    }
+                    const struct = eventImpl._path[i];
+
+                    if (struct.target !== null) {
+                        eventImpl.eventPhase = EVENT_PHASE.AT_TARGET;
+                    } else {
+                        eventImpl.eventPhase = EVENT_PHASE.CAPTURING_PHASE;
+                    }
+                    step(function () {
+                        _invokeEventListeners(struct, eventImpl, "capturing", legacyOutputDidListenersThrowFlag, asynchronous, step());
+                    }, function () {
+                        return i - 1
+                    })
+                })
+            }, function () {
+                step.forEach([ eventImpl._path ], function (struct) {
+                    if (struct.target !== null) {
+                        eventImpl.eventPhase = EVENT_PHASE.AT_TARGET;
+                    } else {
+                        if (!eventImpl.bubbles) {
+                            return [ step.continue ]
+                        }
+                        eventImpl.eventPhase = EVENT_PHASE.BUBBLING_PHASE;
+                    }
+                    _invokeEventListeners(struct, eventImpl, "bubbling", legacyOutputDidListenersThrowFlag, asynchronous, step());
+                })
+            })
         }
+    }, function () {
+            eventImpl.eventPhase = EVENT_PHASE.NONE;
 
-//        console.log('bubble', struct.item, eventImpl.type, eventImpl.bubbles)
-        invokeEventListeners(struct, eventImpl, "bubbling", legacyOutputDidListenersThrowFlag);
-      }
-    }
+            eventImpl.currentTarget = null;
+            eventImpl._path = [];
+            eventImpl._dispatchFlag = false;
+            eventImpl._stopPropagationFlag = false;
+            eventImpl._stopImmediatePropagationFlag = false;
 
-    eventImpl.eventPhase = EVENT_PHASE.NONE;
+            if (clearTargets) {
+                eventImpl.target = null;
+                eventImpl.relatedTarget = null;
+            }
 
-    eventImpl.currentTarget = null;
-    eventImpl._path = [];
-    eventImpl._dispatchFlag = false;
-    eventImpl._stopPropagationFlag = false;
-    eventImpl._stopImmediatePropagationFlag = false;
+            if (activationTarget !== null) {
+                if (!eventImpl._canceledFlag) {
+                    activationTarget._activationBehavior(eventImpl);
+                } else if (activationTarget._legacyCanceledActivationBehavior) {
+                    activationTarget._legacyCanceledActivationBehavior();
+                }
+            }
 
-    if (clearTargets) {
-      eventImpl.target = null;
-      eventImpl.relatedTarget = null;
-    }
-
-    if (activationTarget !== null) {
-      if (!eventImpl._canceledFlag) {
-        activationTarget._activationBehavior(eventImpl);
-      } else if (activationTarget._legacyCanceledActivationBehavior) {
-        activationTarget._legacyCanceledActivationBehavior();
-      }
-    }
-
-    return !eventImpl._canceledFlag;
-  }
+            return [ ! eventImpl._canceledFlag ]
+        })
+    })
 }
 
 module.exports = {
@@ -254,7 +262,7 @@ module.exports = {
 };
 
 // https://dom.spec.whatwg.org/#concept-event-listener-invoke
-function invokeEventListeners(struct, eventImpl, phase, legacyOutputDidListenersThrowFlag) {
+const _invokeEventListeners = cadence(function (step, struct, eventImpl, phase, legacyOutputDidListenersThrowFlag, asynchronous = false) {
   const structIndex = eventImpl._path.indexOf(struct);
   for (let i = structIndex; i >= 0; i--) {
     const t = eventImpl._path[i];
@@ -273,10 +281,63 @@ function invokeEventListeners(struct, eventImpl, phase, legacyOutputDidListeners
   eventImpl.currentTarget = idlUtils.wrapperForImpl(struct.item);
 
   const listeners = struct.item._eventListeners;
-  innerInvokeEventListeners(eventImpl, listeners, phase, struct.itemInShadowTree, legacyOutputDidListenersThrowFlag);
-}
+  _innerInvokeEventListeners(eventImpl, listeners, phase, struct.itemInShadowTree, legacyOutputDidListenersThrowFlag, asynchronous, step())
+})
 
 // https://dom.spec.whatwg.org/#concept-event-listener-inner-invoke
+
+const _innerInvokeEventListeners = cadence(function (
+    step, eventImpl, listeners, phase, itemInShadowTree, legacyOutputDidListenersThrowFlag, asynchronous
+) {
+    let found = false
+
+    const { type, target } = eventImpl
+    const wrapper = idlUtils.wrapperForImpl(target)
+
+    if (!listeners || !listeners[type]) {
+        return found
+    }
+
+    // Copy event listeners before iterating since the list can be modified during the iteration.
+    const handlers = listeners[type].slice();
+
+    step.forEach([ handlers ], function (listener) {
+        const { capture, once, passive } = listener.options;
+        if (
+            (phase === "capturing" && !capture) ||
+            (phase === "bubbling" && capture)
+        ) {
+            return [ step.continue ]
+        }
+
+        if (once) {
+          listeners[type].splice(listeners[type].indexOf(listener), 1);
+        }
+
+        if (passive) {
+            eventImpl._inPassiveListenerFlag = true;
+        }
+
+        try {
+          listener.callback.call(eventImpl.currentTarget, eventImpl);
+        } catch (e) {
+          if (legacyOutputDidListenersThrowFlag) {
+            eventImpl._legacyOutputDidListenersThrowFlag = true
+          }
+        }
+
+        eventImpl._inPassiveListenerFlag = false;
+
+        if (asynchronous) {
+            setImmediate(step())
+        }
+    }, function () {
+        if (eventImpl._stopImmediatePropagationFlag) {
+            return [ step.break ]
+        }
+    })
+})
+
 function innerInvokeEventListeners(eventImpl, listeners, phase, itemInShadowTree, legacyOutputDidListenersThrowFlag) {
   let found = false;
 

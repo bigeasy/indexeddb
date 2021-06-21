@@ -23,6 +23,8 @@
     "dependencies":
     {
                             "avenue":                       "0.6.13",
+                            "cadence":                      "4.0.0-alpha.3",
+                            "comeuppance":                  "0.0.1",
                             "domexception":                 "2.0.1",
                             "memento":                      "^0.1.29",
                             "jsdom":                        "16.6.0",

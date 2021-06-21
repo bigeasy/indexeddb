@@ -29,7 +29,7 @@ const EventTargetImpl = require('./living/idl/EventTarget-impl').implementation
 const webidl = require('./living/generated/utils')
 
 class IDBTransactionImpl extends EventTargetImpl {
-    constructor (globalObject, args, { schema, database, mode, names = [], previousVersion = null, durability }) {
+    constructor (globalObject, args, { schema, request = null, database, mode, names = [], previousVersion = null, durability }) {
         super(globalObject, [], {})
         if (mode == null) {
             throw new Error
@@ -39,6 +39,7 @@ class IDBTransactionImpl extends EventTargetImpl {
         this._schema = schema
         this._state = 'active'
         this._database = database
+        this._request = request
         this._queue = []
         this._mode = mode
         this._names = names
@@ -95,7 +96,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                 if (cursor._outer.next.done) {
                     request._result = null
                     request.readyState = 'done'
-                    dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
+                    await dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
                     break
                 } else {
                     cursor._inner = cursor._outer.next.value[Symbol.iterator]()
@@ -103,7 +104,7 @@ class IDBTransactionImpl extends EventTargetImpl {
             } else {
                 cursor._value = next.value
                 request.readyState = 'done'
-                dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
+                await dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
                 break
             }
         }
@@ -124,7 +125,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                     delete request._result
                     request.readyState = 'done'
                     request._error = DOMException.create(this._globalObject, [ 'TODO: message', 'AbortError' ], {})
-                    dispatchEvent(null, request, Event.createImpl(this._globalObject, [ 'error', { bubbles: true, cancelable: true } ], {}))
+                    await dispatchEvent(null, request, Event.createImpl(this._globalObject, [ 'error', { bubbles: true, cancelable: true } ], {}))
                 }
                 continue
             }
@@ -192,7 +193,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                             const error = DOMException.create(this._globalObject, [ 'Unique key constraint violation.', 'ConstraintError' ], {})
                             request.readyState = 'done'
                             request._error = error
-                            const caught = dispatchEvent(null, request, event)
+                            const caught = await dispatchEvent(null, request, event)
                             if (!event._canceledFlag) {
                                 this.abort()
                             }
@@ -225,7 +226,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                                 const error = DOMException.create(this._globalObject, [ 'Unique key constraint violation.', 'ConstraintError' ], {})
                                 request.readyState = 'done'
                                 request._error = error
-                                const caught = dispatchEvent(this, request, event)
+                                const caught = await dispatchEvent(this, request, event)
                                 console.log('???', caught)
                                 break SWITCH
                             }
@@ -234,7 +235,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                     }
                     transaction.set(store.qualified, record)
                     request.readyState = 'done'
-                    dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success', { bubbles: false, cancelable: false }], {}))
+                    await dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success', { bubbles: false, cancelable: false }], {}))
                 }
                 break
             case 'get': {
@@ -246,7 +247,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                                 request._result = Verbatim.deserialize(Verbatim.serialize(got.value))
                             }
                             request.readyState = 'done'
-                            dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
+                            await dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
                         }
                         break
                     case 'index': {
@@ -259,7 +260,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                                 request._result = Verbatim.deserialize(Verbatim.serialize(key ? got.key : got.value))
                             }
                             request.readyState = 'done'
-                            dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
+                            await dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
                         }
                         break
                     }
@@ -280,7 +281,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                                 request._result = array.map(item => item.value)
                             }
                             request.readyState = 'done'
-                            dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
+                            await dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
                         }
                         break
                     }
@@ -297,7 +298,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                     if (cursor._outer.next.done) {
                         request._result = null
                         request.readyState = 'done'
-                        dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
+                        await dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
                     } else {
                         cursor._inner = cursor._outer.next.value[Symbol.iterator]()
                         await this._item(event)
@@ -321,7 +322,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                                 }
                             }
                             request.readyState = 'done'
-                            dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
+                            await dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
                         }
                         break
                     }
@@ -337,7 +338,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                     }
                     // TODO Clear an index.
                     request.readyState = 'done'
-                    dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
+                    await dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
                 }
                 break
             case 'delete': {
@@ -350,7 +351,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                         }
                     }
                     request.readyState = 'done'
-                    dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
+                    await dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
                 }
                 break
             case 'rename': {
@@ -383,7 +384,11 @@ class IDBTransactionImpl extends EventTargetImpl {
             this._schema.reset()
             // **TODO** I unset this here and in IDBFactory, so spaghetti.
             this._database._transaction = null
-            dispatchEvent(null, this, Event.createImpl(this._globalObject, [ 'abort', { bubbles: true, cancelable: true } ], {}))
+            await dispatchEvent(null, this, Event.createImpl(this._globalObject, [ 'abort', { bubbles: true, cancelable: true } ], {}))
+            // Must do this immediately before transaction rollback.
+            if (this._request) {
+                this._request.transaction = null
+            }
             if (transaction.rollback) {
                 transaction.rollback()
             }
@@ -395,7 +400,10 @@ class IDBTransactionImpl extends EventTargetImpl {
             this._schema.merge()
             this._state = 'finished'
             this._database._transaction = null
-            dispatchEvent(null, this, Event.createImpl(this._globalObject, [ 'complete' ], {}))
+            await dispatchEvent(null, this, Event.createImpl(this._globalObject, [ 'complete' ], {}))
+            if (this._request) {
+                this._request.transaction = null
+            }
         }
     }
 }
