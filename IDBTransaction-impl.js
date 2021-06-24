@@ -241,19 +241,23 @@ class IDBTransactionImpl extends EventTargetImpl {
             case 'get': {
                     switch (event.type) {
                     case 'store': {
-                            const { store, key, request } = event
-                            const got = await transaction.get(store.qualified, [ key.lower ])
-                            if (got != null) {
-                                request._result = Verbatim.deserialize(Verbatim.serialize(got.value))
+                            const { store, query, request, key } = event
+                            const got = await transaction.cursor(store.qualified, [ query.lower ])
+                                                         .terminate(item => ! query.includes(item.key))
+                                                         .limit(1)
+                                                         .array()
+                            if (got.length != 0) {
+                                request._result = Verbatim.deserialize(Verbatim.serialize(key ? got[0].key : got[0].value))
                             }
                             request.readyState = 'done'
                             await dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
                         }
                         break
                     case 'index': {
-                            const { store, key, index, query, request } = event
+                            const { store, query, index, key, request } = event
                             const indexGot = await transaction.cursor(index.qualified, [[ query.lower ]])
                                                               .terminate(item => ! query.includes(item.key[0]))
+                                                              .limit(1)
                                                               .array()
                             if (indexGot.length != 0) {
                                 const got = await transaction.get(store.qualified, [ indexGot[0].key[1] ])

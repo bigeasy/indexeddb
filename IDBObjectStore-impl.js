@@ -175,15 +175,15 @@ class IDBObjectStoreImpl {
         return request
     }
 
-    get (key) {
+    get (query) {
         if (this._schema.isDeleted(this._store)) {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
         if (this._transaction._state != 'active') {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
         }
-        if (! (key instanceof this._globalObject.IDBKeyRange)) {
-            key = this._globalObject.IDBKeyRange.only(key)
+        if (! (query instanceof this._globalObject.IDBKeyRange)) {
+            query = this._globalObject.IDBKeyRange.only(query)
         }
         const request = IDBRequest.createImpl(this._globalObject, {}, { parent: this._transaction })
         this._transaction._queue.push({
@@ -191,9 +191,10 @@ class IDBObjectStoreImpl {
             type: 'store',
             request: request,
             store: JSON.parse(JSON.stringify(this._store)),
-            key: key
+            query: query,
+            key: false
         })
-        return webidl.wrapperForImpl(request)
+        return request
     }
 
     getKey (query) {
@@ -203,10 +204,19 @@ class IDBObjectStoreImpl {
         if (this._transaction._state != 'active') {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
         }
-        if (! (key instanceof this._globalObject.IDBKeyRange)) {
-            key = this._globalObject.IDBKeyRange.only(key)
+        if (! (query instanceof this._globalObject.IDBKeyRange)) {
+            query = this._globalObject.IDBKeyRange.only(query)
         }
-        throw new Error
+        const request = IDBRequest.createImpl(this._globalObject, {}, { parent: this._transaction })
+        this._transaction._queue.push({
+            method: 'get',
+            type: 'store',
+            request: request,
+            store: JSON.parse(JSON.stringify(this._store)),
+            query: query,
+            key: true
+        })
+        return request
     }
 
     getAll (query, count = 0) {
