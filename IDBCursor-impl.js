@@ -1,5 +1,11 @@
+const IDBRequest = require('./living/generated/IDBRequest')
+const Verbatim = require('verbatim')
+
 class IDBCursorImpl {
-    constructor (globaObject, [], { transaction, request, query }) {
+    constructor (globaObject, [], { type, transaction, store, request, query, hello }) {
+        this._globalObject = globaObject
+        this._type = type
+        this._store = store
         this._request = request
         this._transaction = transaction
         this._query = query
@@ -39,7 +45,17 @@ class IDBCursorImpl {
     }
 
     update (value) {
-        throw new Error
+        const request = IDBRequest.createImpl(this._globalObject, [], { parent: this._transaction })
+        this._transaction._queue.push({
+            method: 'set',
+            overwrite: true,
+            request: request,
+            type: this._type,
+            key: this._value.key,
+            value: Verbatim.deserialize(Verbatim.serialize(value)),
+            store: JSON.parse(JSON.stringify(this._store))
+        })
+        return request
     }
 
     delete () {

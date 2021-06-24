@@ -296,6 +296,7 @@ class IDBObjectStoreImpl {
         request._result = webidl.wrapperForImpl(cursor)
         this._transaction._queue.push({
             method: 'openCursor',
+            type: 'store',
             request: request,
             store: JSON.parse(JSON.stringify(this._store)),
             cursor: cursor,

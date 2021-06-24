@@ -88,8 +88,8 @@ class IDBTransactionImpl extends EventTargetImpl {
         this._aborted = true
     }
 
-    async _item ({ request, cursor }) {
-        for (;;) {
+    async _item ({ type, store, request, cursor }, transaction) {
+        FOREVER: for (;;) {
             const next = cursor._inner.next()
             if (next.done) {
                 cursor._outer.next = await cursor._outer.iterator.next()
@@ -102,10 +102,21 @@ class IDBTransactionImpl extends EventTargetImpl {
                     cursor._inner = cursor._outer.next.value[Symbol.iterator]()
                 }
             } else {
-                cursor._value = next.value
-                request.readyState = 'done'
-                await dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
-                break
+                switch (type) {
+                case 'store': {
+                        cursor._value = next.value
+                        request.readyState = 'done'
+                        await dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
+                    }
+                    break FOREVER
+                case 'index': {
+                        const key = next.key
+                        cursor._value = await transaction.get(store.qualified, [ next.value.key[1] ])
+                        request.readyState = 'done'
+                        await dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
+                    }
+                    break FOREVER
+                }
             }
         }
     }
@@ -292,20 +303,43 @@ class IDBTransactionImpl extends EventTargetImpl {
                 }
                 break
             case 'openCursor': {
-                    const { store, request, cursor, direction } = event
-                    let builder = transaction.cursor(store.qualified)
-                    if (direction == 'prev') {
-                        builder.reverse()
-                    }
-                    cursor._outer = { iterator: builder[Symbol.asyncIterator](), next: null }
-                    cursor._outer.next = await cursor._outer.iterator.next()
-                    if (cursor._outer.next.done) {
-                        request._result = null
-                        request.readyState = 'done'
-                        await dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
-                    } else {
-                        cursor._inner = cursor._outer.next.value[Symbol.iterator]()
-                        await this._item(event)
+                    switch (event.type) {
+                    case 'store': {
+                            const { store, request, cursor, direction } = event
+                            let builder = transaction.cursor(store.qualified)
+                            if (direction == 'prev') {
+                                builder = builder.reverse()
+                            }
+                            cursor._outer = { iterator: builder[Symbol.asyncIterator](), next: null }
+                            cursor._outer.next = await cursor._outer.iterator.next()
+                            if (cursor._outer.next.done) {
+                                request._result = null
+                                request.readyState = 'done'
+                                await dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
+                            } else {
+                                cursor._inner = cursor._outer.next.value[Symbol.iterator]()
+                                await this._item(event)
+                            }
+                        }
+                        break
+                    case 'index': {
+                            const { store, index, request, cursor, direction } = event
+                            let builder = transaction.cursor(index.qualified)
+                            if (direction == 'prev') {
+                                builder = builder.reverse()
+                            }
+                            cursor._outer = { iterator: builder[Symbol.asyncIterator](), next: null }
+                            cursor._outer.next = await cursor._outer.iterator.next()
+                            if (cursor._outer.next.done) {
+                                request._result = null
+                                request.readyState = 'done'
+                                await dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
+                            } else {
+                                cursor._inner = cursor._outer.next.value[Symbol.iterator]()
+                                await this._item(event, transaction)
+                            }
+                        }
+                        break
                     }
                 }
                 break

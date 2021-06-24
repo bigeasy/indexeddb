@@ -21,7 +21,6 @@ async function dispatchEvent (transaction, eventTargetImpl, eventImpl) {
         transaction._state = 'inactive'
     }
     if (eventImpl._legacyOutputDidListenersThrowFlag) {
-        console.log(eventImpl)
         console.log('LEGACY OUTPUT DID LISTENERS THROW')
         throw new Error
     }

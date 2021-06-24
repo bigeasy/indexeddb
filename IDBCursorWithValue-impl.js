@@ -1,8 +1,8 @@
 const IDBCursorImpl = require('./IDBCursor-impl').implementation
 
 class IDBCursorWithValueImpl extends IDBCursorImpl {
-    constructor (globalObject, [], { transaction, request, query }) {
-        super(globalObject, [], { transaction, request, query })
+    constructor (globalObject, [], properties) {
+        super(globalObject, [], properties)
         this._value = null
     }
 

@@ -1,11 +1,12 @@
 const IDBRequest = require('./living/generated/IDBRequest')
 const DOMException = require('domexception/lib/DOMException')
+const IDBCursorWithValue = require('./living/generated/IDBCursorWithValue')
 
 const webidl = require('./living/generated/utils')
 
 class IDBIndexImpl {
     // TODO Make loop a property of transaction.
-    constructor (globalObject, [], { transaction, schema, store, index, objectStore }) {
+    constructor (globalObject, [], { index, objectStore }) {
         this._globalObject = globalObject
         this._index = index
         this.objectStore = objectStore
@@ -86,7 +87,36 @@ class IDBIndexImpl {
     }
 
     openCursor (query, direction = 'next') {
-        throw new Error
+        if (this.objectStore._schema.isDeleted(this._index)) {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
+        }
+        if (this.objectStore._transaction._state != 'active') {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
+        }
+        if (query != null && ! (query instanceof this.objectStore._globalObject.IDBKeyRange))  {
+            query = this._globalObject.IDBKeyRange.only(query)
+        }
+        const request = IDBRequest.createImpl(this._globalObject, [], { parent: this._transaction })
+        const cursor = IDBCursorWithValue.createImpl(this._globalObject, [], {
+            type: 'index',
+            hello: 'world',
+            transaction: this.objectStore._transaction,
+            request: request,
+            store: this.objectStore._store,
+            index: this._index,
+            query: query
+        })
+        request._result = webidl.wrapperForImpl(cursor)
+        this.objectStore._transaction._queue.push({
+            method: 'openCursor',
+            type: 'index',
+            store: JSON.parse(JSON.stringify(this.objectStore._store)),
+            index: this._index,
+            request: request,
+            cursor: cursor,
+            direction: direction
+        })
+        return request
     }
 
     openKeyCursor (query, direction = 'next') {
