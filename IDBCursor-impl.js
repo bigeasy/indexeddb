@@ -37,7 +37,12 @@ class IDBCursorImpl {
     }
 
     continue (key) {
-        this._transaction._queue.push({ method: 'item', cursor: this, request: this._request })
+        this._transaction._queue.push({
+            method: 'item',
+            type: this._type,
+            cursor: this,
+            request: this._request
+        })
     }
 
     continuePrimaryKey (key, primaryKey) {

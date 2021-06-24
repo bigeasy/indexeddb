@@ -289,6 +289,7 @@ class IDBObjectStoreImpl {
         }
         const request = IDBRequest.createImpl(this._globalObject, [], { parent: this._transaction })
         const cursor = IDBCursorWithValue.createImpl(this._globalObject, [], {
+            type: 'store',
             transaction: this._transaction,
             request: request,
             query: query
