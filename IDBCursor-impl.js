@@ -3,6 +3,10 @@ const Verbatim = require('verbatim')
 
 class IDBCursorImpl {
     constructor (globaObject, [], { type, transaction, store, request, query, hello }) {
+        if (store == null) {
+            console.log(new Error().stack)
+            process.exit()
+        }
         this._globalObject = globaObject
         this._type = type
         this._store = store
@@ -51,13 +55,16 @@ class IDBCursorImpl {
 
     update (value) {
         const request = IDBRequest.createImpl(this._globalObject, [], { parent: this._transaction })
+        this._transaction._state = 'inactive'
+        value = Verbatim.deserialize(Verbatim.serialize(value)),
+        this._transaction._state = 'active'
         this._transaction._queue.push({
             method: 'set',
             overwrite: true,
             request: request,
             type: this._type,
             key: this._value.key,
-            value: Verbatim.deserialize(Verbatim.serialize(value)),
+            value: value,
             store: JSON.parse(JSON.stringify(this._store))
         })
         return request

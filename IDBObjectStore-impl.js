@@ -91,7 +91,9 @@ class IDBObjectStoreImpl {
         if (key == null && this._store.autoIncrement == null && this._store.keyPath == null) {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'DataError' ], {})
         }
+        this._transaction._state = 'inactive'
         value = Verbatim.deserialize(Verbatim.serialize(value))
+        this._transaction._state = 'active'
         if (this._store.keyPath != null) {
             key = this._schema.getExtractor(this._store.id)(value)
         }
@@ -291,6 +293,7 @@ class IDBObjectStoreImpl {
         const cursor = IDBCursorWithValue.createImpl(this._globalObject, [], {
             type: 'store',
             transaction: this._transaction,
+            store: this._store,
             request: request,
             query: query
         })
