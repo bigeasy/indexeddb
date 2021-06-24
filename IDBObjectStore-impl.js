@@ -6,9 +6,12 @@ const Verbatim = require('verbatim')
 
 const assert = require('assert')
 
+const convert = require('./convert')
+
 const IDBRequest = require('./living/generated/IDBRequest')
 const IDBIndex = require('./living/generated/IDBIndex')
 const IDBKeyRange = require('./living/generated/IDBKeyRange')
+const IDBCursor = require('./living/generated/IDBCursor')
 const IDBCursorWithValue = require('./living/generated/IDBCursorWithValue')
 const DOMStringList = require('./living/generated/DOMStringList')
 
@@ -142,8 +145,8 @@ class IDBObjectStoreImpl {
         if (this._transaction.mode == 'readonly') {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'ReadOnlyError' ], {})
         }
-        if (! (query instanceof this._globalObject.IDBKeyRange)) {
-            query = this._globalObject.IDBKeyRange.only(query)
+        if (query != null && ! (query instanceof this._globalObject.IDBKeyRange)) {
+            query = this._globalObject.IDBKeyRange.only(convert.key(this._globalObject, query))
         }
         const request = IDBRequest.createImpl(this._globalObject, [], {
             // **TODO** parent is always transaction, so...
@@ -316,10 +319,29 @@ class IDBObjectStoreImpl {
         if (this._transaction._state != 'active') {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
         }
-        if (query == null) {
-            query = IDBKeyRange.createImpl(this._globalObject, [ null, null ], {})
+        if (query != null && ! (query instanceof this._globalObject.IDBKeyRange)) {
+            query = this._globalObject.IDBKeyRange.only(convert.key(this._globalObject, query))
         }
-        throw new Error
+        const request = IDBRequest.createImpl(this._globalObject, [], { parent: this._transaction })
+        const cursor = IDBCursor.createImpl(this._globalObject, [], {
+            type: 'store',
+            transaction: this._transaction,
+            store: this._store,
+            request: request,
+            query: query,
+            direction: direction
+        })
+        request._result = webidl.wrapperForImpl(cursor)
+        this._transaction._queue.push({
+            method: 'openCursor',
+            type: 'store',
+            request: request,
+            store: JSON.parse(JSON.stringify(this._store)),
+            cursor: cursor,
+            query: query,
+            direction: direction
+        })
+        return webidl.wrapperForImpl(request)
     }
 
     index (name) {

@@ -324,9 +324,22 @@ class IDBTransactionImpl extends EventTargetImpl {
             case 'openCursor': {
                     switch (event.type) {
                     case 'store': {
-                            const { store, request, cursor, direction } = event
-                            let builder = transaction.cursor(store.qualified)
-                            if (direction == 'prev') {
+                            const { store, request, cursor, direction, query } = event
+                            let builder
+                            if (direction == 'next') {
+                                builder = query == null
+                                    ? transaction.cursor(store.qualified)
+                                    : transaction.cursor(store.qualified, [ query.lower ])
+                                if (query != null && query.upper != null) {
+                                    builder = builder.terminate(item => ! query.includes(item.key))
+                                }
+                            } else {
+                                builder = query == null
+                                    ? transaction.cursor(store.qualified)
+                                    : transaction.cursor(store.qualified, [ query.upper ])
+                                if (query != null && query.lower != null) {
+                                    builder = builder.terminate(item => ! query.includes(item.key))
+                                }
                                 builder = builder.reverse()
                             }
                             cursor._outer = { iterator: builder[Symbol.asyncIterator](), next: null }
