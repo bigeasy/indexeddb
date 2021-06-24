@@ -9,6 +9,7 @@ const assert = require('assert')
 const IDBRequest = require('./living/generated/IDBRequest')
 const IDBIndex = require('./living/generated/IDBIndex')
 const IDBKeyRange = require('./living/generated/IDBKeyRange')
+const IDBCursor = require('./living/generated/IDBCursor')
 const IDBCursorWithValue = require('./living/generated/IDBCursorWithValue')
 const DOMStringList = require('./living/generated/DOMStringList')
 
@@ -316,10 +317,31 @@ class IDBObjectStoreImpl {
         if (this._transaction._state != 'active') {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
         }
+        if (isNaN(query) || (query instanceof Date) && isNaN(date.getTime())) {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'DataError' ], {})
+        }
         if (query == null) {
             query = IDBKeyRange.createImpl(this._globalObject, [ null, null ], {})
         }
-        throw new Error
+        const request = IDBRequest.createImpl(this._globalObject, [], { parent: this._transaction })
+        const cursor = IDBCursor.createImpl(this._globalObject, [], {
+            type: 'store',
+            transaction: this._transaction,
+            store: this._store,
+            request: request,
+            query: query,
+            direction: direction
+        })
+        request._result = webidl.wrapperForImpl(cursor)
+        this._transaction._queue.push({
+            method: 'openCursor',
+            type: 'store',
+            request: request,
+            store: JSON.parse(JSON.stringify(this._store)),
+            cursor: cursor,
+            direction: direction
+        })
+        return webidl.wrapperForImpl(request)
     }
 
     index (name) {
