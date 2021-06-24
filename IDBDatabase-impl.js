@@ -39,7 +39,6 @@ class IDBDatabaseImpl extends EventTargetImpl  {
 
     transaction (names, mode, options) {
         if (this._transaction != null) {
-            console.log('has upgrade transatction')
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
         if (this._closing) {

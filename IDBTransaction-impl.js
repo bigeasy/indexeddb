@@ -110,7 +110,6 @@ class IDBTransactionImpl extends EventTargetImpl {
                     }
                     break FOREVER
                 case 'index': {
-                        const key = next.key
                         cursor._value = await transaction.get(store.qualified, [ next.value.key[1] ])
                         request.readyState = 'done'
                         await dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
@@ -118,6 +117,26 @@ class IDBTransactionImpl extends EventTargetImpl {
                     break FOREVER
                 }
             }
+        }
+    }
+
+    async _delete (transaction, store, { key, value }) {
+        transaction.unset(store.qualified, [ key ])
+        for (const indexName in store.index) {
+            const index = this._schema._pending.store[store.index[indexName]]
+            if (! index.extant) {
+                continue
+            }
+            let extracted
+            try {
+                extracted = valuify(this._globalObject, this._schema.getExtractor(index.id)(value))
+            } catch (error) {
+                // **TODO** Why doesn't `{ name: 'DataError' }` work. Step through
+                // it with `test/idbobjectstore_add14.wpt.t.js`.
+                rescue(error, [ this._globalObject.DOMException ])
+                continue
+            }
+            transaction.unset(index.qualified, [[ extracted, key ]])
         }
     }
 
@@ -371,7 +390,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                     // TODO Really do not need iterator do I?
                     for await (const items of transaction.cursor(store.qualified)) {
                         for (const item of items) {
-                            transaction.unset(store.qualified, [ item.key ])
+                            this._delete(transaction, store, item)
                         }
                     }
                     // TODO Clear an index.

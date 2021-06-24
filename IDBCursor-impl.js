@@ -3,10 +3,6 @@ const Verbatim = require('verbatim')
 
 class IDBCursorImpl {
     constructor (globaObject, [], { type, transaction, store, request, query, hello }) {
-        if (store == null) {
-            console.log(new Error().stack)
-            process.exit()
-        }
         this._globalObject = globaObject
         this._type = type
         this._store = store
