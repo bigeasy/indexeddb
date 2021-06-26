@@ -256,8 +256,11 @@ class IDBTransactionImpl extends EventTargetImpl {
                                 const error = DOMException.create(this._globalObject, [ 'Unique key constraint violation.', 'ConstraintError' ], {})
                                 request.readyState = 'done'
                                 request._error = error
-                                const caught = await dispatchEvent(this, request, event)
-                                console.log('???', caught)
+                                await dispatchEvent(this, request, event)
+                                if (!event._canceledFlag) {
+                                    this.error = DOMException.create(this._globalObject, [ 'TODO: message', 'ConstraintError' ], {})
+                                    this.abort()
+                                }
                                 break SWITCH
                             }
                         }
