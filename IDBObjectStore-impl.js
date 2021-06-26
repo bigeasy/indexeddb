@@ -254,10 +254,20 @@ class IDBObjectStoreImpl {
         if (this._transaction._state != 'active') {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
         }
-        if (! (key instanceof this._globalObject.IDBKeyRange)) {
-            key = this._globalObject.IDBKeyRange.only(key)
+        if (query != null && ! (query instanceof this._globalObject.IDBKeyRange)) {
+            query = this._globalObject.IDBKeyRange.only(query)
         }
-        throw new Error
+        const request = IDBRequest.createImpl(this._globalObject, {}, { parent: this._transaction })
+        this._transaction._queue.push({
+            method: 'getAll',
+            type: 'store',
+            request: request,
+            store: JSON.parse(JSON.stringify(this._store)),
+            query: query,
+            count: count,
+            key: true
+        })
+        return request
     }
 
     count (query) {
