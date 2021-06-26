@@ -115,7 +115,7 @@ class IDBObjectStoreImpl {
         } else {
             key = valuify(this._globalObject, key)
         }
-        const request = IDBRequest.createImpl(this._globalObject, [], { parent: this._transaction })
+        const request = IDBRequest.createImpl(this._globalObject, [], { parent: this._transaction, source: this })
         this._transaction._queue.push({
             method: 'set',
             request,
@@ -150,7 +150,7 @@ class IDBObjectStoreImpl {
         }
         const request = IDBRequest.createImpl(this._globalObject, [], {
             // **TODO** parent is always transaction, so...
-            parent: this._transaction, transaction: this._transaction
+            parent: this._transaction, transaction: this._transaction, source: this
         })
         this._transaction._queue.push({
             method: 'delete',
@@ -171,7 +171,7 @@ class IDBObjectStoreImpl {
         if (this._transaction.mode == 'readonly') {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'ReadOnlyError' ], {})
         }
-        const request = IDBRequest.createImpl(this._globalObject, [], { parent: this._transaction })
+        const request = IDBRequest.createImpl(this._globalObject, [], { parent: this._transaction, source: this })
         this._transaction._queue.push({
             method: 'clear',
             request: request,
@@ -190,7 +190,7 @@ class IDBObjectStoreImpl {
         if (! (query instanceof this._globalObject.IDBKeyRange)) {
             query = this._globalObject.IDBKeyRange.only(query)
         }
-        const request = IDBRequest.createImpl(this._globalObject, {}, { parent: this._transaction })
+        const request = IDBRequest.createImpl(this._globalObject, {}, { parent: this._transaction, source: this })
         this._transaction._queue.push({
             method: 'get',
             type: 'store',
@@ -212,7 +212,7 @@ class IDBObjectStoreImpl {
         if (! (query instanceof this._globalObject.IDBKeyRange)) {
             query = this._globalObject.IDBKeyRange.only(query)
         }
-        const request = IDBRequest.createImpl(this._globalObject, {}, { parent: this._transaction })
+        const request = IDBRequest.createImpl(this._globalObject, {}, { parent: this._transaction, source: this })
         this._transaction._queue.push({
             method: 'get',
             type: 'store',
@@ -234,7 +234,7 @@ class IDBObjectStoreImpl {
         if (query != null && ! (query instanceof this._globalObject.IDBKeyRange)) {
             query = this._globalObject.IDBKeyRange.only(query)
         }
-        const request = IDBRequest.createImpl(this._globalObject, {}, { parent: this._transaction })
+        const request = IDBRequest.createImpl(this._globalObject, {}, { parent: this._transaction, source: this })
         this._transaction._queue.push({
             method: 'getAll',
             type: 'store',
@@ -257,7 +257,7 @@ class IDBObjectStoreImpl {
         if (query != null && ! (query instanceof this._globalObject.IDBKeyRange)) {
             query = this._globalObject.IDBKeyRange.only(query)
         }
-        const request = IDBRequest.createImpl(this._globalObject, {}, { parent: this._transaction })
+        const request = IDBRequest.createImpl(this._globalObject, {}, { parent: this._transaction, source: this })
         this._transaction._queue.push({
             method: 'getAll',
             type: 'store',
@@ -282,7 +282,7 @@ class IDBObjectStoreImpl {
         } else if (! (query instanceof this._globalObject.IDBKeyRange)) {
             query = this._globalObject.IDBKeyRange.only(convert.key(this._globalObject, query))
         }
-        const request = IDBRequest.createImpl(this._globalObject, [], { parent: this._transaction })
+        const request = IDBRequest.createImpl(this._globalObject, [], { parent: this._transaction, source: this })
         this._transaction._queue.push({
             method: 'count',
             request: request,
@@ -302,7 +302,7 @@ class IDBObjectStoreImpl {
         if (query == null) {
             query = IDBKeyRange.createImpl(this._globalObject, [ null, null ], {})
         }
-        const request = IDBRequest.createImpl(this._globalObject, [], { parent: this._transaction })
+        const request = IDBRequest.createImpl(this._globalObject, [], { parent: this._transaction, source: this })
         const cursor = IDBCursorWithValue.createImpl(this._globalObject, [], {
             type: 'store',
             transaction: this._transaction,
@@ -332,7 +332,7 @@ class IDBObjectStoreImpl {
         if (query != null && ! (query instanceof this._globalObject.IDBKeyRange)) {
             query = this._globalObject.IDBKeyRange.only(convert.key(this._globalObject, query))
         }
-        const request = IDBRequest.createImpl(this._globalObject, [], { parent: this._transaction })
+        const request = IDBRequest.createImpl(this._globalObject, [], { parent: this._transaction, source: this })
         const cursor = IDBCursor.createImpl(this._globalObject, [], {
             type: 'store',
             transaction: this._transaction,
