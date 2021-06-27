@@ -385,12 +385,28 @@ class IDBTransactionImpl extends EventTargetImpl {
                 }
                 break
             case 'count': {
-                    const { store, request, query } = event
-                    switch (store.type) {
+                    switch (event.type) {
                     case 'store': {
+                            const { store, request, query } = event
                             request._result = 0
                             let cursor = query.lower == null ? transaction.cursor(store.qualified) : transaction.cursor(store.qualified, [ query.lower ])
                             cursor = query.upper == null ? cursor : cursor.terminate(item => ! query.includes(item.key))
+                            for await (const items of cursor) {
+                                for (const item of items) {
+                                    request._result++
+                                }
+                            }
+                            request.readyState = 'done'
+                            await dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
+                        }
+                        break
+                    case 'index': {
+                            const { index, store, request, query } = event
+                            request._result = 0
+                            let cursor = query.lower == null ? transaction.cursor(index.qualified) : transaction.cursor(index.qualified, [[ query.lower ]])
+                            cursor = query.upper == null ? cursor : cursor.terminate(item => {
+                                return ! query.includes(item.key[0])
+                            })
                             for await (const items of cursor) {
                                 for (const item of items) {
                                     request._result++

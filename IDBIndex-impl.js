@@ -1,8 +1,10 @@
 const IDBRequest = require('./living/generated/IDBRequest')
 const DOMException = require('domexception/lib/DOMException')
 const IDBCursorWithValue = require('./living/generated/IDBCursorWithValue')
+const IDBKeyRange = require('./living/generated/IDBKeyRange')
 
 const webidl = require('./living/generated/utils')
+const convert = require('./convert')
 
 class IDBIndexImpl {
     // TODO Make loop a property of transaction.
@@ -83,7 +85,27 @@ class IDBIndexImpl {
     }
 
     count (query) {
-        throw new Error
+        if (this.objectStore._schema.isDeleted(this._index)) {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
+        }
+        if (this.objectStore._transaction._state != 'active') {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
+        }
+        if (query == null) {
+            query = IDBKeyRange.createImpl(this._globalObject, [ null, null ], {})
+        } else if (! (query instanceof this._globalObject.IDBKeyRange)) {
+            query = this._globalObject.IDBKeyRange.only(convert.key(this._globalObject, query))
+        }
+        const request = IDBRequest.createImpl(this._globalObject, [], { parent: this._transaction, source: this })
+        this.objectStore._transaction._queue.push({
+            method: 'count',
+            type: 'index',
+            request: request,
+            store: JSON.parse(JSON.stringify(this.objectStore._store)),
+            index: this._index,
+            query: query
+        })
+        return request
     }
 
     openCursor (query, direction = 'next') {

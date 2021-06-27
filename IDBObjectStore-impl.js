@@ -285,6 +285,7 @@ class IDBObjectStoreImpl {
         const request = IDBRequest.createImpl(this._globalObject, [], { parent: this._transaction, source: this })
         this._transaction._queue.push({
             method: 'count',
+            type: 'index',
             request: request,
             store: JSON.parse(JSON.stringify(this._store)),
             query: query
