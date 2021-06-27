@@ -2,13 +2,14 @@ const IDBRequest = require('./living/generated/IDBRequest')
 const Verbatim = require('verbatim')
 
 class IDBCursorImpl {
-    constructor (globaObject, [], { type, transaction, store, request, direction }) {
+    constructor (globaObject, [], { type, transaction, store, request, direction, source }) {
         this._globalObject = globaObject
         this._type = type
         this._store = store
         this._request = request
         this._transaction = transaction
         this._direction = direction
+        this._source = source
     }
 
     get source () {
@@ -20,7 +21,7 @@ class IDBCursorImpl {
     }
 
     get key () {
-        return this._value.key
+        return this._key
     }
 
     get primaryKey () {
@@ -41,7 +42,8 @@ class IDBCursorImpl {
             method: 'item',
             type: this._type,
             cursor: this,
-            request: this._request
+            request: this._request,
+            store: JSON.parse(JSON.stringify(this._store))
         })
     }
 

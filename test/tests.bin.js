@@ -51,7 +51,7 @@ require('arguable')(module, async arguable => {
     for (const block of blocks) {
         sources.push(block)
     }
-    const count = (sources.join('\n').match(/(?:assert_throws_dom|assert_(?:not_)?equals|assert_true|assert_false|assert_array_equals|assert_key_equals|assert_readonly|assert_throws_js)/g) || []).length
+    const count = (sources.join('\n').match(/(?:assert_throws_dom|assert_(?:not_|object_)?equals|assert_true|assert_false|assert_array_equals|assert_key_equals|assert_readonly|assert_throws_js)/g) || []).length
     const name = path.basename(test).replace(/(?:.html?|(?:\.tentative)?\.any\.js)$/, '')
     console.log(path.resolve(__dirname, `${name}.wpt.t.js`))
     await fs.writeFile(path.resolve(__dirname, `${name}.wpt.t.js`), $_(`

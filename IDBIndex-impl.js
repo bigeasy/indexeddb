@@ -104,7 +104,8 @@ class IDBIndexImpl {
             request: request,
             store: this.objectStore._store,
             index: this._index,
-            query: query
+            query: query,
+            source: this
         })
         request._result = webidl.wrapperForImpl(cursor)
         this.objectStore._transaction._queue.push({
@@ -114,7 +115,8 @@ class IDBIndexImpl {
             index: this._index,
             request: request,
             cursor: cursor,
-            direction: direction
+            direction: direction,
+            source: this
         })
         return request
     }

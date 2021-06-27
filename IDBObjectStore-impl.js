@@ -308,7 +308,8 @@ class IDBObjectStoreImpl {
             transaction: this._transaction,
             store: this._store,
             request: request,
-            query: query
+            query: query,
+            source: this
         })
         request._result = webidl.wrapperForImpl(cursor)
         this._transaction._queue.push({
@@ -339,7 +340,8 @@ class IDBObjectStoreImpl {
             store: this._store,
             request: request,
             query: query,
-            direction: direction
+            direction: direction,
+            source: this
         })
         request._result = webidl.wrapperForImpl(cursor)
         this._transaction._queue.push({

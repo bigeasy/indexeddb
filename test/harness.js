@@ -317,6 +317,11 @@ module.exports = async function (okay, name) {
         okay(actual, expected, `${scope.name} - ${message}`)
     }
     globalize(assert_equals)
+    function assert_object_equals (actual, expected, message) {
+        message || (message = `assertion ${scope.count++}`)
+        okay(actual, expected, `${scope.name} - ${message}`)
+    }
+    globalize(assert_object_equals)
     function assert_not_equals (actual, expected, message) {
         message || (message = `assertion ${scope.count++}`)
         okay(actual !== expected || actual != expected, `${scope.name} - ${message}`)

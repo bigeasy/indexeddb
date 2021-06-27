@@ -105,11 +105,13 @@ class IDBTransactionImpl extends EventTargetImpl {
                 switch (type) {
                 case 'store': {
                         cursor._value = next.value
+                        cursor._key = next.value.key
                         request.readyState = 'done'
                         await dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
                     }
                     break FOREVER
                 case 'index': {
+                        cursor._key = next.value.key[0]
                         cursor._value = await transaction.get(store.qualified, [ next.value.key[1] ])
                         request.readyState = 'done'
                         await dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
@@ -379,7 +381,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                 }
                 break
             case 'item': {
-                    await this._item(event)
+                    await this._item(event, transaction)
                 }
                 break
             case 'count': {
