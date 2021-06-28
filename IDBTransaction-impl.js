@@ -142,6 +142,31 @@ class IDBTransactionImpl extends EventTargetImpl {
         }
     }
 
+    _extractIndexed (index, value) {
+        const values = []
+        const extracted = this._schema.getExtractor(index.id)(value)
+        if (index.multiEntry && Array.isArray(extracted)) {
+            for (const value of extracted) {
+                try {
+                    values.push(valuify(this._globalObject, value))
+                } catch (error) {
+                    // **TODO** Why doesn't `{ name: 'DataError' }` work. Step through
+                    // it with `test/idbobjectstore_add14.wpt.t.js`.
+                    rescue(error, [ this._globalObject.DOMException ])
+                }
+            }
+        } else {
+            try {
+                values.push(valuify(this._globalObject, extracted))
+            } catch (error) {
+                // **TODO** Why doesn't `{ name: 'DataError' }` work. Step through
+                // it with `test/idbobjectstore_add14.wpt.t.js`.
+                rescue(error, [ this._globalObject.DOMException ])
+            }
+        }
+        return values
+    }
+
     // Most of the logic of this implementation is in this one function.
     // The interface implementations do a lot of argument validation, but
     // most of the real work is here.
@@ -180,9 +205,8 @@ class IDBTransactionImpl extends EventTargetImpl {
                             const extractor = this._schema.getExtractor(index.id)
                             for await (const items of transaction.cursor(store.qualified)) {
                                 for (const item of items) {
-                                    const extracted = extractor(item.value)
-                                    if (extracted != null) {
-                                        transaction.set(index.qualified, { key: [ extracted, item.key ] })
+                                    for (const value of this._extractIndexed(index, item.value)) {
+                                        transaction.set(index.qualified, { key: [ value, item.key ] })
                                     }
                                 }
                             }
@@ -240,33 +264,27 @@ class IDBTransactionImpl extends EventTargetImpl {
                         if (! index.extant) {
                             continue
                         }
-                        let extracted
-                        try {
-                            extracted = valuify(this._globalObject, this._schema.getExtractor(index.id)(record.value))
-                        } catch (error) {
-                            // **TODO** Why doesn't `{ name: 'DataError' }` work. Step through
-                            // it with `test/idbobjectstore_add14.wpt.t.js`.
-                            rescue(error, [ this._globalObject.DOMException ])
-                            continue
-                        }
-                        if (index.unique) {
-                            const got = await transaction.cursor(index.qualified, [[ extracted ]])
-                                                         .terminate(item => compare(this._globalObject, item.key[0], extracted) != 0)
-                                                         .array()
-                            if (got.length != 0) {
-                                const event = Event.createImpl(this._globalObject, [ 'error', { bubbles: true, cancelable: true } ], {})
-                                const error = DOMException.create(this._globalObject, [ 'Unique key constraint violation.', 'ConstraintError' ], {})
-                                request.readyState = 'done'
-                                request._error = error
-                                await dispatchEvent(this, request, event)
-                                if (!event._canceledFlag) {
-                                    this.error = DOMException.create(this._globalObject, [ 'TODO: message', 'ConstraintError' ], {})
-                                    this.abort()
+                        const values = this._extractIndexed(index, record.value)
+                        for (const value of values) {
+                            if (index.unique) {
+                                const got = await transaction.cursor(index.qualified, [[ value ]])
+                                                             .terminate(item => compare(this._globalObject, item.key[0], value) != 0)
+                                                             .array()
+                                if (got.length != 0) {
+                                    const event = Event.createImpl(this._globalObject, [ 'error', { bubbles: true, cancelable: true } ], {})
+                                    const error = DOMException.create(this._globalObject, [ 'Unique key constraint violation.', 'ConstraintError' ], {})
+                                    request.readyState = 'done'
+                                    request._error = error
+                                    await dispatchEvent(this, request, event)
+                                    if (!event._canceledFlag) {
+                                        this.error = DOMException.create(this._globalObject, [ 'TODO: message', 'ConstraintError' ], {})
+                                        this.abort()
+                                    }
+                                    break SWITCH
                                 }
-                                break SWITCH
                             }
+                            transaction.set(index.qualified, { key: [ value, key ] })
                         }
-                        transaction.set(index.qualified, { key: [ extracted, key ] })
                     }
                     transaction.set(store.qualified, record)
                     request.readyState = 'done'
