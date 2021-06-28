@@ -393,7 +393,7 @@ class IDBObjectStoreImpl {
         extractor.verify(this._globalObject, keyPath)
         // **TODO** If keyPath is not a valid key path, throw a "SyntaxError" DOMException.
         if (Array.isArray(keyPath) && multiEntry) {
-            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidAccessError' ], {})
         }
         const index = this._schema.createIndex(this._store.name, name, keyPath, multiEntry, unique)
         this._transaction._queue.push({
