@@ -355,7 +355,8 @@ module.exports = async function (okay, name) {
         }
     }
     globalize(assert_readonly)
-    function assert_throws_js(constructor, func, description) {
+    function assert_throws_js(constructor, func, message) {
+        message || (message = `assertion ${scope.count++}`)
         try {
             func.call(null)
             assert(false, 'did not throw')
@@ -366,7 +367,7 @@ module.exports = async function (okay, name) {
             if (error.constructor !== constructor) {
                 console.log(error.stack)
             }
-            okay(error.constructor === constructor, `${scope.name} - assertion ${scope.count++}`)
+            okay(error.constructor === constructor, `${scope.name} - ${message}`)
         }
     }
     globalize(assert_throws_js)
