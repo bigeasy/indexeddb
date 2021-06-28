@@ -11,15 +11,14 @@ class IDBIndexImpl {
     constructor (globalObject, [], { index, objectStore }) {
         this._globalObject = globalObject
         this._index = index
+        // Different instances of index need different instances of keyPath, but
+        // keyPath must be the same each time the accessor is called.
+        this.keyPath = JSON.parse(JSON.stringify(this._index.keyPath))
         this.objectStore = objectStore
     }
 
     get name () {
         return this._index.name[0]
-    }
-
-    get keyPath () {
-        return this._index.keyPath
     }
 
     get multiEntry () {
