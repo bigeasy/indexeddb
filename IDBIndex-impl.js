@@ -76,10 +76,22 @@ class IDBIndexImpl {
     }
 
     getAll (query, count = null) {
+        if (this.objectStore._schema.isDeleted(this._index)) {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
+        }
+        if (this.objectStore._transaction._state != 'active') {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
+        }
         throw new Error
     }
 
     getAllKeys (query, count = null) {
+        if (this.objectStore._schema.isDeleted(this._index)) {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
+        }
+        if (this.objectStore._transaction._state != 'active') {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
+        }
         throw new Error
     }
 
@@ -143,6 +155,12 @@ class IDBIndexImpl {
     }
 
     openKeyCursor (query, direction = 'next') {
+        if (this.objectStore._schema.isDeleted(this._index)) {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
+        }
+        if (this.objectStore._transaction._state != 'active') {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
+        }
         throw new Error
     }
 }
