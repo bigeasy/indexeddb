@@ -18,7 +18,7 @@ class IDBIndexImpl {
     }
 
     get name () {
-        return this._index.name[0]
+        return this._index.name
     }
 
     get multiEntry () {

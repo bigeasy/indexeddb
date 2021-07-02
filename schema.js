@@ -22,7 +22,7 @@ class Schema {
     rename (from, to) {
         const id = this._pending.name[to] = this._pending.name[from]
         delete this._pending.name[from]
-        this._pending.store[id].name.unshift(to)
+        this._pending.store[id].name = to
     }
 
     createObjectStore (name, keyPath, autoIncrement) {
@@ -31,7 +31,7 @@ class Schema {
         const store = this._pending.store[id] = {
             type: 'store',
             id: id,
-            name: [ name ],
+            name: name,
             qualified: `store.${id}`,
             keyPath: keyPath,
             autoIncrement: autoIncrement ? 1 : null,
@@ -83,7 +83,7 @@ class Schema {
             type: 'index',
             id: indexId,
             storeId: store.id,
-            name: [ indexName ],
+            name: indexName,
             qualified: `index.${indexId}`,
             keyPath: keyPath,
             multiEntry: multiEntry,
@@ -137,9 +137,6 @@ class Schema {
         }
         for (const id in this._pending.store) {
             this._root.store[id] = this._pending.store[id]
-            while (this._root.store[id].name.length != 1) {
-                this._root.store[id].name.pop()
-            }
         }
         for (const id in this._pending.extractor) {
             this._root.extractor[id] = this._pending.extractor[id]

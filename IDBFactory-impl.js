@@ -256,10 +256,7 @@ class Opener {
                         schema._root.store[item.id] = item
                         switch (item.type) {
                         case 'store':
-                            while (item.name.length != 1) {
-                                item.name.pop()
-                            }
-                            schema._root.name[item.name[0]] = item.id
+                            schema._root.name[item.name] = item.id
                             break
                         case 'index':
                         }
@@ -302,12 +299,9 @@ class Opener {
                                 const array = await snapshot.cursor(item.qualified).reverse().limit(1).array()
                                 item.autoIncrement = array.length == 0 ? 1 : array.shift().key + 1
                             }
-                            while (item.name.length != 1) {
-                                item.name.pop()
-                            }
                             schema._root.store[item.id] = item
                             if (item.type == 'store') {
-                                schema._root.name[item.name[0]] = item.id
+                                schema._root.name[item.name] = item.id
                             }
                             if (item.keyPath != null) {
                                 schema._root.extractor[item.id] = extractor.create(item.keyPath)

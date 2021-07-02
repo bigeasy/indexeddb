@@ -60,7 +60,7 @@ class IDBObjectStoreImpl {
             if (this._schema.getObjectStore(to) != null) {
                 throw DOMException.create(this._globalObject, [ 'TODO: message', 'ConstraintError' ], {})
             }
-            const from = this._store.name[0]
+            const from = this._store.name
             this._schema.rename(from, to)
             this._transaction._queue.push({
                 method: 'rename',
@@ -71,7 +71,7 @@ class IDBObjectStoreImpl {
     }
 
     get name () {
-        return this._store.name[0]
+        return this._store.name
     }
 
     get indexNames () {
