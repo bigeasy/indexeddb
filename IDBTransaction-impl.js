@@ -464,8 +464,19 @@ class IDBTransactionImpl extends EventTargetImpl {
                 }
                 break
             case 'rename': {
-                    const { store } = event
-                    transaction.set('schema', store)
+                    switch (event.type) {
+                    case 'store': {
+                            const { store } = event
+                            transaction.set('schema', store)
+                        }
+                        break
+                    case 'index': {
+                            const { store, index } = event
+                            transaction.set('schema', store)
+                            transaction.set('schema', index)
+                        }
+                        break
+                    }
                 }
                 break
             case 'destroy': {

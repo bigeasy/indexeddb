@@ -1063,6 +1063,7 @@ module.exports = async function (okay, name) {
         assert_equals(result.title, BOOKS_RECORD_DATA[2].title, errorMessage);
       });
     }
+    globalize(checkAuthorIndexContents)
 
     // Verifies that an index matches the 'by_title' index used to create the books
     // store in the test database's version 1.
@@ -1077,6 +1078,7 @@ module.exports = async function (okay, name) {
         assert_equals(result.author, BOOKS_RECORD_DATA[2].author, errorMessage);
       });
     }
+    globalize(checkTitleIndexContents)
 
     // Returns an Uint8Array with pseudorandom data.
     //

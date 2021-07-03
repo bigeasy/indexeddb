@@ -21,6 +21,31 @@ class IDBIndexImpl {
         return this._index.name
     }
 
+    set name (to) {
+        if (this.objectStore._schema.isDeleted(this._index)) {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
+        }
+        if (this.objectStore._transaction.mode != 'versionchange') {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
+        }
+        if (this.objectStore._transaction._state != 'active') {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
+        }
+        if (this._index.name != to) {
+            console.log(this.objectStore._store)
+            if (to in this.objectStore._store.index) {
+                throw DOMException.create(this._globalObject, [ 'TODO: message', 'ConstraintError' ], {})
+            }
+            this.objectStore._schema.renameIndex(this.objectStore._store.id, this._index.name, to)
+            this.objectStore._transaction._queue.push({
+                method: 'rename',
+                type: 'index',
+                store: JSON.parse(JSON.stringify(this.objectStore._store)),
+                index: JSON.parse(JSON.stringify(this._index))
+            })
+        }
+    }
+
     get multiEntry () {
         return this._index.multiEntry
     }

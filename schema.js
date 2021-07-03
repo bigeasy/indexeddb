@@ -25,6 +25,13 @@ class Schema {
         this._pending.store[id].name = to
     }
 
+    renameIndex (storeId, from, to) {
+        const store = this._pending.store[storeId]
+        const indexId = store.index[to] = store.index[from]
+        delete store.index[from]
+        this._pending.store[indexId].name = to
+    }
+
     createObjectStore (name, keyPath, autoIncrement) {
         const id = ++this._root.max
         this._added.add(id)
