@@ -341,6 +341,27 @@ class IDBTransactionImpl extends EventTargetImpl {
                             await dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
                         }
                         break
+                    case 'index': {
+                            const { store, index, query, count, request, key } = event
+                            console.log(query.lower)
+                            const cursor = transaction.cursor(index.qualified, query.lower == null ? null : [[ query.lower ]])
+                            const terminated = cursor //query.lower == null ? cursor : cursor.terminate(item => ! query.includes(item.key[0]))
+                            const limited = count == null || count == 0 ? terminated : cursor.limit(count)
+                            const exclusive = limited // query.lower != null && query.lowerOpen ? limited.exclusive() : limited
+                            // TODO Use Memento join.
+                            // TODO Do a structured copy.
+                            request._result = []
+                            for await (const items of exclusive) {
+                                for (const item of items) {
+                                    console.log(item)
+                                    const got = await transaction.get(store.qualified, [ item.key[1] ])
+                                    request._result.push(key ? got.key : got.value)
+                                }
+                            }
+                            request.readyState = 'done'
+                            await dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
+                        }
+                        break
                     }
                 }
                 break
