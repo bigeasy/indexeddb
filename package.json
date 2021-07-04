@@ -26,7 +26,7 @@
                             "cadence":                      "4.0.0-alpha.3",
                             "comeuppance":                  "0.0.1",
                             "domexception":                 "2.0.1",
-                            "memento":                      "^0.1.30",
+                            "memento":                      "^0.1.31",
                             "jsdom":                        "16.6.0",
                             "nop":                          "1.0.0",
                             "perhaps":                      "0.0.10",
