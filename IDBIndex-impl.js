@@ -217,7 +217,32 @@ class IDBIndexImpl {
         if (this.objectStore._transaction._state != 'active') {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
         }
-        throw new Error
+        if (query != null && ! (query instanceof this.objectStore._globalObject.IDBKeyRange))  {
+            query = this._globalObject.IDBKeyRange.only(query)
+        }
+        const request = IDBRequest.createImpl(this._globalObject, [], { parent: this._transaction })
+        const cursor = IDBCursor.createImpl(this._globalObject, [], {
+            type: 'index',
+            hello: 'world',
+            transaction: this.objectStore._transaction,
+            request: request,
+            store: this.objectStore._store,
+            index: this._index,
+            query: query,
+            source: this
+        })
+        request._result = webidl.wrapperForImpl(cursor)
+        this.objectStore._transaction._queue.push({
+            method: 'openCursor',
+            type: 'index',
+            store: JSON.parse(JSON.stringify(this.objectStore._store)),
+            index: this._index,
+            request: request,
+            cursor: cursor,
+            direction: direction,
+            source: this
+        })
+        return request
     }
 }
 
