@@ -331,6 +331,12 @@ module.exports = async function (okay, name) {
         assert_equals(compare(actual, expected), 0, message)
     }
     globalize(assert_key_equals)
+    function assert_class_string (object, className, message) {
+        message || (message = `assertion ${scope.count++}`)
+        const actual = {}.toString.call(object)
+        okay(`[object ${className}]`, actual, message)
+    }
+    globalize(assert_class_string)
     function toArray (list) {
         if (list instanceof globalObject.DOMStringList) {
             const copy = []

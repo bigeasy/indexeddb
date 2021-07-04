@@ -32,7 +32,6 @@ class IDBIndexImpl {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
         }
         if (this._index.name != to) {
-            console.log(this.objectStore._store)
             if (to in this.objectStore._store.index) {
                 throw DOMException.create(this._globalObject, [ 'TODO: message', 'ConstraintError' ], {})
             }
@@ -107,7 +106,23 @@ class IDBIndexImpl {
         if (this.objectStore._transaction._state != 'active') {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
         }
-        throw new Error
+        if (query == null) {
+            query = IDBKeyRange.createImpl(this._globalObject, [ null, null ], {})
+        } else if (! (query instanceof this._globalObject.IDBKeyRange)) {
+            query = this._globalObject.IDBKeyRange.only(convert.key(this._globalObject, query))
+        }
+        const request = IDBRequest.createImpl(this._globalObject, {}, { parent: this._transaction, source: this })
+        this.objectStore._transaction._queue.push({
+            method: 'getAll',
+            type: 'index',
+            request: request,
+            store: JSON.parse(JSON.stringify(this.objectStore._store)),
+            index: this._index,
+            query: query,
+            count: count,
+            key: false
+        })
+        return request
     }
 
     getAllKeys (query, count = null) {
@@ -117,7 +132,23 @@ class IDBIndexImpl {
         if (this.objectStore._transaction._state != 'active') {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
         }
-        throw new Error
+        if (query == null) {
+            query = IDBKeyRange.createImpl(this._globalObject, [ null, null ], {})
+        } else if (! (query instanceof this._globalObject.IDBKeyRange)) {
+            query = this._globalObject.IDBKeyRange.only(convert.key(this._globalObject, query))
+        }
+        const request = IDBRequest.createImpl(this._globalObject, {}, { parent: this._transaction, source: this })
+        this.objectStore._transaction._queue.push({
+            method: 'getAll',
+            type: 'index',
+            request: request,
+            store: JSON.parse(JSON.stringify(this.objectStore._store)),
+            index: this._index,
+            query: query,
+            count: count,
+            key: true
+        })
+        return request
     }
 
     count (query) {
