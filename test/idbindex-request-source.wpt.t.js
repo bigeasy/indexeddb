@@ -1,4 +1,4 @@
-require('proof')(1, async okay => {
+require('proof')(7, async okay => {
     await require('./harness')(okay, 'idbindex-request-source')
     await harness(async function () {
 
