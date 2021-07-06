@@ -294,13 +294,13 @@ class IDBTransactionImpl extends EventTargetImpl {
             case 'get': {
                     switch (event.type) {
                     case 'store': {
-                            const { store, query, request, key } = event
-                            const got = await transaction.cursor(store.qualified, [ query.lower ])
+                            const { store, query, request, keys } = event
+                            const got = await transaction.cursor(store.qualified, query.lower ? [ query.lower ] : null)
                                                          .terminate(item => ! query.includes(item.key))
                                                          .limit(1)
                                                          .array()
                             if (got.length != 0) {
-                                request._result = Verbatim.deserialize(Verbatim.serialize(key ? got[0].key : got[0].value))
+                                request._result = Verbatim.deserialize(Verbatim.serialize(keys ? got[0].key : got[0].value))
                             }
                             request.readyState = 'done'
                             await dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
@@ -308,10 +308,11 @@ class IDBTransactionImpl extends EventTargetImpl {
                         break
                     case 'index': {
                             const { store, query, index, key, request } = event
-                            const indexGot = await transaction.cursor(index.qualified, [[ query.lower ]])
-                                                              .terminate(item => ! query.includes(item.key[0]))
-                                                              .limit(1)
-                                                              .array()
+                            // TODO What if query lower is `null` but query upper is not?
+                            const cursor = query.lower == null
+                                ? transaction.cursor(index.qualified)
+                                : transaction.cursor(index.qualified, [[ query.lower ]])
+                            const indexGot = await cursor.terminate(item => ! query.includes(item.key[0])).limit(1).array()
                             if (indexGot.length != 0) {
                                 const got = await transaction.get(store.qualified, [ indexGot[0].key[1] ])
                                 request._result = Verbatim.deserialize(Verbatim.serialize(key ? got.key : got.value))
@@ -326,13 +327,13 @@ class IDBTransactionImpl extends EventTargetImpl {
             case 'getAll': {
                     switch (event.type) {
                     case 'store': {
-                            const { store, query, count, request, key } = event
-                            const cursor = transaction.cursor(store.qualified, query == null ? null : [ query.lower ])
-                            const terminated = query == null ? cursor : cursor.terminate(item => ! query.includes(item.key))
+                            const { store, query, count, request, keys } = event
+                            const cursor = transaction.cursor(store.qualified, query.lower == null ? null : [ query.lower ])
+                            const terminated = query.lower == null ? cursor : cursor.terminate(item => ! query.includes(item.key))
                             const limited = count == null || count == 0 ? terminated : cursor.limit(count)
-                            const exclusive = query != null && query.lowerOpen ? limited.exclusive() : limited
+                            const exclusive = query.lower != null && query.lowerOpen ? limited.exclusive() : limited
                             const array = await exclusive.array()
-                            if (key) {
+                            if (keys) {
                                 request._result = array.map(item => item.key)
                             } else {
                                 request._result = array.map(item => item.value)
@@ -342,7 +343,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                         }
                         break
                     case 'index': {
-                            const { store, index, query, count, request, key } = event
+                            const { store, index, query, count, request, keys } = event
                             const cursor = transaction.cursor(index.qualified, query.lower == null ? null : [[ query.lower ]])
                             const terminated = query.lower == null ? cursor : cursor.terminate(item => ! query.includes(item.key[0]))
                             const limited = count == null || count == 0 ? terminated : cursor.limit(count)
@@ -355,7 +356,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                             for await (const items of exclusive) {
                                 for (const item of items) {
                                     const got = await transaction.get(store.qualified, [ item.key[1] ])
-                                    request._result.push(key ? got.key : got.value)
+                                    request._result.push(keys ? got.key : got.value)
                                 }
                             }
                             request.readyState = 'done'
@@ -371,17 +372,17 @@ class IDBTransactionImpl extends EventTargetImpl {
                             const { store, request, cursor, direction, query } = event
                             let builder
                             if (direction == 'next') {
-                                builder = query == null
+                                builder = query.lower == null
                                     ? transaction.cursor(store.qualified)
                                     : transaction.cursor(store.qualified, [ query.lower ])
-                                if (query != null && query.upper != null) {
+                                if (query.upper != null) {
                                     builder = builder.terminate(item => ! query.includes(item.key))
                                 }
                             } else {
-                                builder = query == null
+                                builder = query.upper == null
                                     ? transaction.cursor(store.qualified)
                                     : transaction.cursor(store.qualified, [ query.upper ])
-                                if (query != null && query.lower != null) {
+                                if (query.lower != null) {
                                     builder = builder.terminate(item => ! query.includes(item.key))
                                 }
                                 builder = builder.reverse()

@@ -180,15 +180,18 @@ class IDBObjectStoreImpl {
         return request
     }
 
-    get (query) {
+    _get (query, keys) {
         if (this._schema.isDeleted(this._store)) {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
         if (this._transaction._state != 'active') {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
         }
+        if (query == null) {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'DataError' ], {})
+        }
         if (! (query instanceof this._globalObject.IDBKeyRange)) {
-            query = this._globalObject.IDBKeyRange.only(query)
+            query = this._globalObject.IDBKeyRange.only(convert.key(this._globalObject, query))
         }
         const request = IDBRequest.createImpl(this._globalObject, {}, { parent: this._transaction, source: this })
         this._transaction._queue.push({
@@ -197,77 +200,50 @@ class IDBObjectStoreImpl {
             request: request,
             store: JSON.parse(JSON.stringify(this._store)),
             query: query,
-            key: false
+            keys: keys
         })
         return request
     }
 
+    get (query) {
+        return this._get(query, false)
+    }
+
     getKey (query) {
+        return this._get(query, true)
+    }
+
+    _getAll(query, count, keys) {
         if (this._schema.isDeleted(this._store)) {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
         if (this._transaction._state != 'active') {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
         }
-        if (! (query instanceof this._globalObject.IDBKeyRange)) {
-            query = this._globalObject.IDBKeyRange.only(query)
+        if (query == null) {
+            query = IDBKeyRange.createImpl(this._globalObject, [ null, null ], {})
+        } else if (! (query instanceof this._globalObject.IDBKeyRange)) {
+            query = this._globalObject.IDBKeyRange.only(convert.key(this._globalObject, query))
         }
         const request = IDBRequest.createImpl(this._globalObject, {}, { parent: this._transaction, source: this })
         this._transaction._queue.push({
-            method: 'get',
+            method: 'getAll',
             type: 'store',
             request: request,
             store: JSON.parse(JSON.stringify(this._store)),
             query: query,
-            key: true
+            count: count,
+            keys: keys
         })
         return request
     }
 
     getAll (query, count = 0) {
-        if (this._schema.isDeleted(this._store)) {
-            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
-        }
-        if (this._transaction._state != 'active') {
-            throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
-        }
-        if (query != null && ! (query instanceof this._globalObject.IDBKeyRange)) {
-            query = this._globalObject.IDBKeyRange.only(query)
-        }
-        const request = IDBRequest.createImpl(this._globalObject, {}, { parent: this._transaction, source: this })
-        this._transaction._queue.push({
-            method: 'getAll',
-            type: 'store',
-            request: request,
-            store: JSON.parse(JSON.stringify(this._store)),
-            query: query,
-            count: count,
-            key: false
-        })
-        return request
+        return this._getAll(query, count, false)
     }
 
     getAllKeys (query, count = null) {
-        if (this._schema.isDeleted(this._store)) {
-            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
-        }
-        if (this._transaction._state != 'active') {
-            throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
-        }
-        if (query != null && ! (query instanceof this._globalObject.IDBKeyRange)) {
-            query = this._globalObject.IDBKeyRange.only(query)
-        }
-        const request = IDBRequest.createImpl(this._globalObject, {}, { parent: this._transaction, source: this })
-        this._transaction._queue.push({
-            method: 'getAll',
-            type: 'store',
-            request: request,
-            store: JSON.parse(JSON.stringify(this._store)),
-            query: query,
-            count: count,
-            key: true
-        })
-        return request
+        return this._getAll(query, count, true)
     }
 
     count (query) {
@@ -293,7 +269,7 @@ class IDBObjectStoreImpl {
         return request
     }
 
-    openCursor (query, direction = 'next') {
+    _openCursor (Cursor, query, direction) {
         if (this._schema.isDeleted(this._store)) {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
@@ -302,40 +278,11 @@ class IDBObjectStoreImpl {
         }
         if (query == null) {
             query = IDBKeyRange.createImpl(this._globalObject, [ null, null ], {})
-        }
-        const request = IDBRequest.createImpl(this._globalObject, [], { parent: this._transaction, source: this })
-        const cursor = IDBCursorWithValue.createImpl(this._globalObject, [], {
-            type: 'store',
-            transaction: this._transaction,
-            store: this._store,
-            request: request,
-            query: query,
-            source: this
-        })
-        request._result = webidl.wrapperForImpl(cursor)
-        this._transaction._queue.push({
-            method: 'openCursor',
-            type: 'store',
-            request: request,
-            store: JSON.parse(JSON.stringify(this._store)),
-            cursor: cursor,
-            direction: direction
-        })
-        return webidl.wrapperForImpl(request)
-    }
-
-    openKeyCursor (query, direction = 'next') {
-        if (this._schema.isDeleted(this._store)) {
-            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
-        }
-        if (this._transaction._state != 'active') {
-            throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
-        }
-        if (query != null && ! (query instanceof this._globalObject.IDBKeyRange)) {
+        } else if (! (query instanceof this._globalObject.IDBKeyRange)) {
             query = this._globalObject.IDBKeyRange.only(convert.key(this._globalObject, query))
         }
         const request = IDBRequest.createImpl(this._globalObject, [], { parent: this._transaction, source: this })
-        const cursor = IDBCursor.createImpl(this._globalObject, [], {
+        const cursor = Cursor.createImpl(this._globalObject, [], {
             type: 'store',
             transaction: this._transaction,
             store: this._store,
@@ -351,10 +298,18 @@ class IDBObjectStoreImpl {
             request: request,
             store: JSON.parse(JSON.stringify(this._store)),
             cursor: cursor,
-            query: query,
-            direction: direction
+            direction: direction,
+            query: query
         })
-        return webidl.wrapperForImpl(request)
+        return request
+    }
+
+    openCursor (query, direction = 'next') {
+        return this._openCursor(IDBCursorWithValue, query, direction)
+    }
+
+    openKeyCursor (query, direction = 'next') {
+        return this._openCursor(IDBCursor, query, direction)
     }
 
     index (name) {

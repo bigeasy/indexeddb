@@ -54,7 +54,7 @@ class IDBIndexImpl {
         return this._index.unique
     }
 
-    get (query) {
+    _get (query, key) {
         const request = IDBRequest.createImpl(this._globalObject, [], {})
         if (this.objectStore._schema.isDeleted(this._index)) {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
@@ -62,13 +62,15 @@ class IDBIndexImpl {
         if (this.objectStore._transaction._state != 'active') {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
         }
-        if (!(query instanceof this._globalObject.IDBKeyRange)) {
-            query = webidl.implForWrapper(this._globalObject.IDBKeyRange.only(query))
+        if (query == null) {
+            query = IDBKeyRange.createImpl(this._globalObject, [ null, null ], {})
+        } else if (! (query instanceof this._globalObject.IDBKeyRange)) {
+            query = this._globalObject.IDBKeyRange.only(convert.key(this._globalObject, query))
         }
         this.objectStore._transaction._queue.push({
             method: 'get',
             type: 'index',
-            key: false,
+            key: key,
             store: this.objectStore._store,
             index: this._index,
             query: query,
@@ -77,79 +79,46 @@ class IDBIndexImpl {
         return request
     }
 
+    get (query) {
+        return this._get(query, false)
+    }
+
     getKey (query) {
-        const request = IDBRequest.createImpl(this._globalObject, [], {})
+        return this._get(query, true)
+    }
+
+    _getAll (query, count, keys) {
         if (this.objectStore._schema.isDeleted(this._index)) {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
         if (this.objectStore._transaction._state != 'active') {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
         }
-        if (!(query instanceof this._globalObject.IDBKeyRange)) {
-            query = webidl.implForWrapper(this._globalObject.IDBKeyRange.only(query))
+        if (query == null) {
+            query = IDBKeyRange.createImpl(this._globalObject, [ null, null ], {})
+        } else if (! (query instanceof this._globalObject.IDBKeyRange)) {
+            query = this._globalObject.IDBKeyRange.only(convert.key(this._globalObject, query))
         }
+        const request = IDBRequest.createImpl(this._globalObject, {}, { parent: this._transaction, source: this })
         this.objectStore._transaction._queue.push({
-            method: 'get',
+            method: 'getAll',
             type: 'index',
-            key: true,
-            store: this.objectStore._store,
+            request: request,
+            store: JSON.parse(JSON.stringify(this.objectStore._store)),
             index: this._index,
-            query,
-            request
+            query: query,
+            count: count,
+            keys: keys
         })
         return request
     }
 
     getAll (query, count = null) {
-        if (this.objectStore._schema.isDeleted(this._index)) {
-            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
-        }
-        if (this.objectStore._transaction._state != 'active') {
-            throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
-        }
-        if (query == null) {
-            query = IDBKeyRange.createImpl(this._globalObject, [ null, null ], {})
-        } else if (! (query instanceof this._globalObject.IDBKeyRange)) {
-            query = this._globalObject.IDBKeyRange.only(convert.key(this._globalObject, query))
-        }
-        const request = IDBRequest.createImpl(this._globalObject, {}, { parent: this._transaction, source: this })
-        this.objectStore._transaction._queue.push({
-            method: 'getAll',
-            type: 'index',
-            request: request,
-            store: JSON.parse(JSON.stringify(this.objectStore._store)),
-            index: this._index,
-            query: query,
-            count: count,
-            key: false
-        })
-        return request
+        return this._getAll(query, count, false)
     }
 
     getAllKeys (query, count = null) {
-        if (this.objectStore._schema.isDeleted(this._index)) {
-            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
-        }
-        if (this.objectStore._transaction._state != 'active') {
-            throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
-        }
-        if (query == null) {
-            query = IDBKeyRange.createImpl(this._globalObject, [ null, null ], {})
-        } else if (! (query instanceof this._globalObject.IDBKeyRange)) {
-            query = this._globalObject.IDBKeyRange.only(convert.key(this._globalObject, query))
-        }
-        const request = IDBRequest.createImpl(this._globalObject, {}, { parent: this._transaction, source: this })
-        this.objectStore._transaction._queue.push({
-            method: 'getAll',
-            type: 'index',
-            request: request,
-            store: JSON.parse(JSON.stringify(this.objectStore._store)),
-            index: this._index,
-            query: query,
-            count: count,
-            key: true
-        })
-        return request
+        return this._getAll(query, count, true)
     }
 
     count (query) {
