@@ -242,9 +242,9 @@ class IDBTransactionImpl extends EventTargetImpl {
                 break
             case 'set': {
                     const { store, key, value, overwrite, request } = event
-                    if (! overwrite) {
-                        const got = await transaction.get(store.qualified, [ key ])
-                        if (got != null) {
+                    const got = await transaction.get(store.qualified, [ key ])
+                    if (got != null) {
+                        if (! overwrite) {
                             const event = Event.createImpl(this._globalObject, [ 'error', { bubbles: true, cancelable: true } ], {})
                             const error = DOMException.create(this._globalObject, [ 'Unique key constraint violation.', 'ConstraintError' ], {})
                             request.readyState = 'done'
@@ -255,6 +255,16 @@ class IDBTransactionImpl extends EventTargetImpl {
                             }
                             console.log('???', caught)
                             break SWITCH
+                        }
+                        for (const indexName in store.index) {
+                            const index = this._schema._pending.store[store.index[indexName]]
+                            if (! index.extant) {
+                                continue
+                            }
+                            const values = this._extractIndexed(index, got.value)
+                            for (const value of values) {
+                                transaction.unset(index.qualified, [[ value, key ]])
+                            }
                         }
                     }
                     request._result = key
@@ -400,10 +410,21 @@ class IDBTransactionImpl extends EventTargetImpl {
                         }
                         break
                     case 'index': {
-                            const { store, index, request, cursor, direction } = event
-                            let builder = transaction.cursor(index.qualified)
-                            if (direction == 'prev') {
-                                builder = builder.reverse()
+                            const { query, store, index, request, cursor, direction } = event
+                            let builder
+                            switch (direction) {
+                            case 'next': {
+                                    builder = transaction.cursor(index.qualified, query.lower == null ? null : [[ query.lower ]])
+                                }
+                                break
+                            case 'prev': {
+                                    builder = transaction.cursor(index.qualified, query.upper == null ? null : [[ query.upper ]])
+                                    builder = builder.reverse()
+                                    if (query.lower != null) {
+                                        builder = builder.terminate(item => ! query.includes(item.key[0]))
+                                    }
+                                }
+                                break
                             }
                             cursor._outer = { iterator: builder[Symbol.asyncIterator](), next: null }
                             cursor._outer.next = await cursor._outer.iterator.next()

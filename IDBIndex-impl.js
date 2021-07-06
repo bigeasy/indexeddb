@@ -176,6 +176,7 @@ class IDBIndexImpl {
             index: this._index,
             request: request,
             cursor: cursor,
+            query: query,
             direction: direction,
             source: this
         })
