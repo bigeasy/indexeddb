@@ -55,7 +55,6 @@ class IDBIndexImpl {
     }
 
     _get (query, key) {
-        const request = IDBRequest.createImpl(this._globalObject, [], {})
         if (this.objectStore._schema.isDeleted(this._index)) {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
@@ -67,6 +66,7 @@ class IDBIndexImpl {
         } else if (! (query instanceof this._globalObject.IDBKeyRange)) {
             query = this._globalObject.IDBKeyRange.only(convert.key(this._globalObject, query))
         }
+        const request = IDBRequest.createImpl(this._globalObject, [], { parent: this.objectStore._transaction, source: this })
         this.objectStore._transaction._queue.push({
             method: 'get',
             type: 'index',
@@ -157,7 +157,7 @@ class IDBIndexImpl {
         } else if (! (query instanceof this._globalObject.IDBKeyRange)) {
             query = this._globalObject.IDBKeyRange.only(convert.key(this._globalObject, query))
         }
-        const request = IDBRequest.createImpl(this._globalObject, [], { parent: this._transaction })
+        const request = IDBRequest.createImpl(this._globalObject, [], { parent: this._transaction, source: this })
         const cursor = Cursor.createImpl(this._globalObject, [], {
             type: 'index',
             hello: 'world',

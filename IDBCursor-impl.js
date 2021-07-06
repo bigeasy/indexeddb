@@ -13,7 +13,7 @@ class IDBCursorImpl {
     }
 
     get source () {
-        throw new Error
+        return this._source
     }
 
     get direction () {
