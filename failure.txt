@@ -1,0 +1,17 @@
+> ✘ test/upgrade-transaction-lifecycle-user-aborted.wpt.t.js: in a setTimeout(0)
+> callback after the abort event is fired for a transaction aborted due to an
+> abort() call - The open request's transaction should be reset after onabort
+> microtasks
+# ACTUAL IDBTransaction {
+#   abort: [Function (anonymous)],
+#   _willBeAborted: [Function (anonymous)]
+# }
+# EXPECTED null
+# DIFF [ { kind: 'E', lhs: {}, rhs: null } ]
+
+>--
+
+# expected   29
+# passed     28
+# failed      1
+>
