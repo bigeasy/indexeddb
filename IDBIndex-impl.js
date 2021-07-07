@@ -18,12 +18,17 @@ class IDBIndexImpl {
         this.objectStore = objectStore
     }
 
+    // Common `isDeleted` interface for inspection from an outstanding cursor.
+    _isDeleted () {
+        return this.objectStore._schema.isDeleted(this._index)
+    }
+
     get name () {
         return this._index.name
     }
 
     set name (to) {
-        if (this.objectStore._schema.isDeleted(this._index)) {
+        if (this._isDeleted()) {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
         if (this.objectStore._transaction.mode != 'versionchange') {
@@ -55,7 +60,7 @@ class IDBIndexImpl {
     }
 
     _get (query, key) {
-        if (this.objectStore._schema.isDeleted(this._index)) {
+        if (this._isDeleted()) {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
         if (this.objectStore._transaction._state != 'active') {
@@ -88,7 +93,7 @@ class IDBIndexImpl {
     }
 
     _getAll (query, count, keys) {
-        if (this.objectStore._schema.isDeleted(this._index)) {
+        if (this._isDeleted()) {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
         if (this.objectStore._transaction._state != 'active') {
@@ -122,7 +127,7 @@ class IDBIndexImpl {
     }
 
     count (query) {
-        if (this.objectStore._schema.isDeleted(this._index)) {
+        if (this._isDeleted()) {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
         if (this.objectStore._transaction._state != 'active') {
@@ -146,7 +151,7 @@ class IDBIndexImpl {
     }
 
     _openCursor (Cursor, query, direction = 'next') {
-        if (this.objectStore._schema.isDeleted(this._index)) {
+        if (this._isDeleted()) {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
         if (this.objectStore._transaction._state != 'active') {

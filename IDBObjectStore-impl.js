@@ -42,12 +42,17 @@ class IDBObjectStoreImpl {
         this._constructing = constructing
     }
 
+    // Common `isDeleted` interface for inspection from an outstanding cursor.
+    _isDeleted () {
+        return this._schema.isDeleted(this._store)
+    }
+
     get transaction () {
         return webidl.wrapperForImpl(this._transaction)
     }
 
     set name (to) {
-        if (this._schema.isDeleted(this._store)) {
+        if (this._isDeleted()) {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
         if (this._transaction.mode != 'versionchange') {
@@ -79,7 +84,7 @@ class IDBObjectStoreImpl {
     }
 
     _addOrPut (value, key, overwrite) {
-        if (this._schema.isDeleted(this._store)) {
+        if (this._isDeleted()) {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
         if (this._transaction._state != 'active') {
@@ -136,7 +141,7 @@ class IDBObjectStoreImpl {
     }
 
     delete (query) {
-        if (this._schema.isDeleted(this._store)) {
+        if (this._isDeleted()) {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
         if (this._transaction._state != 'active') {
@@ -162,7 +167,7 @@ class IDBObjectStoreImpl {
     }
 
     clear () {
-        if (this._schema.isDeleted(this._store)) {
+        if (this._isDeleted()) {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
         if (this._transaction._state != 'active') {
@@ -181,7 +186,7 @@ class IDBObjectStoreImpl {
     }
 
     _get (query, keys) {
-        if (this._schema.isDeleted(this._store)) {
+        if (this._isDeleted()) {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
         if (this._transaction._state != 'active') {
@@ -214,7 +219,7 @@ class IDBObjectStoreImpl {
     }
 
     _getAll(query, count, keys) {
-        if (this._schema.isDeleted(this._store)) {
+        if (this._isDeleted()) {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
         if (this._transaction._state != 'active') {
@@ -247,7 +252,7 @@ class IDBObjectStoreImpl {
     }
 
     count (query) {
-        if (this._schema.isDeleted(this._store)) {
+        if (this._isDeleted()) {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
         if (this._transaction._state != 'active') {
@@ -270,7 +275,7 @@ class IDBObjectStoreImpl {
     }
 
     _openCursor (Cursor, query, direction) {
-        if (this._schema.isDeleted(this._store)) {
+        if (this._isDeleted()) {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
         if (this._transaction._state != 'active') {
@@ -313,7 +318,7 @@ class IDBObjectStoreImpl {
     }
 
     index (name) {
-        if (this._schema.isDeleted(this._store)) {
+        if (this._isDeleted()) {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
         if (this._transaction._state == 'finished') {
@@ -333,7 +338,7 @@ class IDBObjectStoreImpl {
     }
 
     createIndex (name, keyPath, { unique = false, multiEntry = false } = {}) {
-        if (this._schema.isDeleted(this._store)) {
+        if (this._isDeleted()) {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
         if (this._transaction.mode != 'versionchange') {
@@ -361,7 +366,7 @@ class IDBObjectStoreImpl {
     }
 
     deleteIndex (name) {
-        if (this._schema.isDeleted(this._store)) {
+        if (this._isDeleted()) {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
         if (this._transaction.mode != 'versionchange') {

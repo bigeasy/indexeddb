@@ -10,6 +10,7 @@ class IDBCursorImpl {
         this._transaction = transaction
         this._direction = direction
         this._source = source
+        this._gotValue = false
     }
 
     get source () {
@@ -32,6 +33,24 @@ class IDBCursorImpl {
         if (count == 0) {
             throw new TypeError('count must not be zero')
         }
+        if (this._transaction._state != 'active') {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
+        }
+        if (this.source._isDeleted()) {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
+        }
+        if (! this._gotValue) {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
+        }
+        this._transaction._queue.push({
+            method: 'advance',
+            count: count,
+            type: this._type,
+            cursor: this,
+            request: this._request,
+            store: JSON.parse(JSON.stringify(this._store))
+        })
+
         // TODO If the transaction is not active, throw a
         // 'TransactionInactiveError' `DOMExecption`.
         throw new Error
