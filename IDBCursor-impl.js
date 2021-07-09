@@ -1,4 +1,5 @@
 const IDBRequest = require('./living/generated/IDBRequest')
+const DOMException = require('domexception/lib/DOMException')
 const Verbatim = require('verbatim')
 
 class IDBCursorImpl {
