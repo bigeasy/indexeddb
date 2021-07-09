@@ -42,18 +42,17 @@ class IDBCursorImpl {
         if (! this._gotValue) {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
+        this._gotValue = false
+        // TODO If the transaction is not active, throw a
+        // 'TransactionInactiveError' `DOMExecption`.
         this._transaction._queue.push({
             method: 'advance',
             count: count,
-            type: this._type,
             cursor: this,
             request: this._request,
+            // TODO Probably do not need this defensive copy.
             store: JSON.parse(JSON.stringify(this._store))
         })
-
-        // TODO If the transaction is not active, throw a
-        // 'TransactionInactiveError' `DOMExecption`.
-        throw new Error
     }
 
     continue (key) {

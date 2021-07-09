@@ -88,7 +88,7 @@ class IDBTransactionImpl extends EventTargetImpl {
         this._aborted = true
     }
 
-    async _item ({ type, store, request, cursor }, transaction) {
+    async _item ({ store, request, cursor }, transaction) {
         FOREVER: for (;;) {
             const next = cursor._inner.next()
             if (next.done) {
@@ -102,7 +102,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                     cursor._inner = cursor._outer.next.value[Symbol.iterator]()
                 }
             } else {
-                switch (type) {
+                switch (cursor._type) {
                 case 'store': {
                         cursor._value = next.value
                         cursor._key = next.value.key
@@ -416,7 +416,16 @@ class IDBTransactionImpl extends EventTargetImpl {
                             let builder
                             switch (direction) {
                             case 'next': {
+                                    // TODO Seems like you need to sort out what lowerOpen
+                                    // means, maybe translate that to `_exclusive` inside the
+                                    // object because you forget, or at least leave a comment.
                                     builder = transaction.cursor(index.qualified, query.lower == null ? null : [[ query.lower ]])
+                                    builder = query.lower != null && query.lowerOpen ? builder.skip(item => {
+                                        return compare(this._globalObject, item.key[0][0][0], query.lower) == 0
+                                    }) : builder
+                                    if (query.upper != null) {
+                                        builder = builder.terminate(item => ! query.includes(item.key[0]))
+                                    }
                                 }
                                 break
                             case 'prev': {
@@ -444,6 +453,26 @@ class IDBTransactionImpl extends EventTargetImpl {
                 }
                 break
             case 'item': {
+                    await this._item(event, transaction)
+                }
+                break
+            case 'advance': {
+                    const { store, request, cursor } = event
+                    let count = event.count - 1
+                    // TODO Tighten loop.
+                    while (count != 0) {
+                        const next = cursor._inner.next()
+                        if (next.done) {
+                            cursor._outer.next = await cursor._outer.iterator.next()
+                            if (cursor._outer.next.done) {
+                                request._result = null
+                                request.readyState = 'done'
+                                await dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
+                                break SWITCH
+                            }
+                        }
+                        count--
+                    }
                     await this._item(event, transaction)
                 }
                 break
