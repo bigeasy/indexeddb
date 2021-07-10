@@ -1,0 +1,45 @@
+<!--
+    docker run --rm -d -p 8080:80 -v $PWD:/usr/share/nginx/html --name web nginx
+ -->
+<html>
+<head>
+<script>
+const events = []
+window.onload = function () {
+    const button = document.getElementById('click')
+    button.addEventListener('click', () => {
+        events.length = 0
+        events.push('click')
+        setTimeout(() => {
+            events.push('timedout')
+            document.getElementById('pre').innerHTML = events.join('\n')
+        }, 0)
+        const promise = new Promise(resolve => {
+            events.push('click promise')
+            resolve(1)
+        })
+        promise.then(one => {
+            events.push('click promise resolved')
+            new Promise(resolve => {
+                events.push('click promise 2')
+            })
+        }, error => {
+            alert(error)
+        })
+        new Promise(resolve => {
+            events.push('click promise next')
+            resolve()
+        })
+    })
+    const div = document.getElementById('div')
+    div.addEventListener('click', () => events.push('div'))
+}
+</script>
+</head>
+<body>
+<div id="div">
+    <button id="click">Click</button>
+</div>
+<pre id="pre"></pre>
+</body>
+</html>
