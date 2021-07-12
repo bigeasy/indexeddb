@@ -95,8 +95,7 @@ of detail used to specify the event queues in IndexedDB itself. To understand it
 fully I'd probably have to read the Chrome or Mozilla source.
 
 Was informed in one thread that you could start with the [Simple implementation
-of
-EventTarget](https://developer.mozilla.org/en-US/docs/Web/API/EventTarget#simple_implementation_of_eventtarget)
+of EventTarget](https://developer.mozilla.org/en-US/docs/Web/API/EventTarget#simple_implementation_of_eventtarget)
 at MDN, but this simple implementation barely covers the dispatch algorithm as
 documented in the spec.
 
@@ -109,3 +108,17 @@ typing out an identifier name.
 
 Add a note about the `true` hack that got event bubbling working, or not
 working, that is suppressed when bubbles is false.
+
+Now I find that it is not enough to `setImmediate` or `setTimeout`. There are
+timing issues in the tests so that they require the specific implementation of
+"dispatch an event" implemented by browers, not documented in the spec.
+
+ * [Async Hooks](https://nodejs.org/api/async_hooks.html).
+ * [The Power of Async Hooks in Node](https://medium.com/nmc-techblog/the-power-of-async-hooks-in-node-js-8a2a84238acb).
+ * [Node.js 14 & AsyncLocalStorage: Share a context between asynchronous calls](https://blog.kuzzle.io/nodejs-14-asynclocalstorage-asynchronous-calls).
+ * [Simple Benchmark for als-context, cls-hooked & AsyncLocalStorage](https://github.com/PhakornKiong/ALS-CLS-Benchmark).
+ * [Performance implications of using Async Hooks](https://stackoverflow.com/questions/65702716/performance-implications-of-using-async-hooks).
+ * [Concept Event Dispatch](https://dom.spec.whatwg.org/#concept-event-dispatch).
+ * [Be the Master of the Event Loop in JavaScript (Part 2)](https://betterprogramming.pub/be-the-master-of-the-event-loop-in-javascript-part-2-54637d49889f).
+ * [Server Side Implementation of requestAnimationFrame() in NodeJS](https://stackoverflow.com/questions/30442896/server-side-implementation-of-requestanimationframe-in-nodejs).
+ * [IsRunningMicrotasks()](https://v8docs.nodesource.com/node-12.0/db/d08/classv8_1_1_microtask_queue.html#a2697b6da7f4a2899ac08169d94c889f7).

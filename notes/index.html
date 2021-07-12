@@ -12,8 +12,10 @@ window.onload = function () {
         events.push('click')
         setTimeout(() => {
             events.push('timedout')
-            document.getElementById('pre').innerHTML = events.join('\n')
         }, 0)
+        setTimeout(() => {
+            document.getElementById('pre').innerHTML = events.join('\n')
+        }, 250)
         const promise = new Promise(resolve => {
             events.push('click promise')
             resolve(1)
@@ -28,15 +30,41 @@ window.onload = function () {
         })
         new Promise(resolve => {
             events.push('click promise next')
+            new Promise(resolve => {
+                events.push('nested start timer')
+                setTimeout(() => {
+                    events.push('next timeout')
+                    resolve()
+                }, 0)
+            })
             resolve()
         })
     })
     const div = document.getElementById('div')
-    div.addEventListener('click', () => events.push('div'))
+    div.addEventListener('click', () => {
+        events.push('div')
+        async function foo () {
+            await 1
+            await 2
+            await 3
+            events.push('async')
+        }
+        foo().then(() => {
+            events.push('async then')
+            setTimeout(function () {
+                events.push('div timeout')
+            }, 0)
+            return 1
+        }).then(() => {
+            return 1
+        })
+    })
+    const body = document.getElementById('div')
+    body.addEventListener('click', () => events.push('body'))
 }
 </script>
 </head>
-<body>
+<body id="body">
 <div id="div">
     <button id="click">Click</button>
 </div>
