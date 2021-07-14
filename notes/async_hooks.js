@@ -118,29 +118,35 @@ async function main (callbacks) {
             }
         }
     }
+    function setEqual (left, right) {
+        if (left.size != right.size) {
+            return false
+        }
+        for (const object of left) {
+            if (! right.has(object)) {
+                return false
+            }
+        }
+        return true
+    }
     await async function () {
         await true
+        map.clear()
         fs.writeFileSync(1, `>>>>>>> ${hooks.executionAsyncId()}\n`)
         while (callbacks.length != 0) {
             checking = false
-            const promise = new Promise(resolve => latch = { resolve })
             callbacks.shift()()
             checking = true
-            let previous = null
+            let previous = new Set
             for (;;) {
                 await true
-                const next = []
                 map.delete(hooks.executionAsyncId())
                 map.delete(hooks.triggerAsyncId())
-                for (const key of [ ...map.keys() ].sort()) {
-                    const { asyncId, before, after, resolved } = map.get(key)
-                    next.push([ asyncId, before, after, resolved ].join('/'))
-                }
-                const joined = next.join(',')
-                if (previous == joined) {
+                const next = new Set(map.keys())
+                if (setEqual(previous, next)) {
                     break
                 }
-                previous = joined
+                previous = next
             }
             fs.writeFileSync(1, `>>>>>>> ${hooks.executionAsyncId()}\n`)
         }
@@ -221,6 +227,8 @@ async function main (callbacks) {
 
 const events = []
 main([function () {
+    events.push('before first')
+}, function () {
     events.push('first')
     new Promise(resolve => {
         events.push('promise')
