@@ -59,8 +59,23 @@ window.onload = function () {
             return 1
         })
     })
-    const body = document.getElementById('div')
-    body.addEventListener('click', () => events.push('body'))
+    div.addEventListener('click', () => {
+        events.push('div two start')
+        async function foo () {
+            await 1
+            await 2
+        }
+        foo().then(() => events.push('div two end'))
+    })
+    const body = document.getElementById('body')
+    body.addEventListener('click', () => {
+        events.push('body two start')
+        async function foo () {
+            await 1
+            await 2
+        }
+        foo().then(() => events.push('body two end'))
+    })
 }
 </script>
 </head>
