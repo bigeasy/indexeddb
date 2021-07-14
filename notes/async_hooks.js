@@ -7,13 +7,12 @@ const cadence = require('cadence')
 async function main (callbacks) {
     const promise = Promise.resolve(1)
     await promise
-    console.log('running')
-    let count = 0
+    fs.writeFileSync(1, 'running\n')
     if (false) hooks.createHook({
         init() {}
     }).enable()
     const map = new Map
-    const hook = hooks.createHook({
+    const __hook = hooks.createHook({
         init(asyncId, type, triggerAsyncId, resource) {
             count++
             map.set(asyncId, { type, triggerAsyncId, parent: null, children: [] })
@@ -29,78 +28,125 @@ async function main (callbacks) {
         }
     })
     function getPromises () {
-            const copy = new Map
-            for (const [ key, { type, triggerAsyncId } ] of map) {
-                copy.set(key, { type, triggerAsyncId, parent: null, children: [] })
-            }
-            for (const [ key, value ] of copy) {
-                if ((value.parent = copy.get(value.triggerAsyncId) || null) != null) {
-                    value.parent.children.push(value)
-                }
-            }
-            const roots = []
-            const leaves = []
-            for (const value of copy.values()) {
-                if (value.parent == null) {
-                    roots.push(value)
-                }
-                if (value.children.length == 0) {
-                    leaves.push(value)
-                }
-            }
-            const promises = leaves.filter(leaf => leaf.type == 'PROMISE')
-            return promises
-    }
-    let looped = 0
-    function inner () {
-        return new Promise(resolve => {
-            if (++looped == 5) {
-                process.exit()
-            }
-            console.log(promises, count)
-            if (promises.length == 1) {
-                resolve(outer())
-            } else {
-                resolve(inner())
-            }
-        })
-    }
-    while (callbacks.length != 0) {
-        let latch
-        let checking = false
-        const promise = new Promise(resolve => latch = { resolve })
-        function check () {
-            if (checking) {
-                const promises = getPromises()
-                console.log('promises', promises.length) //util.inspect(promises, { depth: null }))
-                if (promises.length == 1) {
-                    latch.resolve.call()
-                }
+        const copy = new Map
+        for (const [ key, { asyncId, type, triggerAsyncId, before, after, resolved } ] of map) {
+            copy.set(key, { asyncId, type, triggerAsyncId, before, after, resolved, parent: null, children: [] })
+        }
+        for (const [ key, value ] of copy) {
+            if ((value.parent = copy.get(value.triggerAsyncId) || null) != null) {
+                value.parent.children.push(value)
             }
         }
+        const roots = []
+        const leaves = []
+        for (const value of copy.values()) {
+            if (value.parent == null) {
+                roots.push(value)
+            }
+            if (value.children == 0) {
+                leaves.push(value)
+            }
+        }
+        const promises = leaves.filter(leaf => leaf.type == 'PROMISE')
+        fs.writeFileSync(1, `roots ${util.inspect(roots, { depth: null })}\n`)
+        //fs.writeFileSync(1, `leaves ${util.inspect(leaves, { depth: null })}\n`)
+        return promises
+    }
+    let looped = 0
+    /*
         const hook = hooks.createHook({
             init(asyncId, type, triggerAsyncId, resource) {
-                map.set(asyncId, { type, triggerAsyncId, parent: null, children: [] })
+                map.set(asyncId, { asyncId, type, triggerAsyncId })
             },
-            before (asyncId) {
+            __after (asyncId) {
+                fs.writeFileSync(1, `after ${asyncId}\n`)
                 map.delete(asyncId)
+                check()
             },
             destroy (asyncId) {
+                fs.writeFileSync(1, `destroy ${asyncId}\n`)
                 map.delete(asyncId)
+                check()
             },
             promiseResolve (asyncId) {
+                fs.writeFileSync(1, `resolve ${asyncId}\n`)
                 check()
                 map.delete(asyncId)
             }
         })
         hook.enable()
+    while (callbacks.length != 0) {
+        let latch
+        const promise = new Promise(resolve => latch = { resolve })
+        let checking = false
+        function check () {
+            if (checking) {
+                const promises = getPromises()
+                if (promises.length == 1 && promises[0].parent.triggerAsyncId == hooks.executionAsyncId()) {
+                    fs.writeFileSync(1, '.... unlocking\n')
+                    latch.resolve.call()
+                }
+            }
+        }
         callbacks.shift()()
         checking = true
         check()
         await promise
+    }
         hook.disable()
         map.clear()
+    */
+    let count = 0
+    const hook = hooks.createHook({
+        init(asyncId, type, triggerAsyncId, resource) {
+            map.set(asyncId, { asyncId, type, triggerAsyncId })
+        },
+        after (asyncId) {
+            map.delete(asyncId)
+        }
+    })
+    hook.enable()
+    let latch
+    let checking = false
+    function check () {
+        if (checking) {
+            const promises = getPromises()
+            //fs.writeFileSync(1, `events ${util.format(events)}\n`) //util.inspect(promises, { depth: null }))
+            //fs.writeFileSync(1, `promises ${promises.length}\n`) //util.inspect(promises, { depth: null }))
+            if (promises.length == 1) {
+                latch.resolve.call()
+            }
+        }
     }
+    await async function () {
+        await true
+        fs.writeFileSync(1, `>>>>>>> ${hooks.executionAsyncId()}\n`)
+        while (callbacks.length != 0) {
+            checking = false
+            const promise = new Promise(resolve => latch = { resolve })
+            callbacks.shift()()
+            checking = true
+            let previous = null
+            for (;;) {
+                await true
+                const next = []
+                map.delete(hooks.executionAsyncId())
+                map.delete(hooks.triggerAsyncId())
+                for (const key of [ ...map.keys() ].sort()) {
+                    const { asyncId, before, after, resolved } = map.get(key)
+                    next.push([ asyncId, before, after, resolved ].join('/'))
+                }
+                const joined = next.join(',')
+                if (previous == joined) {
+                    break
+                }
+                previous = joined
+            }
+            fs.writeFileSync(1, `>>>>>>> ${hooks.executionAsyncId()}\n`)
+        }
+    } ()
+        hook.disable()
+        map.clear()
     /*
     function outer () {
         return new Promise(resolve => {
@@ -118,7 +164,6 @@ async function main (callbacks) {
         }, function () {
             step.loop([], function () {
                 const promises = getPromises()
-                console.log('here', util.inspect(promises, { depth: null }))
                 if (promises.length == 1 || ++looped == 7) {
                     return [ step.break ]
                 }
@@ -157,13 +202,8 @@ async function main (callbacks) {
                     leaves.push(value)
                 }
             }
-            //console.log('roots', util.inspect(roots, { depth: null }))
-            //console.log('leaves', util.inspect(leaves, { depth: null }))
             const promises = leaves.filter(leaf => leaf.type == 'PROMISE')
             const nonPromises = leaves.filter(leaf => leaf.type != 'PROMISE')
-            console.log('promises', util.inspect(promises, { depth: null }))
-            console.log('non-promises', util.inspect(nonPromises, { depth: null }))
-            console.log('map', map.size, hooks.triggerAsyncId(), hooks.executionAsyncId())
             if (promises == 1) {
                 break
             }
@@ -199,13 +239,19 @@ main([function () {
 }, function () {
     events.push('second')
     async function foo () {
+        events.push('async 1')
         await 1
-        await 1
-        await 1
-        events.push('async')
-        await fsp.readFile(__filename)
-        events.push('async done')
+        events.push('async 2')
+        await 2
+        events.push('async 3')
+        for (let i = 0; i < 10; i++) {
+            await i
+        }
+        events.push('async 4')
         fs.writeFileSync(1, '.... async\n')
+        await fsp.readFile(__filename)
+        events.push('filed done')
+        fs.writeFileSync(1, '.... async done\n')
     }
     const promise = foo()
     promise.then(() => {
@@ -213,7 +259,7 @@ main([function () {
         fs.writeFileSync(1, '.... async then\n')
         setTimeout(function () {
             events.push('timeout')
-            console.log(events.join('\n'))
+            fs.writeFileSync(1, events.join('\n') + '\n')
         }, 0)
         return 1
     }).then(() => {
@@ -221,5 +267,6 @@ main([function () {
         return 1
     })
 }, function () {
+        fs.writeFileSync(1, '.... last\n')
     events.push('last')
 }])
