@@ -107,6 +107,8 @@ class EventTargetImpl {
 
     eventImpl.isTrusted = false;
 
+    let cancelled
+
     this._dispatch(eventImpl, false, false, false, (error, $) => cancelled = $);
 
     return cancelled
