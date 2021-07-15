@@ -57,6 +57,16 @@ class IDBCursorImpl {
     }
 
     continue (key) {
+        if (this._transaction._state != 'active') {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
+        }
+        if (this.source._isDeleted()) {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
+        }
+        if (! this._gotValue) {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
+        }
+        this._gotValue = false
         this._transaction._queue.push({
             method: 'item',
             type: this._type,
