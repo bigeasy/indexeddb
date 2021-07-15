@@ -71,7 +71,7 @@ class IDBCursorImpl {
         }
         this._gotValue = false
         this._transaction._queue.push({
-            method: 'item',
+            method: 'continue',
             type: this._type,
             key: key == null ? null : convert.key(this._globalObject, key),
             cursor: this,

@@ -455,7 +455,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                     }
                 }
                 break
-            case 'item': {
+            case 'continue': {
                     const { store, request, cursor, key } = event
                     for (;;) {
                         const got = await this._next(event, transaction)
