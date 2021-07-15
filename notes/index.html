@@ -76,13 +76,20 @@ window.onload = function () {
         }
         foo().then(() => events.push('body two end'))
     })
+    const sync = document.getElementById('sync')
+    sync.addEventListener('click', () => {
+        document.getElementById('click').click()
+    })
 }
 </script>
 </head>
-<body id="body">
+<body>
+<div id="body">
 <div id="div">
     <button id="click">Click</button>
 </div>
+</div>
+<button id="sync">Sync</button>
 <pre id="pre"></pre>
 </body>
 </html>
