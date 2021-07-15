@@ -88,7 +88,7 @@ class IDBTransactionImpl extends EventTargetImpl {
         this._aborted = true
     }
 
-    async _item2 ({ store, request, cursor }, transaction) {
+    async _next ({ store, request, cursor }, transaction) {
         FOREVER: for (;;) {
             const next = cursor._inner.next()
             if (next.done) {
@@ -106,42 +106,6 @@ class IDBTransactionImpl extends EventTargetImpl {
                     break FOREVER
                 case 'index': {
                         return { key: next.value.key[0], value: await transaction.get(store.qualified, [ next.value.key[1] ]) }
-                    }
-                    break FOREVER
-                }
-            }
-        }
-    }
-
-    async _item ({ store, request, cursor }, transaction) {
-        FOREVER: for (;;) {
-            const next = cursor._inner.next()
-            if (next.done) {
-                cursor._outer.next = await cursor._outer.iterator.next()
-                if (cursor._outer.next.done) {
-                    request._result = null
-                    request.readyState = 'done'
-                    await dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
-                    break
-                } else {
-                    cursor._inner = cursor._outer.next.value[Symbol.iterator]()
-                }
-            } else {
-                switch (cursor._type) {
-                case 'store': {
-                        cursor._value = next.value
-                        cursor._key = next.value.key
-                        cursor._gotValue = true
-                        request.readyState = 'done'
-                        await dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
-                    }
-                    break FOREVER
-                case 'index': {
-                        cursor._key = next.value.key[0]
-                        cursor._value = await transaction.get(store.qualified, [ next.value.key[1] ])
-                        cursor._gotValue = true
-                        request.readyState = 'done'
-                        await dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
                     }
                     break FOREVER
                 }
@@ -444,7 +408,8 @@ class IDBTransactionImpl extends EventTargetImpl {
                                 await dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
                             } else {
                                 cursor._inner = cursor._outer.next.value[Symbol.iterator]()
-                                await this._item(event)
+                                const got = await this._next(event)
+                                await this._dispatchItem(event, got)
                             }
                         }
                         break
@@ -482,7 +447,8 @@ class IDBTransactionImpl extends EventTargetImpl {
                                 await dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
                             } else {
                                 cursor._inner = cursor._outer.next.value[Symbol.iterator]()
-                                await this._item(event, transaction)
+                                const got = await this._next(event, transaction)
+                                await this._dispatchItem(event, got)
                             }
                         }
                         break
@@ -492,7 +458,7 @@ class IDBTransactionImpl extends EventTargetImpl {
             case 'item': {
                     const { store, request, cursor, key } = event
                     for (;;) {
-                        const got = await this._item2(event, transaction)
+                        const got = await this._next(event, transaction)
                         if (
                             got == null ||
                             key == null ||
@@ -521,7 +487,8 @@ class IDBTransactionImpl extends EventTargetImpl {
                         }
                         count--
                     }
-                    await this._item(event, transaction)
+                    const got = await this._next(event, transaction)
+                    await this._dispatchItem(event, got)
                 }
                 break
             case 'count': {

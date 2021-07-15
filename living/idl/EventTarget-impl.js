@@ -356,6 +356,7 @@ const _innerInvokeEventListeners = cadence(function (step, eventImpl, listeners,
         try {
           listener.callback.call(eventImpl.currentTarget, eventImpl);
         } catch (e) {
+            console.log(e.stack)
           if (legacyOutputDidListenersThrowFlag) {
             eventImpl._legacyOutputDidListenersThrowFlag = true
           }
