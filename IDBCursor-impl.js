@@ -2,6 +2,8 @@ const IDBRequest = require('./living/generated/IDBRequest')
 const DOMException = require('domexception/lib/DOMException')
 const Verbatim = require('verbatim')
 
+const convert = require('./convert')
+
 class IDBCursorImpl {
     constructor (globaObject, [], { type, transaction, store, request, direction, source }) {
         this._globalObject = globaObject
@@ -34,6 +36,7 @@ class IDBCursorImpl {
         if (count == 0) {
             throw new TypeError('count must not be zero')
         }
+        console.log('?', this._transaction._state)
         if (this._transaction._state != 'active') {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
         }
@@ -70,6 +73,7 @@ class IDBCursorImpl {
         this._transaction._queue.push({
             method: 'item',
             type: this._type,
+            key: key == null ? null : convert.key(this._globalObject, key),
             cursor: this,
             request: this._request,
             store: JSON.parse(JSON.stringify(this._store))

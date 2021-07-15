@@ -88,6 +88,31 @@ class IDBTransactionImpl extends EventTargetImpl {
         this._aborted = true
     }
 
+    async _item2 ({ store, request, cursor }, transaction) {
+        FOREVER: for (;;) {
+            const next = cursor._inner.next()
+            if (next.done) {
+                cursor._outer.next = await cursor._outer.iterator.next()
+                if (cursor._outer.next.done) {
+                    return null
+                } else {
+                    cursor._inner = cursor._outer.next.value[Symbol.iterator]()
+                }
+            } else {
+                switch (cursor._type) {
+                case 'store': {
+                        return { key: next.value.key, value: next.value }
+                    }
+                    break FOREVER
+                case 'index': {
+                        return { key: next.value.key[0], value: await transaction.get(store.qualified, [ next.value.key[1] ]) }
+                    }
+                    break FOREVER
+                }
+            }
+        }
+    }
+
     async _item ({ store, request, cursor }, transaction) {
         FOREVER: for (;;) {
             const next = cursor._inner.next()
@@ -167,6 +192,18 @@ class IDBTransactionImpl extends EventTargetImpl {
             }
         }
         return values
+    }
+
+    _dispatchItem ({ cursor, request }, got) {
+        request.readyState = 'done'
+        if (got == null) {
+            request._result = null
+        } else {
+            cursor._key = got.key
+            cursor._value = got.value
+            cursor._gotValue = true
+        }
+        return dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
     }
 
     // Most of the logic of this implementation is in this one function.
@@ -453,7 +490,18 @@ class IDBTransactionImpl extends EventTargetImpl {
                 }
                 break
             case 'item': {
-                    await this._item(event, transaction)
+                    const { store, request, cursor, key } = event
+                    for (;;) {
+                        const got = await this._item2(event, transaction)
+                        if (
+                            got == null ||
+                            key == null ||
+                            compare(this._globalObject, key, got.key) <= 0
+                        ) {
+                            await this._dispatchItem(event, got)
+                            break
+                        }
+                    }
                 }
                 break
             case 'advance': {
