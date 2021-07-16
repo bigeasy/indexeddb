@@ -393,10 +393,10 @@ class IDBTransactionImpl extends EventTargetImpl {
                 }
                 break
             case 'openCursor': {
+                    const { query, store, index, request, cursor, direction } = event
+                    let builder
                     switch (event.type) {
                     case 'store': {
-                            const { store, request, cursor, direction, query } = event
-                            let builder
                             if (direction == 'next') {
                                 builder = query.lower == null
                                     ? transaction.cursor(store.qualified)
@@ -413,22 +413,9 @@ class IDBTransactionImpl extends EventTargetImpl {
                                 }
                                 builder = builder.reverse()
                             }
-                            cursor._outer = { iterator: builder[Symbol.asyncIterator](), next: null }
-                            cursor._outer.next = await cursor._outer.iterator.next()
-                            if (cursor._outer.next.done) {
-                                request._result = null
-                                request.readyState = 'done'
-                                await dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
-                            } else {
-                                cursor._inner = cursor._outer.next.value[Symbol.iterator]()
-                                const got = await this._next(event)
-                                await this._dispatchItem(event, got)
-                            }
                         }
                         break
                     case 'index': {
-                            const { query, store, index, request, cursor, direction } = event
-                            let builder
                             switch (direction) {
                             case 'next':
                             case 'nextunique': {
@@ -454,20 +441,17 @@ class IDBTransactionImpl extends EventTargetImpl {
                                 }
                                 break
                             }
-                            cursor._outer = { iterator: builder[Symbol.asyncIterator](), next: null }
-                            cursor._outer.next = await cursor._outer.iterator.next()
-                            if (cursor._outer.next.done) {
-                                request._result = null
-                                request.readyState = 'done'
-                                await dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
-                            } else {
-                                cursor._inner = cursor._outer.next.value[Symbol.iterator]()
-                                const got = await this._next(event, transaction)
-                                await this._dispatchItem(event, got)
-                            }
                         }
                         break
                     }
+                    cursor._outer = { iterator: builder[Symbol.asyncIterator](), next: null }
+                    cursor._inner = {
+                        next() {
+                            return { done: true, value: null }
+                        }
+                    }
+                    const got = await this._next(event, transaction)
+                    await this._dispatchItem(event, got)
                 }
                 break
             case 'continue': {
