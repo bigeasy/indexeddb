@@ -173,6 +173,15 @@ class IDBCursorImpl {
     }
 
     delete () {
+        if (this._transaction._state != 'active') {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
+        }
+        if (this._transaction._mode == 'readonly') {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'ReadOnlyError' ], {})
+        }
+        if (this.source._isDeleted()) {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
+        }
         throw new Error
     }
 }
