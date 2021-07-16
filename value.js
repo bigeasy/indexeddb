@@ -1,11 +1,13 @@
 const DOMException = require('domexception/lib/DOMException')
 
+const MAX = exports.MAX = Symbol('MAX')
+
 // https://w3c.github.io/IndexedDB/#convert-a-value-to-a-input
 const valuify = exports.valuify = function (globalObject, value) {
     switch (typeof value) {
     case 'number':
         if (isNaN(value)) {
-            throw DOMException.create(globalObject, [ 'TODO: message', 'DataError' ], {})
+            throw DOMException.create(globalObject, [ 'TODO: message 1', 'DataError' ], {})
         }
         return value
     case 'string':
@@ -27,9 +29,13 @@ const valuify = exports.valuify = function (globalObject, value) {
             }
             return converted
         } else {
-            throw DOMException.create(globalObject, [ 'TODO: message', 'DataError' ], {})
+            throw DOMException.create(globalObject, [ 'TODO: message 2', 'DataError' ], {})
+        }
+    case 'symbol':
+        if (value === MAX) {
+            return value
         }
     default:
-        throw DOMException.create(globalObject, [ 'TODO: message', 'DataError' ], {})
+        throw DOMException.create(globalObject, [ 'TODO: message 3', 'DataError' ], {})
     }
 }

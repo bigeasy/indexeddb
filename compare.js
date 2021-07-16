@@ -1,4 +1,4 @@
-const { valuify } = require('./value')
+const { valuify, MAX } = require('./value')
 
 function is (globalObject, object) {
     switch (typeof object) {
@@ -23,6 +23,13 @@ module.exports = function compare (globalObject, left, right) {
     if (arguments.length != 3) {
         throw new TypeError
     }
+    if (left === MAX) {
+        return 1
+    }
+    if (right == MAX) {
+        return -1
+    }
+    // TODO: Why am I converting to a value every time?
     left = valuify(globalObject, left)
     right = valuify(globalObject, right)
     const type = { left: is(globalObject, left), right: is(globalObject, right) }

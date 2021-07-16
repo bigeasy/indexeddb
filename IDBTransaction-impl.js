@@ -9,7 +9,7 @@ const { dispatchEvent } = require('./dispatch')
 const Verbatim = require('verbatim')
 
 const { vivify } = require('./setter')
-const { valuify } = require('./value')
+const { valuify, MAX } = require('./value')
 const { Queue } = require('avenue')
 
 const { setupForSimpleEventAccessors } = require('./living/helpers/create-event-accessor')
@@ -89,11 +89,15 @@ class IDBTransactionImpl extends EventTargetImpl {
     }
 
     async _next ({ store, request, cursor }, transaction) {
+        let unique = null
         FOREVER: for (;;) {
             const next = cursor._inner.next()
             if (next.done) {
                 cursor._outer.next = await cursor._outer.iterator.next()
                 if (cursor._outer.next.done) {
+                    if (unique != null) {
+                        return { key: unique.key[0], value: await transaction.get(store.qualified, [ unique.key[1] ]) }
+                    }
                     return null
                 } else {
                     cursor._inner = cursor._outer.next.value[Symbol.iterator]()
@@ -103,11 +107,18 @@ class IDBTransactionImpl extends EventTargetImpl {
                 case 'store': {
                         return { key: next.value.key, value: next.value }
                     }
-                    break FOREVER
                 case 'index': {
-                        return { key: next.value.key[0], value: await transaction.get(store.qualified, [ next.value.key[1] ]) }
+                        if (cursor._direction == 'prevunique') {
+                            if (unique != null) {
+                                if (compare(this._globalObject, unique.key[0], next.value.key[0]) != 0) {
+                                    return { key: unique.key[0], value: await transaction.get(store.qualified, [ unique.key[1] ]) }
+                                }
+                            }
+                            unique = next.value
+                        } else {
+                            return { key: next.value.key[0], value: await transaction.get(store.qualified, [ next.value.key[1] ]) }
+                        }
                     }
-                    break FOREVER
                 }
             }
         }
@@ -417,7 +428,8 @@ class IDBTransactionImpl extends EventTargetImpl {
                             const { query, store, index, request, cursor, direction } = event
                             let builder
                             switch (direction) {
-                            case 'next': {
+                            case 'next':
+                            case 'nextunique': {
                                     // TODO Seems like you need to sort out what lowerOpen
                                     // means, maybe translate that to `_exclusive` inside the
                                     // object because you forget, or at least leave a comment.
@@ -430,8 +442,10 @@ class IDBTransactionImpl extends EventTargetImpl {
                                     }
                                 }
                                 break
-                            case 'prev': {
-                                    builder = transaction.cursor(index.qualified, query.upper == null ? null : [[ query.upper ]])
+                            case 'prev':
+                            case 'prevunique': {
+                                    console.log('prev')
+                                    builder = transaction.cursor(index.qualified, query.upper == null ? null : [[ query.upper, MAX ]])
                                     builder = builder.reverse()
                                     if (query.lower != null) {
                                         builder = builder.terminate(item => ! query.includes(item.key[0]))
@@ -456,16 +470,35 @@ class IDBTransactionImpl extends EventTargetImpl {
                 }
                 break
             case 'continue': {
-                    const { store, request, cursor, key } = event
-                    for (;;) {
-                        const got = await this._next(event, transaction)
-                        if (
-                            got == null ||
-                            key == null ||
-                            compare(this._globalObject, key, got.key) <= 0
-                        ) {
-                            await this._dispatchItem(event, got)
-                            break
+                    const { store, request, cursor, key, primaryKey } = event
+                    if (primaryKey == null) {
+                        for (;;) {
+                            const got = await this._next(event, transaction)
+                            if (
+                                got == null ||
+                                key == null ||
+                                compare(this._globalObject, key, got.key) <= 0
+                            ) {
+                                await this._dispatchItem(event, got)
+                                break
+                            }
+                        }
+                    } else {
+                        for (;;) {
+                            const got = await this._next(event, transaction)
+                            if (
+                                got == null
+                                ||
+                                (
+                                    compare(this._globalObject, got.key, key) == 0 &&
+                                    compare(this._globalObject, got.value.key, primaryKey) >= 0
+                                )
+                                ||
+                                compare(this._globalObject, got.key, key) > 0
+                            ) {
+                                await this._dispatchItem(event, got)
+                                break
+                            }
                         }
                     }
                 }

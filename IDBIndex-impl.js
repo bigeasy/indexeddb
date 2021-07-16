@@ -167,6 +167,7 @@ class IDBIndexImpl {
             type: 'index',
             hello: 'world',
             transaction: this.objectStore._transaction,
+            direction: direction,
             request: request,
             store: this.objectStore._store,
             index: this._index,

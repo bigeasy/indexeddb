@@ -2,6 +2,7 @@ const IDBRequest = require('./living/generated/IDBRequest')
 const DOMException = require('domexception/lib/DOMException')
 const Verbatim = require('verbatim')
 
+const compare = require('./compare')
 const convert = require('./convert')
 
 class IDBCursorImpl {
@@ -36,7 +37,6 @@ class IDBCursorImpl {
         if (count == 0) {
             throw new TypeError('count must not be zero')
         }
-        console.log('?', this._transaction._state)
         if (this._transaction._state != 'active') {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
         }
@@ -69,11 +69,28 @@ class IDBCursorImpl {
         if (! this._gotValue) {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
+        key = key == null ? null : convert.key(this._globalObject, key)
+        if (key != null) {
+            switch (this._direction) {
+            case 'next':
+            case 'nextunique': {
+                    if (compare(this._globalObject, key, this._key) <= 0) {
+                        throw DOMException.create(this._globalObject, [ 'TODO: message', 'DataError' ], {})
+                    }
+                }
+                break
+            case 'prev':
+            case 'prevunique': {
+                }
+                break
+            }
+        }
         this._gotValue = false
         this._transaction._queue.push({
             method: 'continue',
             type: this._type,
-            key: key == null ? null : convert.key(this._globalObject, key),
+            key: key,
+            primaryKey: null,
             cursor: this,
             request: this._request,
             store: JSON.parse(JSON.stringify(this._store))
@@ -81,7 +98,61 @@ class IDBCursorImpl {
     }
 
     continuePrimaryKey (key, primaryKey) {
-        throw new Error
+        if (this._transaction._state != 'active') {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
+        }
+        if (this.source._isDeleted()) {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
+        }
+        if (this._type != 'index') {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidAccessError' ], {})
+        }
+        if (this._direction.endsWith('unique')) {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidAccessError' ], {})
+        }
+        if (! this._gotValue) {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
+        }
+        key = key == null ? null : convert.key(this._globalObject, key)
+        primaryKey = primaryKey == null ? null : convert.key(this._globalObject, primaryKey)
+        switch (this._direction) {
+        case 'next': {
+                const test = compare(this._globalObject, key, this._key)
+                if (test < 0) {
+                    throw DOMException.create(this._globalObject, [ 'TODO: message', 'DataError' ], {})
+                } else if (test == 0) {
+                    if (compare(this._globalObject, primaryKey, this._value.key) <= 0) {
+                        throw DOMException.create(this._globalObject, [ 'TODO: message', 'DataError' ], {})
+                    }
+                }
+            }
+            break
+        case 'prev': {
+                const test = compare(this._globalObject, key, this._key)
+                if (test > 0) {
+                    throw DOMException.create(this._globalObject, [ 'TODO: message', 'DataError' ], {})
+                } else if (test == 0) {
+                    if (compare(this._globalObject, primaryKey, this._value.key) >= 0) {
+                        throw DOMException.create(this._globalObject, [ 'TODO: message', 'DataError' ], {})
+                    }
+                }
+            }
+            break
+        default: {
+                throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidAccessError' ], {})
+            }
+            break
+        }
+        this._gotValue = false
+        this._transaction._queue.push({
+            method: 'item',
+            type: this._type,
+            key: key,
+            primaryKey: primaryKey,
+            cursor: this,
+            request: this._request,
+            store: JSON.parse(JSON.stringify(this._store))
+        })
     }
 
     update (value) {
