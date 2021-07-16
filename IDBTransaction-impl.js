@@ -444,7 +444,6 @@ class IDBTransactionImpl extends EventTargetImpl {
                                 break
                             case 'prev':
                             case 'prevunique': {
-                                    console.log('prev')
                                     builder = transaction.cursor(index.qualified, query.upper == null ? null : [[ query.upper, MAX ]])
                                     builder = builder.reverse()
                                     if (query.lower != null) {

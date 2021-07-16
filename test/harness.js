@@ -39,6 +39,7 @@ module.exports = async function (okay, name) {
     const indexedDB = globalObject.create(destructible, directory)
     globalize(globalObject.IDBVersionChangeEvent)
     globalize(globalObject.IDBIndex)
+    globalize(globalObject.IDBCursorWithValue)
     globalize(globalObject.IDBKeyRange)
     globalize(globalObject.IDBOpenDBRequest)
     globalize(globalObject.IDBRequest)

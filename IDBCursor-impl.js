@@ -81,6 +81,9 @@ class IDBCursorImpl {
                 break
             case 'prev':
             case 'prevunique': {
+                    if (compare(this._globalObject, key, this._key) >= 0) {
+                        throw DOMException.create(this._globalObject, [ 'TODO: message', 'DataError' ], {})
+                    }
                 }
                 break
             }
