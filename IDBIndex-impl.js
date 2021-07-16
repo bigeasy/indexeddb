@@ -162,7 +162,11 @@ class IDBIndexImpl {
         } else if (! (query instanceof this._globalObject.IDBKeyRange)) {
             query = this._globalObject.IDBKeyRange.only(convert.key(this._globalObject, query))
         }
-        const request = IDBRequest.createImpl(this._globalObject, [], { parent: this._transaction, source: this })
+        const request = IDBRequest.createImpl(this._globalObject, [], {
+            parent: this._transaction,
+            source: this,
+            transaction: this.objectStore._transaction
+        })
         const cursor = Cursor.createImpl(this._globalObject, [], {
             type: 'index',
             hello: 'world',
