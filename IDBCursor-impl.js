@@ -6,11 +6,13 @@ const compare = require('./compare')
 const convert = require('./convert')
 
 class IDBCursorImpl {
-    constructor (globaObject, [], { type, transaction, store, request, direction, source }) {
+    constructor (globaObject, [], { type, transaction, store, request, direction, source, query, index }) {
         this._globalObject = globaObject
         this._type = type
         this._store = store
         this._request = request
+        this._query = query
+        this._index = index
         this._transaction = transaction
         this._direction = direction
         this._source = source

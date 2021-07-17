@@ -89,14 +89,15 @@ class IDBTransactionImpl extends EventTargetImpl {
     }
 
     async _next ({ store, request, cursor }, transaction) {
+        let unique = null
         FOREVER: for (;;) {
             const next = cursor._inner.next()
             if (next.done) {
                 cursor._outer.next = await cursor._outer.iterator.next()
                 if (cursor._outer.next.done) {
-                    if (cursor._unique != null) {
-                        const got = { key: cursor._unique.key[0], value: await transaction.get(store.qualified, [ cursor._unique.key[1] ]) }
-                        cursor._unique = null
+                    if (unique != null) {
+                        const got = { key: unique.key[0], value: await transaction.get(store.qualified, [ unique.key[1] ]) }
+                        unique = null
                         return got
                     }
                     return null
@@ -110,13 +111,12 @@ class IDBTransactionImpl extends EventTargetImpl {
                     }
                 case 'index': {
                         if (cursor._direction == 'prevunique') {
-                            let previous = cursor._unique
-                            cursor._unique = next.value
-                            if (previous != null) {
-                                if (compare(this._globalObject, previous.key[0], next.value.key[0]) != 0) {
-                                    return { key: previous.key[0], value: await transaction.get(store.qualified, [ previous.key[1] ]) }
+                            if (unique != null) {
+                                if (compare(this._globalObject, unique.key[0], next.value.key[0]) != 0) {
+                                    return { key: unique.key[0], value: await transaction.get(store.qualified, [ unique.key[1] ]) }
                                 }
                             }
+                            unique = next.value
                         } else {
                             return { key: next.value.key[0], value: await transaction.get(store.qualified, [ next.value.key[1] ]) }
                         }
@@ -457,6 +457,22 @@ class IDBTransactionImpl extends EventTargetImpl {
             case 'continue': {
                     const { store, request, cursor, key, primaryKey } = event
                     if (primaryKey == null) {
+                        if (cursor._direction == 'prevunique') {
+                            let builder
+                            const query = cursor._query, index = cursor._index
+                            builder = transaction.cursor(index.qualified, [[ cursor._key ]])
+                            builder = builder.reverse()
+                            builder = builder.exclusive()
+                            if (query.lower != null) {
+                                builder = builder.terminate(item => ! query.includes(item.key[0]))
+                            }
+                            cursor._outer = { iterator: builder[Symbol.asyncIterator](), next: null }
+                            cursor._inner = {
+                                next() {
+                                    return { done: true, value: null }
+                                }
+                            }
+                        }
                         for (;;) {
                             const got = await this._next(event, transaction)
                             if (
