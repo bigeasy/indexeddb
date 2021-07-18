@@ -4,6 +4,7 @@ class IDBCursorWithValueImpl extends IDBCursorImpl {
     constructor (globalObject, [], properties) {
         super(globalObject, [], properties)
         this._value = null
+        this._keyOnly = false
     }
 
     get value () {

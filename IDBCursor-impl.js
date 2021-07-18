@@ -17,6 +17,7 @@ class IDBCursorImpl {
         this._direction = direction
         this._source = source
         this._gotValue = false
+        this._keyOnly = true
     }
 
     get source () {
@@ -184,10 +185,21 @@ class IDBCursorImpl {
         if (this._transaction._mode == 'readonly') {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'ReadOnlyError' ], {})
         }
-        if (this.source._isDeleted()) {
+        if (this.source._isDeleted() || ! this._gotValue || this._keyOnly) {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
         }
-        throw new Error
+        const request = IDBRequest.createImpl(this._globalObject, [], {
+            // **TODO** parent is always transaction, so...
+            transaction: this._transaction, source: this
+        })
+        this._transaction._queue.push({
+            method: 'delete',
+            store: JSON.parse(JSON.stringify(this._store)),
+            request: request,
+            query:
+            this._globalObject.IDBKeyRange.only(convert.key(this._globalObject, this._value.key))
+        })
+        return request
     }
 }
 
