@@ -162,7 +162,19 @@ class IDBCursorImpl {
     }
 
     update (value) {
-        const request = IDBRequest.createImpl(this._globalObject, [], { parent: this._transaction })
+        if (this._transaction._state != 'active') {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'TransactionInactiveError' ], {})
+        }
+        if (this._transaction._mode == 'readonly') {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'ReadOnlyError' ], {})
+        }
+        if (this.source._isDeleted() || ! this._gotValue || this._keyOnly) {
+            throw DOMException.create(this._globalObject, [ 'TODO: message', 'InvalidStateError' ], {})
+        }
+        const request = IDBRequest.createImpl(this._globalObject, [], {
+            transaction: this._transaction, source: this
+        })
+        // Transaction must not be active during a structured clone.
         this._transaction._state = 'inactive'
         value = Verbatim.deserialize(Verbatim.serialize(value)),
         this._transaction._state = 'active'
