@@ -71,7 +71,7 @@ class IDBIndexImpl {
         } else if (! (query instanceof this._globalObject.IDBKeyRange)) {
             query = this._globalObject.IDBKeyRange.only(convert.key(this._globalObject, query))
         }
-        const request = IDBRequest.createImpl(this._globalObject, [], { parent: this.objectStore._transaction, source: this })
+        const request = IDBRequest.createImpl(this._globalObject, [], { transaction: this.objectStore._transaction, source: this })
         this.objectStore._transaction._queue.push({
             method: 'get',
             type: 'index',
@@ -104,7 +104,7 @@ class IDBIndexImpl {
         } else if (! (query instanceof this._globalObject.IDBKeyRange)) {
             query = this._globalObject.IDBKeyRange.only(convert.key(this._globalObject, query))
         }
-        const request = IDBRequest.createImpl(this._globalObject, {}, { parent: this._transaction, source: this })
+        const request = IDBRequest.createImpl(this._globalObject, {}, { transaction: this.objectStore._transaction, source: this })
         this.objectStore._transaction._queue.push({
             method: 'getAll',
             type: 'index',
@@ -138,7 +138,7 @@ class IDBIndexImpl {
         } else if (! (query instanceof this._globalObject.IDBKeyRange)) {
             query = this._globalObject.IDBKeyRange.only(convert.key(this._globalObject, query))
         }
-        const request = IDBRequest.createImpl(this._globalObject, [], { parent: this._transaction, source: this })
+        const request = IDBRequest.createImpl(this._globalObject, [], { transaction: this.objectStore._transaction, source: this })
         this.objectStore._transaction._queue.push({
             method: 'count',
             type: 'index',
@@ -163,7 +163,6 @@ class IDBIndexImpl {
             query = this._globalObject.IDBKeyRange.only(convert.key(this._globalObject, query))
         }
         const request = IDBRequest.createImpl(this._globalObject, [], {
-            parent: this._transaction,
             source: this,
             transaction: this.objectStore._transaction
         })

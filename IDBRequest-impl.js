@@ -13,7 +13,7 @@ class IDBRequestImpl extends EventTargetImpl {
         super(globalObject, args, {})
 
         this._globalObject = globalObject
-        this._parent = parent || null
+        this._parent = parent || transaction || null
         this._error = null
         this.source = source
         this.transaction = transaction
@@ -41,7 +41,7 @@ class IDBRequestImpl extends EventTargetImpl {
     //
     // https://github.com/w3c/IndexedDB/issues/66#issuecomment-185297860
     _getTheParent () {
-        return this._parent
+        return this.transaction
     }
 }
 
