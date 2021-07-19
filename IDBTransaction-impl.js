@@ -117,6 +117,14 @@ class IDBTransactionImpl extends EventTargetImpl {
                                 }
                             }
                             unique = next.value
+                        } else if (cursor._direction == 'nextunique') {
+                            if (
+                                cursor._key != null &&
+                                compare(this._globalObject, cursor._key, next.value.key[0]) == 0
+                            ) {
+                                continue
+                            }
+                            return { key: next.value.key[0], value: await transaction.get(store.qualified, [ next.value.key[1] ]) }
                         } else {
                             return { key: next.value.key[0], value: await transaction.get(store.qualified, [ next.value.key[1] ]) }
                         }
@@ -397,21 +405,48 @@ class IDBTransactionImpl extends EventTargetImpl {
                     let builder
                     switch (event.type) {
                     case 'store': {
-                            if (direction == 'next') {
-                                builder = query.lower == null
-                                    ? transaction.cursor(store.qualified)
-                                    : transaction.cursor(store.qualified, [ query.lower ])
-                                if (query.upper != null) {
-                                    builder = builder.terminate(item => ! query.includes(item.key))
+                            switch (direction) {
+                            case 'next':
+                            case 'nextunique': {
+                                    builder = query.lower == null
+                                        ? transaction.cursor(store.qualified)
+                                        : transaction.cursor(store.qualified, [ query.lower ])
+                                    if (query.upper != null) {
+                                        builder = builder.terminate(item => ! query.includes(item.key))
+                                    }
                                 }
-                            } else {
-                                builder = query.upper == null
-                                    ? transaction.cursor(store.qualified)
-                                    : transaction.cursor(store.qualified, [ query.upper ])
-                                if (query.lower != null) {
-                                    builder = builder.terminate(item => ! query.includes(item.key))
+                                break
+                            case 'prev':
+                            case 'prevunique': {
+                                    // TODO Getting confusing now. When we have
+                                    // an index we can say we want some max
+                                    // value that will always place us just
+                                    // beyond the upper bound because we have a
+                                    // compound key to maniuplate, but when we
+                                    // query here we do not have a compound key
+                                    // and we have to use skip to skip the first
+                                    // value if any. That is, if the end of the
+                                    // boundary does not exist, then the first
+                                    // result will be the first value that is
+                                    // greater than the end of the boundary.
+                                    //
+                                    // So, we need to spend time with Memento
+                                    // and Strata et al considering how to get
+                                    // reverse queries that will feel identitcal
+                                    // to forward queries.
+                                    builder = query.upper == null
+                                        ? transaction.cursor(store.qualified)
+                                        : transaction.cursor(store.qualified, [ query.upper ])
+                                    //builder = query.upper == null ? builder : builder.exclusive()
+                                    builder = query.upper == null ? builder : builder.skip(item => {
+                                        return ! query.includes(item.key[0][0])
+                                    })
+                                    if (query.lower != null) {
+                                        builder = builder.terminate(item => ! query.includes(item.key))
+                                    }
+                                    builder = builder.reverse()
                                 }
-                                builder = builder.reverse()
+                                break
                             }
                         }
                         break
@@ -434,9 +469,12 @@ class IDBTransactionImpl extends EventTargetImpl {
                             case 'prev':
                             case 'prevunique': {
                                     builder = transaction.cursor(index.qualified, query.upper == null ? null : [[ query.upper, MAX ]])
+                                    builder = query.upper == null ? builder : builder.exclusive()
                                     builder = builder.reverse()
                                     if (query.lower != null) {
-                                        builder = builder.terminate(item => ! query.includes(item.key[0]))
+                                        builder = builder.terminate(item => {
+                                            return ! query.includes(item.key[0])
+                                        })
                                     }
                                 }
                                 break
@@ -457,7 +495,7 @@ class IDBTransactionImpl extends EventTargetImpl {
             case 'continue': {
                     const { store, request, cursor, key, primaryKey } = event
                     if (primaryKey == null) {
-                        if (cursor._direction == 'prevunique') {
+                        if (cursor._direction == 'prevunique' && cursor._type == 'index') {
                             let builder
                             const query = cursor._query, index = cursor._index
                             builder = transaction.cursor(index.qualified, [[ cursor._key ]])
