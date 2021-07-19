@@ -126,7 +126,7 @@ class IDBTransactionImpl extends EventTargetImpl {
         }
     }
 
-    async _delete (transaction, store, { key, value }) {
+    _delete (transaction, store, { key, value }) {
         transaction.unset(store.qualified, [ key ])
         for (const indexName in store.index) {
             const index = this._schema._pending.store[store.index[indexName]]
@@ -582,7 +582,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                     cursor = query.upper == null ? cursor : cursor.terminate(item => ! query.includes(item.key))
                     for await (const items of cursor) {
                         for (const item of items) {
-                            transaction.unset(store.qualified, [ item.key ])
+                            this._delete(transaction, store, item)
                         }
                     }
                     request.readyState = 'done'
