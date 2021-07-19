@@ -10,7 +10,7 @@ class IDBCursorImpl {
         this._globalObject = globaObject
         this._type = type
         this._store = store
-        this._request = request
+        this.request = request
         this._query = query
         this._index = index
         this._transaction = transaction
@@ -56,7 +56,7 @@ class IDBCursorImpl {
             method: 'advance',
             count: count,
             cursor: this,
-            request: this._request,
+            request: this.request,
             // TODO Probably do not need this defensive copy.
             store: JSON.parse(JSON.stringify(this._store))
         })
@@ -98,7 +98,7 @@ class IDBCursorImpl {
             key: key,
             primaryKey: null,
             cursor: this,
-            request: this._request,
+            request: this.request,
             store: JSON.parse(JSON.stringify(this._store))
         })
     }
@@ -156,7 +156,7 @@ class IDBCursorImpl {
             key: key,
             primaryKey: primaryKey,
             cursor: this,
-            request: this._request,
+            request: this.request,
             store: JSON.parse(JSON.stringify(this._store))
         })
     }
