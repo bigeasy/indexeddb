@@ -117,6 +117,14 @@ class IDBTransactionImpl extends EventTargetImpl {
                                 }
                             }
                             unique = next.value
+                        } else if (cursor._direction == 'nextunique') {
+                            if (
+                                cursor._key != null &&
+                                compare(this._globalObject, cursor._key, next.value.key[0]) == 0
+                            ) {
+                                continue
+                            }
+                            return { key: next.value.key[0], value: await transaction.get(store.qualified, [ next.value.key[1] ]) }
                         } else {
                             return { key: next.value.key[0], value: await transaction.get(store.qualified, [ next.value.key[1] ]) }
                         }
@@ -397,21 +405,29 @@ class IDBTransactionImpl extends EventTargetImpl {
                     let builder
                     switch (event.type) {
                     case 'store': {
-                            if (direction == 'next') {
-                                builder = query.lower == null
-                                    ? transaction.cursor(store.qualified)
-                                    : transaction.cursor(store.qualified, [ query.lower ])
-                                if (query.upper != null) {
-                                    builder = builder.terminate(item => ! query.includes(item.key))
+                            switch (direction) {
+                            case 'next':
+                            case 'nextunique': {
+                                    builder = query.lower == null
+                                        ? transaction.cursor(store.qualified)
+                                        : transaction.cursor(store.qualified, [ query.lower ])
+                                    if (query.upper != null) {
+                                        builder = builder.terminate(item => ! query.includes(item.key))
+                                    }
                                 }
-                            } else {
-                                builder = query.upper == null
-                                    ? transaction.cursor(store.qualified)
-                                    : transaction.cursor(store.qualified, [ query.upper ])
-                                if (query.lower != null) {
-                                    builder = builder.terminate(item => ! query.includes(item.key))
+                                break
+                            case 'prev':
+                            case 'prevunique': {
+                                    builder = query.upper == null
+                                        ? transaction.cursor(store.qualified)
+                                        : transaction.cursor(store.qualified, [ query.upper ])
+                                    builder = query.upper == null ? builder : builder.exclusive()
+                                    if (query.lower != null) {
+                                        builder = builder.terminate(item => ! query.includes(item.key))
+                                    }
+                                    builder = builder.reverse()
                                 }
-                                builder = builder.reverse()
+                                break
                             }
                         }
                         break
@@ -434,9 +450,12 @@ class IDBTransactionImpl extends EventTargetImpl {
                             case 'prev':
                             case 'prevunique': {
                                     builder = transaction.cursor(index.qualified, query.upper == null ? null : [[ query.upper, MAX ]])
+                                    builder = query.upper == null ? builder : builder.exclusive()
                                     builder = builder.reverse()
                                     if (query.lower != null) {
-                                        builder = builder.terminate(item => ! query.includes(item.key[0]))
+                                        builder = builder.terminate(item => {
+                                            return ! query.includes(item.key[0])
+                                        })
                                     }
                                 }
                                 break
@@ -457,7 +476,7 @@ class IDBTransactionImpl extends EventTargetImpl {
             case 'continue': {
                     const { store, request, cursor, key, primaryKey } = event
                     if (primaryKey == null) {
-                        if (cursor._direction == 'prevunique') {
+                        if (cursor._direction == 'prevunique' && cursor._type == 'index') {
                             let builder
                             const query = cursor._query, index = cursor._index
                             builder = transaction.cursor(index.qualified, [[ cursor._key ]])
