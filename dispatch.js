@@ -5,7 +5,7 @@ const EventTarget = require('./living/generated/EventTarget')
 
 const webidl = require('./living/generated/utils')
 const noop = require('nop')
-const callback = require('comeuppance')
+const { callback } = require('comeuppance')
 
 // Getting started here. Existing API for `event-target-shim` works, but doesn't
 // allow me to reset a user's handler if one exists. Wouldn't it be nice if

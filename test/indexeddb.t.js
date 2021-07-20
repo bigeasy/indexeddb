@@ -1,6 +1,10 @@
 require('proof')(2, async okay => {
     const { Future } = require('perhaps')
 
+    okay.leak('DOMException')
+    okay.leak('core')
+    okay.leak('__core-js_shared__')
+
     const fs = require('fs').promises
     const path = require('path')
 
