@@ -15,7 +15,7 @@ const valuify = exports.valuify = function (globalObject, value) {
     case 'object':
         if (value instanceof Date) {
             if (isNaN(value.valueOf())) {
-                throw new DataError
+                throw DOMException.create(globalObject, [ 'TODO: message 1', 'DataError' ], {})
             }
             return value
         } else if (value instanceof ArrayBuffer) {

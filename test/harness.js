@@ -1312,6 +1312,71 @@ module.exports = async function (okay, name) {
       };
     }
     globalize(barrier_func)
+function createdb_for_multiple_tests(dbname, version) {
+    var rq_open,
+        fake_open = {},
+        test = null,
+        dbname = (dbname ? dbname : "testdb-" + new Date().getTime() + Math.random() );
+
+    if (version)
+        rq_open = indexedDB.open(dbname, version);
+    else
+        rq_open = indexedDB.open(dbname);
+
+    function auto_fail(evt, current_test) {
+        /* Fail handlers, if we haven't set on/whatever/, don't
+         * expect to get event whatever. */
+        rq_open.manually_handled = {};
+
+        rq_open.addEventListener(evt, function(e) {
+            if (current_test !== test) {
+                return;
+            }
+
+            test.step(function() {
+                if (!rq_open.manually_handled[evt]) {
+                    assert_unreached("unexpected open." + evt + " event");
+                }
+
+                if (e.target.result + '' == '[object IDBDatabase]' &&
+                    !this.db) {
+                  this.db = e.target.result;
+
+                  this.db.onerror = fail(test, 'unexpected db.error');
+                  this.db.onabort = fail(test, 'unexpected db.abort');
+                  this.db.onversionchange =
+                      fail(test, 'unexpected db.versionchange');
+                }
+            });
+        });
+        rq_open.__defineSetter__("on" + evt, function(h) {
+            rq_open.manually_handled[evt] = true;
+            if (!h)
+                rq_open.addEventListener(evt, function() {});
+            else
+                rq_open.addEventListener(evt, test.step_func(h));
+        });
+    }
+
+    // add a .setTest method to the IDBOpenDBRequest object
+    Object.defineProperty(rq_open, 'setTest', {
+        enumerable: false,
+        value: function(t) {
+            test = t;
+
+            auto_fail("upgradeneeded", test);
+            auto_fail("success", test);
+            auto_fail("blocked", test);
+            auto_fail("error", test);
+
+            return this;
+        }
+    });
+
+    return rq_open;
+}
+    globalize(createdb_for_multiple_tests)
+
 
     return futures
 }
