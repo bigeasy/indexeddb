@@ -20,9 +20,14 @@ module.exports = async function (okay, name) {
             okay.leak(name)
         }
     }
+    // TODO Remove these global leaks by creating your own implementation of
+    // structured clone throwing.
+    okay.leak('DOMException')
+    okay.leak('core')
+    okay.leak('__core-js_shared__')
     globalize('wpt', 'location')
     globalize({ location: { pathname: 'wpt' } }, 'self')
-    globalize({ title: 'wpt', location: 'wpt' }, 'document')
+    globalize({ title: 'wpt', location: 'wpt', nodeType: 0, insertBefore: function () {} }, 'document')
     //const { IDBDatabase } = require('../database')
     /*
     globalize(DBDatabase, 'IDBDatabase')

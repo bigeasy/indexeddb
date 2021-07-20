@@ -5,6 +5,8 @@ const Verbatim = require('verbatim')
 const compare = require('./compare')
 const convert = require('./convert')
 
+const structuredClone = require('realistic-structured-clone')
+
 class IDBCursorImpl {
     constructor (globaObject, [], { type, transaction, store, request, direction, source, query, index }) {
         this._globalObject = globaObject
@@ -176,7 +178,7 @@ class IDBCursorImpl {
         })
         // Transaction must not be active during a structured clone.
         this._transaction._state = 'inactive'
-        value = Verbatim.deserialize(Verbatim.serialize(value)),
+        value = structuredClone(value)
         this._transaction._state = 'active'
         this._transaction._queue.push({
             method: 'set',

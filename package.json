@@ -29,6 +29,7 @@
                             "memento":                      "^0.1.32",
                             "jsdom":                        "16.6.0",
                             "nop":                          "1.0.0",
+                            "realistic-structured-clone":   "2.0.2",
                             "perhaps":                      "0.0.10",
                             "turnstile":                    "6.0.0-alpha.76",
                             "rescue":                       "7.0.0-alpha.14",
