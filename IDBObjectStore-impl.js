@@ -118,8 +118,8 @@ class IDBObjectStoreImpl {
                 }
             } else {
                 key = valuify(this._globalObject, key)
-                if (key >= this._store.autoIncrement) {
-                    this._store.autoIncrement = key + 1
+                if (typeof key == 'number' && key >= this._store.autoIncrement) {
+                    this._store.autoIncrement = Math.floor(key + 1)
                 }
             }
         } else {
