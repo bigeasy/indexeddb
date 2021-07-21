@@ -2,14 +2,16 @@ const IDBRequest = require('./living/generated/IDBRequest')
 const DOMException = require('domexception/lib/DOMException')
 const Verbatim = require('verbatim')
 
+const { valuify } = require('./value')
+
 const compare = require('./compare')
 const convert = require('./convert')
 
 const structuredClone = require('realistic-structured-clone')
 
 class IDBCursorImpl {
-    constructor (globaObject, [], { type, transaction, store, request, direction, source, query, index }) {
-        this._globalObject = globaObject
+    constructor (globalObject, [], { type, transaction, store, request, direction, source, query, index }) {
+        this._globalObject = globalObject
         this._type = type
         this._store = store
         this.request = request
@@ -180,6 +182,12 @@ class IDBCursorImpl {
         this._transaction._state = 'inactive'
         value = structuredClone(value)
         this._transaction._state = 'active'
+        if (this._store.keyPath != null) {
+            const key = valuify(this._globalObject, (this.source.objectStore || this.source)._schema.getExtractor(this._store.id)(value))
+            if (compare(this._globalObject, key, this._value.key) != 0) {
+                throw DOMException.create(this._globalObject, [ 'TODO: message', 'DataError' ], {})
+            }
+        }
         this._transaction._queue.push({
             method: 'set',
             overwrite: true,

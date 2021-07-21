@@ -102,10 +102,7 @@ class IDBObjectStoreImpl {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'DataError' ], {})
         }
         this._transaction._state = 'inactive'
-        console.log('>>>', value)
         value = structuredClone(value)
-        console.log('>>>', value)
-        console.log('>>>', Verbatim.deserialize(Verbatim.serialize(value)))
         this._transaction._state = 'active'
         if (this._store.keyPath != null) {
             key = this._schema.getExtractor(this._store.id)(value)
