@@ -19,6 +19,8 @@ const DOMException = require('domexception/lib/DOMException')
 
 const webidl = require('./living/generated/utils')
 
+const structuredClone = require('realistic-structured-clone')
+
 // Not sure if IndexedDB API expects the same object store returned from every
 // transaction, no idea how that would work, so this isn't an object that
 // implements a store, it is an object that is an interface to a store for a
@@ -100,7 +102,10 @@ class IDBObjectStoreImpl {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'DataError' ], {})
         }
         this._transaction._state = 'inactive'
-        value = Verbatim.deserialize(Verbatim.serialize(value))
+        console.log('>>>', value)
+        value = structuredClone(value)
+        console.log('>>>', value)
+        console.log('>>>', Verbatim.deserialize(Verbatim.serialize(value)))
         this._transaction._state = 'active'
         if (this._store.keyPath != null) {
             key = this._schema.getExtractor(this._store.id)(value)
