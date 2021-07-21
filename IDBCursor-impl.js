@@ -179,9 +179,12 @@ class IDBCursorImpl {
             transaction: this._transaction, source: this
         })
         // Transaction must not be active during a structured clone.
-        this._transaction._state = 'inactive'
-        value = structuredClone(value)
-        this._transaction._state = 'active'
+        try {
+            this._transaction._state = 'inactive'
+            value = structuredClone(value)
+        } finally {
+            this._transaction._state = 'active'
+        }
         if (this._store.keyPath != null) {
             const key = valuify(this._globalObject, (this.source.objectStore || this.source)._schema.getExtractor(this._store.id)(value))
             if (compare(this._globalObject, key, this._value.key) != 0) {

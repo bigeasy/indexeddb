@@ -101,9 +101,12 @@ class IDBObjectStoreImpl {
         if (key == null && this._store.autoIncrement == null && this._store.keyPath == null) {
             throw DOMException.create(this._globalObject, [ 'TODO: message', 'DataError' ], {})
         }
-        this._transaction._state = 'inactive'
-        value = structuredClone(value)
-        this._transaction._state = 'active'
+        try {
+            this._transaction._state = 'inactive'
+            value = structuredClone(value)
+        } finally {
+            this._transaction._state = 'active'
+        }
         if (this._store.keyPath != null) {
             key = this._schema.getExtractor(this._store.id)(value)
         }
@@ -111,7 +114,7 @@ class IDBObjectStoreImpl {
             if (key == null) {
                 key = this._store.autoIncrement++
                 if (this._store.keyPath != null) {
-                    vivify(value, this._store.keyPath, key)
+                    vivify(this._globalObject, value, this._store.keyPath, key)
                 }
             } else {
                 key = valuify(this._globalObject, key)

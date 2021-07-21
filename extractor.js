@@ -12,6 +12,9 @@ exports.create = function (path) {
         return function (object) {
             let i = 0
             while (object != null && parts.length != i) {
+                if (!object.hasOwnProperty(parts[i])) {
+                    return null
+                }
                 object = object[parts[i++]]
             }
             return object
