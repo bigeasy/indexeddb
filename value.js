@@ -24,8 +24,11 @@ const valuify = exports.valuify = function (globalObject, value) {
             return value.buffer
         } else if (Array.isArray(value)) {
             const converted = []
+            // TODO This is getting slow.
+            // TODO Not exactly like descriptions I don't think.
             for (let i = 0, I = value.length; i < I; i++) {
-                converted[i] = valuify(globalObject, value[i])
+                const x = value[i]
+                Object.defineProperty(converted, i, { value: valuify(globalObject, x) })
             }
             return converted
         } else {

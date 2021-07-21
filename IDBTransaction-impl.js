@@ -28,6 +28,8 @@ const EventTargetImpl = require('./living/idl/EventTarget-impl').implementation
 
 const webidl = require('./living/generated/utils')
 
+const structuredClone = require('./structuredClone')
+
 class IDBTransactionImpl extends EventTargetImpl {
     constructor (globalObject, args, { schema, request = null, database, mode, names = [], previousVersion = null, durability }) {
         super(globalObject, [], {})
@@ -334,7 +336,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                                                          .limit(1)
                                                          .array()
                             if (got.length != 0) {
-                                request._result = Verbatim.deserialize(Verbatim.serialize(keys ? got[0].key : got[0].value))
+                                request._result = structuredClone(keys ? got[0].key : got[0].value)
                             }
                             request.readyState = 'done'
                             await dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
