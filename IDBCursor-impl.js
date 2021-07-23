@@ -7,7 +7,7 @@ const { valuify } = require('./value')
 const compare = require('./compare')
 const convert = require('./convert')
 
-const structuredClone = require('realistic-structured-clone')
+const structuredClone = require('./structuredClone')
 
 class IDBCursorImpl {
     constructor (globalObject, [], { type, transaction, store, request, direction, source, query, index }) {
@@ -181,7 +181,7 @@ class IDBCursorImpl {
         // Transaction must not be active during a structured clone.
         try {
             this._transaction._state = 'inactive'
-            value = structuredClone(value)
+            value = structuredClone(this._globalObject, value)
         } finally {
             this._transaction._state = 'active'
         }

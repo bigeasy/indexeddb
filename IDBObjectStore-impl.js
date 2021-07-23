@@ -19,7 +19,7 @@ const DOMException = require('domexception/lib/DOMException')
 
 const webidl = require('./living/generated/utils')
 
-const structuredClone = require('realistic-structured-clone')
+const structuredClone = require('./structuredClone')
 
 // Not sure if IndexedDB API expects the same object store returned from every
 // transaction, no idea how that would work, so this isn't an object that
@@ -103,7 +103,7 @@ class IDBObjectStoreImpl {
         }
         try {
             this._transaction._state = 'inactive'
-            value = structuredClone(value)
+            value = structuredClone(this._globalObject, value)
         } finally {
             this._transaction._state = 'active'
         }

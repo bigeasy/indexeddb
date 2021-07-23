@@ -214,17 +214,10 @@
 var util = require('util');
 var isPlainObject = require('lodash.isplainobject');
 
-function DataCloneError(message) {
-    this.name = this.constructor.name;
-    this.message = message;
-    if (Error.captureStackTrace) {
-        Error.captureStackTrace(this, DataCloneError);
-    }
-}
-util.inherits(DataCloneError, Error);
+const DOMException = require('domexception/lib/DOMException')
 
 // https://html.spec.whatwg.org/multipage/infrastructure.html#structuredclone
-function structuredClone(input, memory) {
+function structuredClone(globalObject, input, memory) {
     memory = memory !== undefined ? memory : new Map();
 
     if (memory.has(input)) {
@@ -239,7 +232,7 @@ function structuredClone(input, memory) {
     }
 
     if (type === 'symbol') {
-        throw new DataCloneError('Value could not be cloned: ' + input.toString() + ' is a Symbol');
+        throw DOMException.create(globalObject, [ 'TODO: message', 'DataCloneError' ], {})
     }
 
     var deepClone = 'none';
@@ -251,7 +244,7 @@ function structuredClone(input, memory) {
     } else if (input instanceof ArrayBuffer) {
         output = input.slice();
     } else if (typeof ArrayBuffer !== 'undefined' && ArrayBuffer.isView && ArrayBuffer.isView(input)) {
-        var outputBuffer = structuredClone(input.buffer, memory);
+        var outputBuffer = structuredClone(globalObject, input.buffer, memory);
         if (input instanceof DataView) {
             output = new DataView(outputBuffer, input.byteOffset, input.byteLength);
         } else {
@@ -269,7 +262,7 @@ function structuredClone(input, memory) {
         output = new Array(input.length);
         deepClone = 'own';
     } else if (typeof input === 'function') {
-        throw new DataCloneError('Object could not be cloned: ' + input.name + ' is a function');
+        throw DOMException.create(globalObject, [ 'TODO: message', 'DataCloneError' ], {})
     } else if (!isPlainObject(input)) {
         // This is way too restrictive. Should be able to clone any object that isn't
         // a platform object with an internal slot other than [[Prototype]] or [[Extensible]].
@@ -278,7 +271,7 @@ function structuredClone(input, memory) {
         // for now.
 
         // Supposed to also handle FileList, ImageData, ImageBitmap, but fuck it
-        throw new DataCloneError();
+        throw DOMException.create(globalObject, [ 'TODO: message', 'DataCloneError' ], {})
     } else {
         output = {};
         deepClone = 'own';
@@ -288,18 +281,20 @@ function structuredClone(input, memory) {
 
     if (deepClone === 'map') {
         input.forEach(function (v, k) {
-            output.set(structuredClone(k, memory), structuredClone(v, memory));
+            output.set(structuredClone(globalObject, k, memory), structuredClone(globalObject, v, memory));
         });
     } else if (deepClone === 'set') {
         input.forEach(function (v) {
-            output.add(structuredClone(v, memory));
+            output.add(structuredClone(globalObject, v, memory));
         });
     } else if (deepClone === 'own') {
         for (var name in input) {
             if (input.hasOwnProperty(name)) {
                 var sourceValue = input[name];
-                var clonedValue = structuredClone(sourceValue, memory);
-                Object.defineProperty(output, name, { value: clonedValue });
+                var clonedValue = structuredClone(globalObject, sourceValue, memory);
+                Object.defineProperty(output, name, {
+                    value: clonedValue, configurable: true, writable: true, enumerable: true
+                });
             }
         }
     }

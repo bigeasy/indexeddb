@@ -336,7 +336,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                                                          .limit(1)
                                                          .array()
                             if (got.length != 0) {
-                                request._result = structuredClone(keys ? got[0].key : got[0].value)
+                                request._result = structuredClone(this._globalObject, keys ? got[0].key : got[0].value)
                             }
                             request.readyState = 'done'
                             await dispatchEvent(this, request, Event.createImpl(this._globalObject, [ 'success' ], {}))
