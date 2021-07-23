@@ -23,7 +23,7 @@
     "dependencies":
     {
                             "avenue":                       "0.6.15",
-                            "cadence":                      "4.0.0-alpha.3",
+                            "cadence":                      "4.0.0-alpha.4",
                             "comeuppance":                  "0.0.3",
                             "domexception":                 "2.0.1",
                             "memento":                      "^0.1.33",
