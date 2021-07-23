@@ -22,7 +22,7 @@
     },
     "dependencies":
     {
-                            "avenue":                       "0.6.13",
+                            "avenue":                       "0.6.15",
                             "cadence":                      "4.0.0-alpha.3",
                             "comeuppance":                  "0.0.3",
                             "domexception":                 "2.0.1",
