@@ -3,6 +3,9 @@ const assert = require('assert')
 const fs = require('fs').promises
 const path = require('path')
 
+// SQL COALESCE in JavaScript; return the first value that is not null.
+const { coalesce } = require('extant')
+
 // Do nothing.
 const noop = require('nop')
 
@@ -44,9 +47,6 @@ const DOMException = require('domexception/lib/DOMException')
 
 // WebIDL helpers.
 const webidl = require('./living/generated/utils')
-
-// Shim around recursive delete deprecation.
-const rmrf = require('./rmrf')
 
 // Create event accessors.
 const { createEventAccessor } = require('./living/helpers/create-event-accessor')
@@ -442,7 +442,7 @@ class Connector {
                     if (! this._opener.destructible.destroyed) {
                         await this._opener.close(event, null)
                     }
-                    await rmrf(process.version, fs, path.join(this._factory._directory, this._name))
+                    await coalesce(fs.rm, fs.rmdir).call(fs, path.join(this._factory._directory, this._name), { force: true, recursive: true })
                     const id = schema.name[this._name]
                     if (id != null) {
                         delete schema.store[id]

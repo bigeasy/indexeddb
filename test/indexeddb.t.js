@@ -7,10 +7,11 @@ require('proof')(2, async okay => {
 
     const fs = require('fs').promises
     const path = require('path')
+    const { coalesce } = require('extant')
 
     const directory = path.join(__dirname, 'tmp', 'indexeddb')
 
-    await fs.rmdir(directory, { recursive: true })
+    await coalesce(fs.rm, fs.rmdir).call(fs, directory, { force: true, recursive: true })
     await fs.mkdir(directory, { recursive: true })
 
     const Destructible = require('destructible')

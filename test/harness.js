@@ -4,9 +4,9 @@ module.exports = async function (okay, name) {
     const fs = require('fs').promises
     const assert = require('assert')
     const path = require('path')
-    const rmrf = require('../rmrf')
+    const { coalesce } = require('extant')
     const directory = path.join(__dirname, 'tmp', name)
-    await rmrf(process.version, fs, directory)
+    await coalesce(fs.rm, fs.rmdir).call(fs, directory, { force: true, recursive: true })
     await fs.mkdir(directory, { recursive: true })
     function globalize (value, name = null) {
         if (name == null) {
