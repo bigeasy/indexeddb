@@ -1,5 +1,5 @@
 require('proof')(50, async okay => {
-    await require('./HARness')(okay, 'transaction-abort-object-store-metadata-revert')
+    await require('./harness')(okay, 'transaction-abort-object-store-metadata-revert')
     await harness(async function () {
         'use strict';
 
