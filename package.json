@@ -33,7 +33,7 @@
                             "perhaps":                      "0.0.11",
                             "turnstile":                    "6.0.0-alpha.78",
                             "rescue":                       "7.0.0-alpha.16",
-                            "verbatim":                     "0.1.5"
+                            "verbatim":                     "0.1.6"
     },
     "devDependencies":
     {
