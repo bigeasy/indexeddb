@@ -380,7 +380,18 @@ class IDBTransactionImpl extends EventTargetImpl {
                         break
                     case 'index': {
                             const { store, index, query, count, request, keys } = event
-                            const cursor = transaction.cursor(index.qualified, query.lower == null ? null : [[ query.lower ]])
+                            // Here we can't just the `exclusive` property becasue we are always
+                            // going to be searching by a partial key. We use our special `MAX`
+                            // when we want an exclusive search so that we will be at the record
+                            // greater than the greatest possible record of the specified key.
+                            // Exclusive flag is not necessary since this record will never be
+                            // found.
+                            const key = query.lower == null
+                                ? null
+                                : query.lowerOpen
+                                    ? [[ query.lower, MAX  ]]
+                                    : [[ query.lower ]]
+                            const cursor = transaction.cursor(index.qualified, key)
                             const terminated = query.lower == null ? cursor : cursor.terminate(item => ! query.includes(item.key[0]))
                             const limited = count == null || count == 0 ? terminated : cursor.limit(count)
                             const exclusive = query.lower != null && query.lowerOpen ? limited.skip(item => {
@@ -436,13 +447,18 @@ class IDBTransactionImpl extends EventTargetImpl {
                             switch (direction) {
                             case 'next':
                             case 'nextunique': {
-                                    // TODO Seems like you need to sort out what lowerOpen
-                                    // means, maybe translate that to `_exclusive` inside the
-                                    // object because you forget, or at least leave a comment.
-                                    builder = transaction.cursor(index.qualified, query.lower == null ? null : [[ query.lower ]])
-                                    builder = query.lower != null && query.lowerOpen ? builder.skip(item => {
-                                        return compare(this._globalObject, item.key[0][0][0], query.lower) == 0
-                                    }) : builder
+                                    // Here we can't just the `exclusive` property becasue we are always
+                                    // going to be searching by a partial key. We use our special `MAX`
+                                    // when we want an exclusive search so that we will be at the record
+                                    // greater than the greatest possible record of the specified key.
+                                    // Exclusive flag is not necessary since this record will never be
+                                    // found.
+                                    const key = query.lower == null
+                                        ? null
+                                        : query.lowerOpen
+                                            ? [[ query.lower, MAX  ]]
+                                            : [[ query.lower ]]
+                                    builder = transaction.cursor(index.qualified, key)
                                     if (query.upper != null) {
                                         builder = builder.terminate(item => ! query.includes(item.key[0]))
                                     }
