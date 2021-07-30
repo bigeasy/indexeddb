@@ -420,29 +420,9 @@ class IDBTransactionImpl extends EventTargetImpl {
                                 break
                             case 'prev':
                             case 'prevunique': {
-                                    // TODO Getting confusing now. When we have
-                                    // an index we can say we want some max
-                                    // value that will always place us just
-                                    // beyond the upper bound because we have a
-                                    // compound key to maniuplate, but when we
-                                    // query here we do not have a compound key
-                                    // and we have to use skip to skip the first
-                                    // value if any. That is, if the end of the
-                                    // boundary does not exist, then the first
-                                    // result will be the first value that is
-                                    // greater than the end of the boundary.
-                                    //
-                                    // So, we need to spend time with Memento
-                                    // and Strata et al considering how to get
-                                    // reverse queries that will feel identitcal
-                                    // to forward queries.
                                     builder = query.upper == null
                                         ? transaction.cursor(store.qualified)
                                         : transaction.cursor(store.qualified, [ query.upper ])
-                                    //builder = query.upper == null ? builder : builder.exclusive()
-                                    builder = query.upper == null ? builder : builder.skip(item => {
-                                        return ! query.includes(item.key[0][0])
-                                    })
                                     if (query.lower != null) {
                                         builder = builder.terminate(item => ! query.includes(item.key))
                                     }
