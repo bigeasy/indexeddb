@@ -227,7 +227,7 @@ function structuredClone(globalObject, input, memory) {
     var type = typeof input;
     var output;
 
-    if (type === 'string' || type === 'number' || type === 'boolean' || type === 'undefined' || input === null) {
+    if (type === 'string' || type === 'number' || type === 'boolean' || type === 'undefined' || type === 'bigint' || input === null) {
         return input;
     }
 
@@ -239,6 +239,8 @@ function structuredClone(globalObject, input, memory) {
 
     if (input instanceof Boolean || input instanceof Number || input instanceof String || input instanceof Date) {
         output = new input.constructor(input.valueOf());
+    } else if (input instanceof BigInt) {
+        output = Object(input.valueOf())
     } else if (input instanceof RegExp) {
         output = new RegExp(input.source, input.flags);
     } else if (input instanceof ArrayBuffer) {
@@ -262,6 +264,7 @@ function structuredClone(globalObject, input, memory) {
         output = new Array(input.length);
         deepClone = 'own';
     } else if (typeof input === 'function') {
+        throw new Error
         throw DOMException.create(globalObject, [ 'TODO: message', 'DataCloneError' ], {})
     } else if (!isPlainObject(input)) {
         // This is way too restrictive. Should be able to clone any object that isn't
@@ -271,6 +274,7 @@ function structuredClone(globalObject, input, memory) {
         // for now.
 
         // Supposed to also handle FileList, ImageData, ImageBitmap, but fuck it
+        throw new Error
         throw DOMException.create(globalObject, [ 'TODO: message', 'DataCloneError' ], {})
     } else {
         output = {};
