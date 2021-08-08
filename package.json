@@ -31,7 +31,7 @@
                             "lodash.isplainobject":         "4.0.6",
                             "nop":                          "1.0.0",
                             "perhaps":                      "0.0.11",
-                            "turnstile":                    "6.0.0-alpha.78",
+                            "turnstile":                    "6.0.0-alpha.79",
                             "rescue":                       "7.0.0-alpha.16",
                             "verbatim":                     "0.1.8"
     },
