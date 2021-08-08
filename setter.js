@@ -5,17 +5,14 @@ exports.vivify = function (globalObject, object, path, value) {
     let iterator = object
     while (parts.length != 1) {
         const part = parts.shift()
-        if (! iterator[part]) {
-            const object = {}
-            iterator[part] = object
-            if (iterator[part] !== object) {
-                throw DOMException.create(globalObject, [ 'TODO: message', 'DataError' ], {})
-            }
+        if (! iterator.hasOwnProperty(part)) {
+            Object.defineProperty(iterator, part, { value: {}, enumerable: true, configurable: true, writable: true })
         }
-        iterator = iterator[part]
+        const object = iterator[part]
+        if (typeof object !== 'object' || object === null || Array.isArray(object)) {
+            throw DOMException.create(globalObject, [ 'TODO: message', 'DataError' ], {})
+        }
+        iterator = object
     }
-    iterator[parts[0]] = value
-    if (iterator[parts[0]] !== value) {
-        throw DOMException.create(globalObject, [ 'TODO: message', 'DataError' ], {})
-    }
+    Object.defineProperty(iterator, parts[0], { value: value, enumerable: true, configurable: true, writable: true })
 }

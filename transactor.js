@@ -10,6 +10,12 @@ class Transactor {
 
     _startTransactions () {
         WAITS: for (const name in this._queues) {
+            // Necessary to pass web platform tests. Some Web Platform Tests
+            // monkey patch Object in order to assert that clone and injection
+            // assignments are done through property definitions, not setters.
+            if (! this._queues.hasOwnProperty(name)) {
+                continue
+            }
             const queue = this._queues[name]
             for (;;) {
                 const node = queue.waiting[0]

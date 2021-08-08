@@ -139,6 +139,9 @@ class IDBTransactionImpl extends EventTargetImpl {
     _delete (transaction, store, { key, value }) {
         transaction.unset(store.qualified, [ key ])
         for (const indexName in store.index) {
+            if (! store.index.hasOwnProperty(indexName)) {
+                continue
+            }
             const index = this._schema._pending.store[store.index[indexName]]
             if (! index.extant) {
                 continue
@@ -283,6 +286,9 @@ class IDBTransactionImpl extends EventTargetImpl {
                             break SWITCH
                         }
                         for (const indexName in store.index) {
+                            if (! store.index.hasOwnProperty(indexName)) {
+                                continue
+                            }
                             const index = this._schema._pending.store[store.index[indexName]]
                             if (! index.extant) {
                                 continue
@@ -296,6 +302,12 @@ class IDBTransactionImpl extends EventTargetImpl {
                     request._result = key
                     const record = { key, value }
                     for (const indexName in store.index) {
+                        // Necessary to pass web platform tests. Some Web Platform Tests
+                        // monkey patch Object in order to assert that clone and injection
+                        // assignments are done through property definitions, not setters.
+                        if (! store.index.hasOwnProperty(indexName)) {
+                            continue
+                        }
                         const index = this._schema._pending.store[store.index[indexName]]
                         if (! index.extant) {
                             continue
