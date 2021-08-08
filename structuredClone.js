@@ -263,8 +263,12 @@ function structuredClone(globalObject, input, memory) {
     } else if (Array.isArray(input)) {
         output = new Array(input.length);
         deepClone = 'own';
+    // Duck-type DOM node objects (non-array exotic? objects which cannot be cloned by the SCA)
+    // See:
+    // https://github.com/dfahlander/typeson-registry/blob/master/presets/structured-cloning-throwing.js
+    } else if (input && typeof input === 'object' && typeof input.nodeType === 'number' && typeof input.insertBefore === 'function') {
+        throw DOMException.create(globalObject, [ 'TODO: message', 'DataCloneError' ], {})
     } else if (typeof input === 'function') {
-        throw new Error
         throw DOMException.create(globalObject, [ 'TODO: message', 'DataCloneError' ], {})
     } else if (!isPlainObject(input)) {
         // This is way too restrictive. Should be able to clone any object that isn't
