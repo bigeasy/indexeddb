@@ -26,7 +26,7 @@ module.exports = function compare (globalObject, left, right) {
     if (left === MAX) {
         return 1
     }
-    if (right == MAX) {
+    if (right === MAX) {
         return -1
     }
     // TODO: Why am I converting to a value every time?
