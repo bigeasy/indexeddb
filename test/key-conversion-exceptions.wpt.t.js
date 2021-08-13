@@ -1,4 +1,4 @@
-require('proof')(9, async okay => {
+require('proof')(63, async okay => {
     await require('./harness')(okay, 'key-conversion-exceptions')
     await harness(async function () {
 
@@ -64,7 +64,7 @@ require('proof')(9, async okay => {
         test(t => {
             check_method(indexedDB, 'cmp', 2);
         }, 'IDBFactory cmp() static with throwing/invalid keys');
-return
+
         // Continue methods on IDBCursor.
         indexeddb_upgrade_only_test((t, db) => {
             var store = db.createObjectStore('store');
