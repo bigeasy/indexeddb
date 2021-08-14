@@ -1,4 +1,4 @@
-require('proof')(31, async okay => {
+require('proof')(29, async okay => {
     await require('./harness')(okay, 'writer-starvation')
     await harness(async function () {
             var db, read_request_count = 0, read_success_count = 0;
@@ -25,7 +25,7 @@ require('proof')(31, async okay => {
                       .get(1)
                       .onsuccess = this.step_func(function(e) {
                             read_success_count++;
-                            assert_equals(e.target.transaction.mode, "readonly");
+                            assert_equals(e.target.transaction.mode, "readonly", 'is readonly');
                         });
                 }
 
@@ -40,7 +40,12 @@ require('proof')(31, async okay => {
                       .onsuccess = this.step_func(function(e)
                     {
                         read_success_count++;
-                        assert_equals(e.target.transaction.mode, "readonly");
+                        // Replaced because because we invoke this function multiple times
+                        // based on a timer timeout, the `step_timeout` below gets invoked
+                        // if it has not completed.
+                        if (e.target.transaction.mode != "readonly") {
+                            throw new Error
+                        }
 
                         if (read_success_count >= RQ_COUNT && write_request_count == 0)
                         {
@@ -52,7 +57,7 @@ require('proof')(31, async okay => {
                               .onsuccess = this.step_func(function(e)
                             {
                                 write_success_count++;
-                                assert_equals(e.target.transaction.mode, "readwrite");
+                                assert_equals(e.target.transaction.mode, "readwrite", 'is readwrite');
                                 assert_equals(e.target.result, read_success_count,
                                                "write cb came before later read cb's")
                             });
@@ -73,9 +78,9 @@ require('proof')(31, async okay => {
                         }
                     });
 
-                    if (read_success_count < RQ_COUNT + 5)
+                    if (read_success_count < RQ_COUNT + 5) {
                         step_timeout(this.step_func(loop), write_request_count ? 1000 : 100);
-                    else
+                    } else {
                         // This is merely a "nice" hack to run finish after the last request is done
                         db.transaction("s")
                           .objectStore("s")
@@ -84,6 +89,7 @@ require('proof')(31, async okay => {
                         {
                             step_timeout(this.step_func(finish), 100);
                         });
+                    }
                 }
             }
 
