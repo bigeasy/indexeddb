@@ -278,6 +278,7 @@ function structuredClone(globalObject, input, memory) {
         // for now.
 
         // Supposed to also handle FileList, ImageData, ImageBitmap, but fuck it
+        console.log(input)
         throw new Error
         throw DOMException.create(globalObject, [ 'TODO: message', 'DataCloneError' ], {})
     } else {
