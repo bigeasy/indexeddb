@@ -30,7 +30,7 @@
                             "jsdom":                        "17.0.0",
                             "lodash.isplainobject":         "4.0.6",
                             "nop":                          "1.0.0",
-                            "perhaps":                      "0.0.11",
+                            "perhaps":                      "0.0.12",
                             "turnstile":                    "6.0.0-alpha.81",
                             "rescue":                       "7.0.0-alpha.17",
                             "verbatim":                     "0.1.8"
