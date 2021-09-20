@@ -37,7 +37,7 @@
     },
     "devDependencies":
     {
-                            "arguable":                     "13.0.0-alpha.5",
+                            "arguable":                     "13.0.0-alpha.6",
                             "cheerio":                      "1.0.0-rc.10",
                             "programmatic":                 "2.0.0-alpha.11",
                             "proof":                        "^9.0.3",
