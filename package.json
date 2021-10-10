@@ -25,7 +25,7 @@
                             "avenue":                       "0.6.16",
                             "cadence":                      "4.0.0-alpha.4",
                             "comeuppance":                  "0.0.3",
-                            "domexception":                 "2.0.1",
+                            "domexception":                 "4.0.0",
                             "memento":                      "^0.1.42",
                             "jsdom":                        "18.0.0",
                             "lodash.isplainobject":         "4.0.6",
