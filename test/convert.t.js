@@ -5,6 +5,8 @@ require('proof')(5, okay => {
 
     const globalObject = {}
 
+    require('../global').add(globalObject)
+
     DOMException.install(globalObject, [ 'Window' ])
 
     const errors = []

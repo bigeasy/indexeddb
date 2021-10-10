@@ -2,8 +2,8 @@ require('proof')(23, okay => {
     const comparator = require('../compare')
     const WrapperDOMException = require("domexception/webidl2js-wrapper")
     const globalObject = {}
-    globalObject.Error = Error
-    WrapperDOMException.install(globalObject)
+    require('../global').add(globalObject)
+    WrapperDOMException.install(globalObject, [ 'Window' ])
     const compare = (left, right) => comparator(globalObject, left, right)
     const test = []
     try {

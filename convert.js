@@ -28,7 +28,6 @@ exports.key = function (globalObject, value, path = []) {
                     }
                     keys.push(exports.key(globalObject, value[i], subPath))
                 }
-                console.log('>>>', keys)
                 return keys
             }
             throw DOMException.create(globalObject, [ 'TODO: message', 'DataError' ], {})
