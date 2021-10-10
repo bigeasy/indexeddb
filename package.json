@@ -42,7 +42,7 @@
                             "programmatic":                 "2.0.0-alpha.11",
                             "proof":                        "^9.0.3",
                             "rimraf":                       "3.0.2",
-                            "webidl2js":                    "17.0.0"
+                            "webidl2js":                    "16.2.0"
     },
     "main":                 "indexeddb",
     "nyc":
