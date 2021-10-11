@@ -17,17 +17,23 @@
 //
 // IndexedDB installs from NPM.
 
+// ## Living `README.md`
+//
 // This `README.md` is also a unit test using the
 // [Proof](https://github.com/bigeasy/proof) unit test framework. We'll use the
 // Proof `okay` function to assert out statements in the readme. A Proof unit test
 // generally looks like this.
 
-require('proof')(4, async okay => {
-    okay('always okay')
-    okay(true, 'okay if true')
-    okay(1, 1, 'okay if equal')
-    okay({ value: 1 }, { value: 1 }, 'okay if deep strict equal')
+require('proof')(1, async okay => {
+    // ## Overview
+    //
+    // IndexedDB is a pure-JavaScript implementation of the IndxedDB API for Node.js.
+
+    okay('TODO')
 })
+
+// You can run this unit test yourself to see the output from the various
+// code sections of the readme.
 
 // ## Open for Discussion
 //
