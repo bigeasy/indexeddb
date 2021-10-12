@@ -51,8 +51,38 @@ node test/readme.t.js
 
 IndexedDB is a pure-JavaScript implementation of the IndxedDB API for Node.js.
 
+IndexedDB exports a single `IndexedDB` object.
+
 ```javascript
-okay('TODO')
+const IndexedDB = require('turnstile')
+```
+
+Additional requires.
+
+```javascript
+const Destructible = require('destructible')
+```
+
+For the sake of our unit test.
+
+```javascript
+const path = require('path')
+```
+
+Construction.
+
+```javascript
+const destructible = new Destructible('indexeddb.readme.t')
+
+const indexedDB = IndexedDB.create(destructible, path.join(__dirname, 'tmp', 'readme'))
+```
+
+Shutdown.
+
+```javascript
+destructible.destroy()
+
+await destructible.promise
 ```
 
 ## Open for Discussion

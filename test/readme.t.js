@@ -28,8 +28,49 @@ require('proof')(1, async okay => {
     // ## Overview
     //
     // IndexedDB is a pure-JavaScript implementation of the IndxedDB API for Node.js.
+    //
+    // IndexedDB exports a single `IndexedDB` object.
 
-    okay('TODO')
+    const IndexedDB = require('..')
+
+    // Additional requires.
+
+    const Destructible = require('destructible')
+
+    // For the sake of our unit test.
+
+    const path = require('path')
+
+    // This will not appear in `README.md`.
+
+    // As noted, this `README.md` is also a unit test. We need a temporary directory
+    // to store our write-ahead log for the unit test. We delete it and recreate it
+    // on every run of the test.
+
+    // Node.js file system and file path APIs.
+    const fs = require('fs').promises
+
+    // Our directory will live under our test directory.
+    const directory = path.join(__dirname, 'tmp', 'readme')
+
+    // Remove the existing directory recursively with a hack to accommodate Node.js
+    // file system API deprecations.
+    await (fs.rm || fs.rmdir).call(fs, directory, { force: true, recursive: true })
+
+    // Create the temporary directory.
+    await fs.mkdir(directory, { recursive: true })
+
+    // Construction.
+
+    const destructible = new Destructible('indexeddb.readme.t')
+
+    const indexedDB = IndexedDB.create(destructible, path.join(__dirname, 'tmp', 'readme'))
+
+    // Shutdown.
+
+    destructible.destroy()
+
+    await destructible.promise
 })
 
 // You can run this unit test yourself to see the output from the various

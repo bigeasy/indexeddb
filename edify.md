@@ -61,9 +61,64 @@ node test/readme.t.js
 
 IndexedDB is a pure-JavaScript implementation of the IndxedDB API for Node.js.
 
+IndexedDB exports a single `IndexedDB` object.
+
+```javascript
+//{ "name": "test", "code": { "path": "'..'" }, "text": { "path": "'turnstile'" } }
+const IndexedDB = require(%(path)s)
+```
+
+Additional requires.
+
 ```javascript
 //{ "name": "test" }
-okay('TODO')
+const Destructible = require('destructible')
+```
+
+For the sake of our unit test.
+```javascript
+//{ "name": "test" }
+const path = require('path')
+```
+
+```javascript
+//{ "name": "test", "mode": "code" }
+// This will not appear in `README.md`.
+
+// As noted, this `README.md` is also a unit test. We need a temporary directory
+// to store our write-ahead log for the unit test. We delete it and recreate it
+// on every run of the test.
+
+// Node.js file system and file path APIs.
+const fs = require('fs').promises
+
+// Our directory will live under our test directory.
+const directory = path.join(__dirname, 'tmp', 'readme')
+
+// Remove the existing directory recursively with a hack to accommodate Node.js
+// file system API deprecations.
+await (fs.rm || fs.rmdir).call(fs, directory, { force: true, recursive: true })
+
+// Create the temporary directory.
+await fs.mkdir(directory, { recursive: true })
+```
+
+Construction.
+
+```javascript
+//{ "name": "test" }
+const destructible = new Destructible('indexeddb.readme.t')
+
+const indexedDB = IndexedDB.create(destructible, path.join(__dirname, 'tmp', 'readme'))
+```
+
+Shutdown.
+
+```javascript
+//{ "name": "test" }
+destructible.destroy()
+
+await destructible.promise
 ```
 
 ## Open for Discussion
