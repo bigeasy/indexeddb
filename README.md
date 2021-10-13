@@ -77,11 +77,48 @@ const destructible = new Destructible('indexeddb.readme.t')
 const indexedDB = IndexedDB.create(destructible, path.join(__dirname, 'tmp', 'readme'))
 ```
 
+For the sake of the test.
+
+```javascript
+const request = indexedDB.open('test', 1)
+
+request.onupgradeneeded = function (event) {
+    const db = request.result
+    const store = db.createObjectStore('president', { keyPath: [ 'lastName', 'firstName' ] })
+    store.put({ firstName: 'George', lastName: 'Washington' })
+    store.put({ firstName: 'John', lastName: 'Adams' })
+    store.put({ firstName: 'Thomas', lastName: 'Jefferson' })
+}
+
+request.onsuccess = function (event) {
+    const db = request.result
+    const cursor = db.transaction('president')
+                     .objectStore('president')
+                     .openCursor()
+    const gathered = []
+    cursor.onsuccess = function (event) {
+        const cursor = event.target.result
+        if (cursor != null) {
+            gathered.push(cursor.value)
+            cursor.continue()
+        } else {
+            okay(gathered, [{
+                firstName: 'John', lastName: 'Adams'
+            }, {
+                firstName: 'Thomas', lastName: 'Jefferson'
+            }, {
+                firstName: 'George', lastName: 'Washington'
+            }], 'gathered')
+            db.close()
+            destructible.destroy()
+        }
+    }
+}
+```
+
 Shutdown.
 
 ```javascript
-destructible.destroy()
-
 await destructible.promise
 ```
 
