@@ -47,6 +47,13 @@ npm install --no-package-lock --no-save
 node test/readme.t.js
 ```
 
+## Status
+
+Most Web Platform Tests pass. Working on this `README.md` which will have an
+accurate accounting of WPT and more verbiage around the example. I'm going to
+defer any description as to how to use the IndexedDB API to the many other
+resources on the Internet.
+
 ## Overview
 
 IndexedDB is a pure-JavaScript implementation of the IndxedDB API for Node.js.

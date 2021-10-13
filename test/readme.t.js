@@ -25,6 +25,13 @@
 // generally looks like this.
 
 require('proof')(1, async okay => {
+    // ## Status
+    //
+    // Most Web Platform Tests pass. Working on this `README.md` which will have an
+    // accurate accounting of WPT and more verbiage around the example. I'm going to
+    // defer any description as to how to use the IndexedDB API to the many other
+    // resources on the Internet.
+    //
     // ## Overview
     //
     // IndexedDB is a pure-JavaScript implementation of the IndxedDB API for Node.js.
