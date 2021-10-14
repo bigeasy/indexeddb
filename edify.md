@@ -71,7 +71,7 @@ IndexedDB is a pure-JavaScript implementation of the IndxedDB API for Node.js.
 IndexedDB exports a single `IndexedDB` object.
 
 ```javascript
-//{ "name": "test", "code": { "path": "'..'" }, "text": { "path": "'turnstile'" } }
+//{ "name": "test", "code": { "path": "'..'" }, "text": { "path": "'indexeddb'" } }
 const IndexedDB = require(%(path)s)
 ```
 

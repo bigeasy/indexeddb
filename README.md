@@ -61,7 +61,7 @@ IndexedDB is a pure-JavaScript implementation of the IndxedDB API for Node.js.
 IndexedDB exports a single `IndexedDB` object.
 
 ```javascript
-const IndexedDB = require('turnstile')
+const IndexedDB = require('indexeddb')
 ```
 
 Additional requires.
