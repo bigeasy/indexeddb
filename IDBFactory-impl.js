@@ -259,6 +259,7 @@ class Opener {
                             schema._root.name[item.name] = item.id
                             break
                         case 'index':
+                            // **TODO** What? Why not?
                         }
                         if (item.keyPath != null) {
                             schema._root.extractor[item.id] = extractor.create(item.keyPath)

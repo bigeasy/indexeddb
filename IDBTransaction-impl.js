@@ -98,7 +98,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                 cursor._outer.next = await cursor._outer.iterator.next()
                 if (cursor._outer.next.done) {
                     if (unique != null) {
-                        const got = { key: unique.key[0], value: await transaction.get(store.qualified, [ unique.key[1] ]) }
+                        const got = { key: unique.key, value: await transaction.get(store.qualified, [ unique.referent ]) }
                         unique = null
                         return got
                     }
@@ -114,21 +114,21 @@ class IDBTransactionImpl extends EventTargetImpl {
                 case 'index': {
                         if (cursor._direction == 'prevunique') {
                             if (unique != null) {
-                                if (compare(this._globalObject, unique.key[0], next.value.key[0]) != 0) {
-                                    return { key: unique.key[0], value: await transaction.get(store.qualified, [ unique.key[1] ]) }
+                                if (compare(this._globalObject, unique.key, next.value.key) != 0) {
+                                    return { key: unique.key, value: await transaction.get(store.qualified, [ unique.referent ]) }
                                 }
                             }
                             unique = next.value
                         } else if (cursor._direction == 'nextunique') {
                             if (
                                 cursor._key != null &&
-                                compare(this._globalObject, cursor._key, next.value.key[0]) == 0
+                                compare(this._globalObject, cursor._key, next.value.key) == 0
                             ) {
                                 continue
                             }
-                            return { key: next.value.key[0], value: await transaction.get(store.qualified, [ next.value.key[1] ]) }
+                            return { key: next.value.key, value: await transaction.get(store.qualified, [ next.value.referent ]) }
                         } else {
-                            return { key: next.value.key[0], value: await transaction.get(store.qualified, [ next.value.key[1] ]) }
+                            return { key: next.value.key, value: await transaction.get(store.qualified, [ next.value.referent ]) }
                         }
                     }
                 }
@@ -155,7 +155,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                 rescue(error, [ this._globalObject.DOMException ])
                 continue
             }
-            transaction.unset(index.qualified, [[ extracted, key ]])
+            transaction.unset(index.qualified, [ extracted, key ])
         }
     }
 
@@ -228,14 +228,14 @@ class IDBTransactionImpl extends EventTargetImpl {
                         break
                     case 'index': {
                             const { store, index } = event
-                            await transaction.store(index.qualified, { key: 'indexeddb' })
+                            await transaction.store(index.qualified, { key: 'indexeddb', referent: 'indexeddb' })
                             transaction.set('schema', store)
                             transaction.set('schema', index)
                             const extractor = this._schema.getExtractor(index.id)
                             for await (const items of transaction.cursor(store.qualified)) {
                                 for (const item of items) {
                                     for (const value of this._extractIndexed(index, item.value)) {
-                                        transaction.set(index.qualified, { key: [ value, item.key ] })
+                                        transaction.set(index.qualified, { key: value, referent: item.key })
                                     }
                                 }
                             }
@@ -247,7 +247,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                                             previous = item
                                             continue
                                         }
-                                        if (compare(this._globalObject, previous.key[0], item.key[0]) == 0) {
+                                        if (compare(this._globalObject, previous.key, item.key) == 0) {
                                             this.error = DOMException.create(this._globalObject, [ 'TODO: message', 'ConstraintError' ], {})
                                             this.abort()
                                             break OUTER
@@ -295,7 +295,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                             }
                             const values = this._extractIndexed(index, got.value)
                             for (const value of values) {
-                                transaction.unset(index.qualified, [[ value, key ]])
+                                transaction.unset(index.qualified, [ value, key ])
                             }
                         }
                     }
@@ -315,8 +315,8 @@ class IDBTransactionImpl extends EventTargetImpl {
                         const values = this._extractIndexed(index, record.value)
                         for (const value of values) {
                             if (index.unique) {
-                                const got = await transaction.cursor(index.qualified, [[ value ]])
-                                                             .terminate(item => compare(this._globalObject, item.key[0], value) != 0)
+                                const got = await transaction.cursor(index.qualified, [ value ])
+                                                             .terminate(item => compare(this._globalObject, item.key, value) != 0)
                                                              .array()
                                 if (got.length != 0) {
                                     const event = Event.createImpl(this._globalObject, [ 'error', { bubbles: true, cancelable: true } ], {})
@@ -331,7 +331,7 @@ class IDBTransactionImpl extends EventTargetImpl {
                                     break SWITCH
                                 }
                             }
-                            transaction.set(index.qualified, { key: [ value, key ] })
+                            transaction.set(index.qualified, { key: value, referent: key })
                         }
                     }
                     transaction.set(store.qualified, record)
@@ -359,10 +359,10 @@ class IDBTransactionImpl extends EventTargetImpl {
                             // TODO What if query lower is `null` but query upper is not?
                             const cursor = query.lower == null
                                 ? transaction.cursor(index.qualified)
-                                : transaction.cursor(index.qualified, [[ query.lower ]])
-                            const indexGot = await cursor.terminate(item => ! query.includes(item.key[0])).limit(1).array()
+                                : transaction.cursor(index.qualified, [ query.lower ])
+                            const indexGot = await cursor.terminate(item => ! query.includes(item.key)).limit(1).array()
                             if (indexGot.length != 0) {
-                                const got = await transaction.get(store.qualified, [ indexGot[0].key[1] ])
+                                const got = await transaction.get(store.qualified, [ indexGot[0].referent ])
                                 request._result = Verbatim.deserialize(Verbatim.serialize(key ? got.key : got.value))
                             }
                             request.readyState = 'done'
@@ -398,23 +398,17 @@ class IDBTransactionImpl extends EventTargetImpl {
                             // greater than the greatest possible record of the specified key.
                             // Exclusive flag is not necessary since this record will never be
                             // found.
-                            const key = query.lower == null
-                                ? null
-                                : query.lowerOpen
-                                    ? [[ query.lower, MAX  ]]
-                                    : [[ query.lower ]]
+                            const key = query.lower == null ? null : [ query.lower ]
                             const cursor = transaction.cursor(index.qualified, key)
-                            const terminated = query.lower == null ? cursor : cursor.terminate(item => ! query.includes(item.key[0]))
+                            const terminated = query.lower == null ? cursor : cursor.terminate(item => ! query.includes(item.key))
                             const limited = count == null || count == 0 ? terminated : cursor.limit(count)
-                            const exclusive = query.lower != null && query.lowerOpen ? limited.skip(item => {
-                                return compare(this._globalObject, item.key[0][0][0], query.lower) == 0
-                            }) : limited
+                            const exclusive = query.lowerOpen ? limited.exclusive() : limited
                             // TODO Use Memento join.
                             // TODO Do a structured copy.
                             request._result = []
                             for await (const items of exclusive) {
                                 for (const item of items) {
-                                    const got = await transaction.get(store.qualified, [ item.key[1] ])
+                                    const got = await transaction.get(store.qualified, [ item.referent ])
                                     request._result.push(keys ? got.key : got.value)
                                 }
                             }
@@ -436,6 +430,9 @@ class IDBTransactionImpl extends EventTargetImpl {
                                     builder = query.lower == null
                                         ? transaction.cursor(store.qualified)
                                         : transaction.cursor(store.qualified, [ query.lower ])
+                                    if (query.lowerOpen) {
+                                        builder = builder.exclusive()
+                                    }
                                     if (query.upper != null) {
                                         builder = builder.terminate(item => ! query.includes(item.key))
                                     }
@@ -465,26 +462,23 @@ class IDBTransactionImpl extends EventTargetImpl {
                                     // greater than the greatest possible record of the specified key.
                                     // Exclusive flag is not necessary since this record will never be
                                     // found.
-                                    const key = query.lower == null
-                                        ? null
-                                        : query.lowerOpen
-                                            ? [[ query.lower, MAX  ]]
-                                            : [[ query.lower ]]
+                                    const key = query.lower == null ? null : [ query.lower ]
                                     builder = transaction.cursor(index.qualified, key)
+                                    if (query.lowerOpen) {
+                                        builder = builder.exclusive()
+                                    }
                                     if (query.upper != null) {
-                                        builder = builder.terminate(item => ! query.includes(item.key[0]))
+                                        builder = builder.terminate(item => ! query.includes(item.key))
                                     }
                                 }
                                 break
                             case 'prev':
                             case 'prevunique': {
-                                    builder = transaction.cursor(index.qualified, query.upper == null ? null : [[ query.upper, MAX ]])
-                                    builder = query.upper == null ? builder : builder.exclusive()
+                                    builder = transaction.cursor(index.qualified, query.upper == null ? null : [ query.upper ])
+                                    builder = query.upperOpen ? builder.exclusive() : builder
                                     builder = builder.reverse()
                                     if (query.lower != null) {
-                                        builder = builder.terminate(item => {
-                                            return ! query.includes(item.key[0])
-                                        })
+                                        builder = builder.terminate(item => ! query.includes(item.key))
                                     }
                                 }
                                 break
@@ -508,11 +502,11 @@ class IDBTransactionImpl extends EventTargetImpl {
                         if (cursor._direction == 'prevunique' && cursor._type == 'index') {
                             let builder
                             const query = cursor._query, index = cursor._index
-                            builder = transaction.cursor(index.qualified, [[ cursor._key ]])
+                            builder = transaction.cursor(index.qualified, [ cursor._key ])
                             builder = builder.reverse()
                             builder = builder.exclusive()
                             if (query.lower != null) {
-                                builder = builder.terminate(item => ! query.includes(item.key[0]))
+                                builder = builder.terminate(item => ! query.includes(item.key))
                             }
                             cursor._outer = { iterator: builder[Symbol.asyncIterator](), next: null }
                             cursor._inner = {
@@ -595,10 +589,8 @@ class IDBTransactionImpl extends EventTargetImpl {
                     case 'index': {
                             const { index, store, request, query } = event
                             request._result = 0
-                            let cursor = query.lower == null ? transaction.cursor(index.qualified) : transaction.cursor(index.qualified, [[ query.lower ]])
-                            cursor = query.upper == null ? cursor : cursor.terminate(item => {
-                                return ! query.includes(item.key[0])
-                            })
+                            let cursor = query.lower == null ? transaction.cursor(index.qualified) : transaction.cursor(index.qualified, [ query.lower ])
+                            cursor = query.upper == null ? cursor : cursor.terminate(item => ! query.includes(item.key))
                             for await (const items of cursor) {
                                 for (const item of items) {
                                     request._result++
