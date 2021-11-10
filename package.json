@@ -27,7 +27,7 @@
                             "comeuppance":                  "0.0.3",
                             "domexception":                 "4.0.0",
                             "memento":                      "^0.1.47",
-                            "jsdom":                        "18.0.0",
+                            "jsdom":                        "18.0.1",
                             "lodash.isplainobject":         "4.0.6",
                             "nop":                          "1.0.0",
                             "perhaps":                      "0.0.12",
